@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HIIT 训练统计</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-slate-900 text-white font-sans min-h-screen">
+
+    <!-- 顶部导航 -->
+    <header class="p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="text-xl font-bold tracking-wider hover:opacity-80 transition">
+                <i class="fas fa-chart-line mr-2"></i>训练统计
+            </a>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="exportDatabase()"
+                class="text-sm bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-full transition text-slate-300">
+                <i class="fas fa-download mr-1"></i> 导出数据
+            </button>
+            <a href="hiit_jump_rope.html"
+                class="text-sm bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 px-4 py-2 rounded-full transition">
+                <i class="fas fa-play mr-1"></i> 开始训练
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-800 rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-rose-400" id="totalWorkouts">0</div>
+                <div class="text-slate-400 text-sm mt-1">总训练次数</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-orange-400" id="totalCalories">0</div>
+                <div class="text-slate-400 text-sm mt-1">总消耗卡路里</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-400" id="totalTime">0</div>
+                <div class="text-slate-400 text-sm mt-1">总运动时间(分)</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-4 text-center">
+                <div class="text-3xl font-bold text-blue-400" id="avgCalories">0</div>
+                <div class="text-slate-400 text-sm mt-1">平均卡路里/次</div>
+            </div>
+        </div>
+
+        <!-- 图表 -->
+        <div class="bg-slate-800 rounded-xl p-6 mb-8">
+            <h2 class="text-lg font-semibold mb-4">卡路里趋势 (最近30天)</h2>
+            <div class="overflow-x-auto pb-4">
+                <div class="h-64 min-w-[600px]" id="chartContainer">
+                    <canvas id="caloriesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 训练历史 -->
+        <div class="bg-slate-800 rounded-xl p-6">
+            <h2 class="text-lg font-semibold mb-4">训练历史</h2>
+            <div id="historyList" class="space-y-3">
+                <div class="text-center text-slate-500 py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl"></i>
+                    <p class="mt-2">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const DB_NAME = 'hiit_workouts_db';
+        let db = null;
+        let chart = null;
+
+        // query helper
+        function executeQuery(sql) {
+            if (window.parent !== window) {
+                return new Promise((resolve, reject) => {
+                    const requestId = 'req_' + Date.now() + '_' + Math.random();
+                    const handler = (event) => {
+                        if (event.data.requestId === requestId) {
+                            window.removeEventListener('message', handler);
+                            if (event.data.status === 'success') {
+                                resolve(event.data.result);
+                            } else {
+                                console.warn('App Shell query failed (likely DB not loaded):', event.data.message);
+                                resolve([]); // Return empty result to prevent crash
+                            }
+                        }
+                    };
+                    window.addEventListener('message', handler);
+                    window.parent.postMessage({
+                        type: 'REQUEST_DB_DATA',
+                        requestId: requestId,
+                        sql: sql
+                    }, '*');
+                });
+            } else {
+                // Standalone mode
+                if (!db) return Promise.resolve([]);
+                return Promise.resolve(db.exec(sql));
+            }
+        }
+
+        async function init() {
+            // Standalone Check
+            if (window.parent === window) {
+                await loadDatabase();
+            }
+
+            // Render
+            await renderAll();
+
+            // Listen for DB updates from parent (e.g. user loaded file)
+            window.addEventListener('message', (event) => {
+                if (event.data.type === 'DB_UPDATED') {
+                    console.log('DB Updated, refreshing stats...');
+                    renderAll();
+                }
+            });
+        }
+
+        async function renderAll() {
+            await renderStats();
+            await renderChart();
+            await renderHistory();
+        }
+
+        async function loadDatabase() {
+            try {
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+                });
+
+                const savedDb = await loadDbFromIndexedDB();
+                if (savedDb) {
+                    db = new SQL.Database(savedDb);
+                }
+            } catch (err) {
+                console.error('Load database error:', err);
+            }
+        }
+
+        function loadDbFromIndexedDB() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    e.target.result.createObjectStore('database');
+                };
+                request.onsuccess = (e) => {
+                    const idb = e.target.result;
+                    const tx = idb.transaction('database', 'readonly');
+                    const getReq = tx.objectStore('database').get('sqlite');
+                    getReq.onsuccess = () => resolve(getReq.result ? new Uint8Array(getReq.result) : null);
+                    getReq.onerror = () => resolve(null);
+                };
+                request.onerror = () => resolve(null);
+            });
+        }
+
+        async function renderStats() {
+            const result = await executeQuery(`
+                SELECT 
+                    COUNT(*) as count,
+                    COALESCE(SUM(calories), 0) as totalCal,
+                    COALESCE(SUM(total_work_time), 0) as totalTime,
+                    COALESCE(AVG(calories), 0) as avgCal
+                FROM workouts
+            `);
+
+            if (result && result.length > 0) {
+                const [count, totalCal, totalTime, avgCal] = result[0].values[0];
+                document.getElementById('totalWorkouts').textContent = count;
+                document.getElementById('totalCalories').textContent = totalCal;
+                document.getElementById('totalTime').textContent = Math.round(totalTime / 60);
+                document.getElementById('avgCalories').textContent = Math.round(avgCal);
+            } else {
+                // Reset if no data
+                document.getElementById('totalWorkouts').textContent = '0';
+                document.getElementById('totalCalories').textContent = '0';
+                document.getElementById('totalTime').textContent = '0';
+                document.getElementById('avgCalories').textContent = '0';
+            }
+        }
+
+        async function exportDatabase() {
+            if (!db) return;
+            try {
+                const binaryArray = db.export();
+                const blob = new Blob([binaryArray], { type: 'application/x-sqlite3' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hiit_workouts_${new Date().toISOString().slice(0, 10)}.sqlite`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url); // Clean up
+            } catch (err) {
+                console.error('Export error:', err);
+                alert('导出失败: ' + err.message);
+            }
+        }
+
+        async function renderChart() {
+            const result = await executeQuery(`
+                SELECT date(date) as day, SUM(calories) as cal
+                FROM workouts
+                WHERE date >= date('now', '-30 days')
+                GROUP BY date(date)
+                ORDER BY day
+            `);
+
+            const labels = [];
+            const data = [];
+
+            if (result && result.length > 0) {
+                result[0].values.forEach(row => {
+                    labels.push(row[0].slice(5)); // MM-DD
+                    data.push(row[1]);
+                });
+            }
+
+            // 动态设置宽度
+            const container = document.getElementById('chartContainer');
+            const minWidth = 600;
+            const requiredWidth = Math.max(minWidth, labels.length * 40);
+            container.style.width = `${requiredWidth}px`;
+
+            const ctx = document.getElementById('caloriesChart').getContext('2d');
+
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '卡路里',
+                        data: data,
+                        backgroundColor: 'rgba(251, 146, 60, 0.6)',
+                        borderColor: 'rgb(251, 146, 60)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        maxBarThickness: 30
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // ... existing init ...
+
+        // Edit Modal Helper
+        const editModal = document.getElementById('editModal');
+        let currentEditId = null;
+
+        function openEditModal(id, date, rounds, work, rest, cals, weight) {
+            currentEditId = id;
+            document.getElementById('edit-rounds').value = rounds;
+            document.getElementById('edit-work').value = work;
+            document.getElementById('edit-rest').value = rest;
+            document.getElementById('edit-cals').value = cals;
+            document.getElementById('edit-weight').value = weight || '';
+            // formatted date for input
+            // date input needs yyyy-MM-ddThh:mm
+            try {
+                const d = new Date(date);
+                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                document.getElementById('edit-date').value = d.toISOString().slice(0, 16);
+            } catch (e) { console.error(e); }
+
+            editModal.classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            currentEditId = null;
+        }
+
+        async function saveEdit() {
+            if (!currentEditId) return;
+            const rounds = parseInt(document.getElementById('edit-rounds').value);
+            const work = parseInt(document.getElementById('edit-work').value);
+            const rest = parseInt(document.getElementById('edit-rest').value);
+            const cals = parseInt(document.getElementById('edit-cals').value);
+            const weight = parseFloat(document.getElementById('edit-weight').value);
+            const dateStr = document.getElementById('edit-date').value;
+
+            // Recalculate derived if needed? For now just simple update
+            // Total work time might change, but let's trust manual input or keep logic simple
+            // We'll just update these fields.
+
+            const msg = {
+                type: 'UPDATE_WORKOUT',
+                requestId: 'req_upd_' + Date.now(),
+                data: {
+                    id: currentEditId,
+                    date: dateStr,
+                    rounds, work_time: work, rest_time: rest,
+                    calories: cals, weight
+                }
+            };
+
+            window.parent.postMessage(msg, '*');
+            closeEditModal();
+        }
+
+        function deleteWorkout(id) {
+            if (confirm('确定要删除这条记录吗？')) {
+                window.parent.postMessage({
+                    type: 'DELETE_WORKOUT',
+                    requestId: 'req_del_' + Date.now(),
+                    id: id
+                }, '*');
+            }
+        }
+
+        async function renderHistory() {
+            let query = `
+                SELECT id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time
+                FROM workouts
+                ORDER BY date DESC
+                LIMIT 50
+            `;
+
+            let result = await executeQuery(query);
+
+            if (!result || result.length === 0 || result[0].values.length === 0) {
+                document.getElementById('historyList').innerHTML = `
+                    <div class="text-center text-slate-500 py-8">
+                        <p>暂无训练记录</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = result[0].values.map(row => {
+                const [id, date, rounds, workTime, restTime, totalWorkTime, calories, weight, totalTime] = row;
+                const dateStr = new Date(date).toLocaleString('zh-CN', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                const workMins = Math.floor(totalWorkTime / 60);
+                const workSecs = totalWorkTime % 60;
+
+                let durationStr = '';
+                if (totalTime) {
+                    const totalMins = Math.floor(totalTime / 60);
+                    const totalSecs = totalTime % 60;
+                    durationStr = ` · 总耗时 ${totalMins}分${totalSecs}秒`;
+                }
+
+                return `
+                    <div class="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg group hover:bg-slate-700 transition">
+                        <div>
+                            <div class="font-medium">${dateStr}</div>
+                            <div class="text-sm text-slate-400">
+                                ${rounds}轮 · ${workTime}s/${restTime}s · 运动 ${workMins}分${workSecs}秒${durationStr}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="text-xl font-bold text-orange-400">${calories}</div>
+                                <div class="text-xs text-slate-500">kcal</div>
+                            </div>
+                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="openEditModal(${id}, '${date}', ${rounds}, ${workTime}, ${restTime}, ${calories}, ${weight})" class="p-2 text-blue-400 hover:bg-blue-500/20 rounded">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteWorkout(${id})" class="p-2 text-red-400 hover:bg-red-500/20 rounded">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('historyList').innerHTML = html;
+        }
+
+        init();
+    </script>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">修改记录</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">日期时间</label>
+                    <input type="datetime-local" id="edit-date"
+                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">轮数</label>
+                        <input type="number" id="edit-rounds"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">卡路里</label>
+                        <input type="number" id="edit-cals"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">运动(秒)</label>
+                        <input type="number" id="edit-work"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">休息(秒)</label>
+                        <input type="number" id="edit-rest"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">体重(kg)</label>
+                    <input type="number" id="edit-weight" step="0.1"
+                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-slate-400 hover:text-white">取消</button>
+                <button onclick="saveEdit()"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
+    </script>
+
+</body>
+
+</html>

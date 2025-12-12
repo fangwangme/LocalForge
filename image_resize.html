@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片压缩工具</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--bg-card);
+        }
+
+        header a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        header a:hover {
+            opacity: 0.8;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--bg-card);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-secondary);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .drop-zone i {
+            font-size: 3rem;
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .settings {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .settings h4 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .setting-row label {
+            min-width: 100px;
+            font-size: 0.9rem;
+        }
+
+        .setting-row select,
+        .setting-row input {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--bg-card);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .results {
+            margin-top: 2rem;
+        }
+
+        .result-item {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .result-item img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-info h5 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .result-status {
+            text-align: right;
+        }
+
+        .result-status .size {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .result-status .size.success {
+            color: var(--accent-green);
+        }
+
+        .result-status .reduction {
+            font-size: 0.8rem;
+            color: var(--accent-orange);
+        }
+
+        .processing {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-blue);
+        }
+
+        .processing i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-download:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a href="index.html"><i class="fas fa-compress-alt"></i> 图片压缩工具</a>
+    </header>
+
+    <main>
+        <div class="drop-zone" id="dropZone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <h3>拖放图片到这里</h3>
+            <p>或点击选择文件（支持 PNG、JPG）</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple>
+
+        <div class="settings">
+            <h4><i class="fas fa-cog"></i> 压缩设置</h4>
+            <div class="setting-row">
+                <label>目标大小</label>
+                <select id="targetSize">
+                    <option value="500">500 KB</option>
+                    <option value="1000">1 MB</option>
+                    <option value="2000" selected>2 MB (YouTube)</option>
+                    <option value="5000">5 MB</option>
+                    <option value="custom">自定义...</option>
+                </select>
+                <input type="number" id="customSize" class="hidden" placeholder="KB" min="100" max="10000">
+            </div>
+            <div class="setting-row">
+                <label>输出格式</label>
+                <select id="outputFormat">
+                    <option value="auto">保持原格式</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WebP</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="results" id="results"></div>
+    </main>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const targetSizeSelect = document.getElementById('targetSize');
+        const customSizeInput = document.getElementById('customSize');
+        const outputFormatSelect = document.getElementById('outputFormat');
+        const resultsContainer = document.getElementById('results');
+
+        // 目标大小选择
+        targetSizeSelect.addEventListener('change', () => {
+            if (targetSizeSelect.value === 'custom') {
+                customSizeInput.classList.remove('hidden');
+                customSizeInput.focus();
+            } else {
+                customSizeInput.classList.add('hidden');
+            }
+        });
+
+        // 获取目标大小 (bytes)
+        function getTargetSize() {
+            const value = targetSizeSelect.value === 'custom'
+                ? parseInt(customSizeInput.value) || 2000
+                : parseInt(targetSizeSelect.value);
+            return value * 1024; // KB to bytes
+        }
+
+        // 拖放事件
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+
+        // 处理文件
+        async function handleFiles(files) {
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                await processImage(file);
+            }
+        }
+
+        // 存储待下载的 blob
+        const pendingDownloads = new Map();
+
+        // 处理单个图片
+        async function processImage(file) {
+            const targetBytes = getTargetSize();
+            const originalSize = file.size;
+            const outputName = generateOutputName(file.name, targetBytes);
+
+            // 如果已经小于目标大小
+            if (originalSize <= targetBytes) {
+                const resultId = addResult(file.name, originalSize, originalSize, 'already_small', outputName);
+                pendingDownloads.set(resultId, { blob: file, name: outputName });
+                return;
+            }
+
+            // 添加处理中状态
+            const resultId = addResult(file.name, originalSize, null, 'processing', null);
+
+            try {
+                const compressedBlob = await compressImage(file, targetBytes);
+                pendingDownloads.set(resultId, { blob: compressedBlob, name: outputName });
+                updateResult(resultId, compressedBlob.size, 'success', outputName, originalSize);
+            } catch (err) {
+                console.error('Compression error:', err);
+                updateResult(resultId, null, 'error', null, originalSize);
+            }
+        }
+
+        // 手动触发下载
+        function triggerDownload(resultId) {
+            const item = pendingDownloads.get(resultId);
+            if (item) {
+                downloadFile(item.blob, item.name);
+            }
+        }
+
+        // 压缩图片 - 通过调整质量来达到目标大小
+        async function compressImage(file, targetBytes) {
+            const img = await loadImage(file);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // 确定输出格式
+            let mimeType = file.type;
+            const format = outputFormatSelect.value;
+            if (format !== 'auto') {
+                mimeType = `image/${format}`;
+            }
+
+            // PNG 不支持质量参数，需要转为 JPEG 或 WebP
+            if (mimeType === 'image/png') {
+                // 先尝试 PNG，如果太大则转为 WebP
+                let blob = await canvasToBlob(canvas, mimeType, 1);
+                if (blob.size <= targetBytes) return blob;
+
+                // PNG 太大，改用 WebP
+                mimeType = 'image/webp';
+            }
+
+            // 二分法查找最佳质量
+            let minQuality = 0.1;
+            let maxQuality = 1.0;
+            let bestBlob = null;
+
+            for (let i = 0; i < 10; i++) {
+                const quality = (minQuality + maxQuality) / 2;
+                const blob = await canvasToBlob(canvas, mimeType, quality);
+
+                if (blob.size <= targetBytes) {
+                    bestBlob = blob;
+                    minQuality = quality;  // 尝试更高质量
+                } else {
+                    maxQuality = quality;  // 需要更低质量
+                }
+
+                // 如果足够接近目标，提前结束
+                if (bestBlob && Math.abs(bestBlob.size - targetBytes) < targetBytes * 0.05) {
+                    break;
+                }
+            }
+
+            return bestBlob || await canvasToBlob(canvas, mimeType, minQuality);
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        function canvasToBlob(canvas, mimeType, quality) {
+            return new Promise((resolve) => {
+                canvas.toBlob(resolve, mimeType, quality);
+            });
+        }
+
+        // 生成输出文件名
+        function generateOutputName(originalName, targetBytes) {
+            const targetKB = Math.round(targetBytes / 1024);
+            const ext = outputFormatSelect.value === 'auto'
+                ? originalName.split('.').pop()
+                : outputFormatSelect.value === 'jpeg' ? 'jpg' : outputFormatSelect.value;
+            const baseName = originalName.replace(/\.[^.]+$/, '');
+            return `${baseName}_${targetKB}.${ext}`;
+        }
+
+        // 下载文件
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+        }
+
+        // 添加结果项
+        function addResult(filename, originalSize, compressedSize, status, outputName) {
+            const id = 'result-' + Date.now();
+            let statusHtml = '';
+
+            if (status === 'processing') {
+                statusHtml = '<div class="processing"><i class="fas fa-spinner"></i> 压缩中...</div>';
+            } else if (status === 'already_small') {
+                statusHtml = `
+                    <div style="text-align: right;">
+                        <div class="size success" style="margin-bottom: 4px;">✓ 无需压缩</div>
+                        <button class="btn-download" onclick="triggerDownload('${id}')">
+                            <i class="fas fa-download"></i> 下载
+                        </button>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="result-item" id="${id}" data-original-size="${originalSize}">
+                    <div class="result-info">
+                        <h5>${filename}</h5>
+                        <p>原始: ${formatSize(originalSize)}</p>
+                        ${outputName ? `<p style="font-size: 0.75rem; color: #64748b;">→ ${outputName}</p>` : ''}
+                    </div>
+                    <div class="result-status">${statusHtml}</div>
+                </div>
+            `;
+            resultsContainer.insertAdjacentHTML('afterbegin', html);
+            return id;
+        }
+
+        // 更新结果状态
+        function updateResult(id, compressedSize, status, outputName, originalSize) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            const statusEl = el.querySelector('.result-status');
+            const infoEl = el.querySelector('.result-info');
+
+            if (outputName) {
+                // 添加输出文件名
+                const existingOutput = infoEl.querySelector('p:last-child');
+                if (!existingOutput || !existingOutput.textContent.includes('→')) {
+                    infoEl.insertAdjacentHTML('beforeend', `<p style="font-size: 0.75rem; color: #64748b;">→ ${outputName}</p>`);
+                }
+            }
+
+            if (status === 'success' && compressedSize) {
+                const reduction = Math.round((1 - compressedSize / originalSize) * 100);
+                statusEl.innerHTML = `
+                    <div style="text-align: right;">
+                        <div class="size success">${formatSize(compressedSize)}</div>
+                        <div class="reduction" style="margin-bottom: 8px;">减少 ${reduction}%</div>
+                        <button class="btn-download" onclick="triggerDownload('${id}')">
+                            <i class="fas fa-download"></i> 下载
+                        </button>
+                    </div>
+                `;
+            } else {
+                statusEl.innerHTML = '<div style="color: #ef4444;">压缩失败</div>';
+            }
+        }
+    </script>
+</body>
+
+</html>

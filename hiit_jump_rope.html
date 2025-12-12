@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HIIT Jump Rope Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- sql.js for SQLite in browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <style>
+        /* 自定义过渡动画 */
+        body {
+            transition: background-color 0.6s ease-in-out;
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.1s linear, stroke 0.6s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* 隐藏数字输入框的箭头 */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 脉冲动画 - 用于准备阶段 */
+        @keyframes pulse-text {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(0.95);
+            }
+        }
+
+        .animate-pulse-custom {
+            animation: pulse-text 1.5s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col select-none">
+
+    <!-- 顶部导航/标题 -->
+    <header
+        class="p-4 flex flex-shrink-0 justify-between items-center z-10 bg-slate-900/80 backdrop-blur-sm sticky top-0">
+        <a href="index.html" class="text-xl font-bold tracking-wider hover:opacity-80 transition">
+            <i class="fas fa-stopwatch mr-2"></i>HIIT Jump Rope
+        </a>
+        <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
+            <i class="fas fa-redo-alt mr-1"></i> Reset
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col relative w-full max-w-md mx-auto px-6 pb-8">
+
+        <!-- 1. Setup Screen -->
+        <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-bold">Configure Workout</h2>
+                <p class="text-slate-400 text-sm">Set up your HIIT session</p>
+            </div>
+
+            <div class="space-y-6">
+                <!-- 运动时间 -->
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                    <label class="flex justify-between text-rose-400 font-semibold mb-2">
+                        <span><i class="fas fa-fire-alt mr-2"></i>Work Time</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
+                                data-target="workInput" data-delta="-5">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="workDisplay" class="w-14 text-center">45s</span>
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
+                                data-target="workInput" data-delta="5">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </label>
+                    <input type="range" id="workInput" min="30" max="90" step="5" value="45"
+                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>30s</span>
+                        <span>90s</span>
+                    </div>
+                </div>
+
+                <!-- 休息时间 -->
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                    <label class="flex justify-between text-emerald-400 font-semibold mb-2">
+                        <span><i class="fas fa-coffee mr-2"></i>Rest Time</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
+                                data-target="restInput" data-delta="-5">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="restDisplay" class="w-14 text-center">30s</span>
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
+                                data-target="restInput" data-delta="5">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </label>
+                    <input type="range" id="restInput" min="30" max="60" step="5" value="30"
+                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>30s</span>
+                        <span>60s</span>
+                    </div>
+                </div>
+
+                <!-- 轮数 -->
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                    <label class="flex justify-between text-blue-400 font-semibold mb-2">
+                        <span><i class="fas fa-sync-alt mr-2"></i>Rounds</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
+                                data-target="roundsInput" data-delta="-1">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="roundsDisplay" class="w-14 text-center">8</span>
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
+                                data-target="roundsInput" data-delta="1">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </label>
+                    <input type="range" id="roundsInput" min="5" max="15" step="1" value="8"
+                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>5</span>
+                        <span>15</span>
+                    </div>
+                </div>
+
+                <!-- 体重 -->
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                    <label class="flex justify-between text-purple-400 font-semibold mb-2">
+                        <span><i class="fas fa-weight mr-2"></i>Weight</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
+                                data-target="weightInput" data-delta="-1">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span id="weightDisplay" class="w-16 text-center">70 kg</span>
+                            <button type="button"
+                                class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
+                                data-target="weightInput" data-delta="1">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </label>
+                    <input type="range" id="weightInput" min="40" max="120" step="1" value="70"
+                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                        <span>40kg</span>
+                        <span>120kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button id="startBtn"
+                    class="w-full bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
+                    Start Workout
+                </button>
+                <p class="text-center text-xs text-slate-500 mt-3">Total Duration: <span
+                        id="totalTimeDisplay">08:00</span></p>
+            </div>
+        </div>
+
+        <!-- 2. Timer Screen -->
+        <div id="timerScreen"
+            class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] py-8 relative">
+
+            <!-- 状态标签 -->
+            <div class="absolute top-0 text-center z-10">
+                <div id="phaseText" class="text-4xl font-black uppercase tracking-widest drop-shadow-md">GET READY</div>
+                <div class="text-lg font-medium opacity-90 mt-1">
+                    Round <span id="currentRoundDisplay">1</span> / <span id="totalRoundsDisplay">8</span>
+                </div>
+            </div>
+
+            <!-- 圆形进度条容器 -->
+            <div class="relative w-72 h-72 flex items-center justify-center">
+                <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
+                    <!-- 背景圆环 -->
+                    <circle class="text-white/20" stroke-width="8" stroke="currentColor" fill="transparent" r="52"
+                        cx="60" cy="60" />
+                    <!-- 进度圆环 -->
+                    <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="8"
+                        stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
+                </svg>
+
+                <!-- 中间的大数字 -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="timerDisplay"
+                        class="text-7xl font-mono font-bold tabular-nums tracking-tight drop-shadow-lg">00:00</span>
+                    <button id="toggleBtn"
+                        class="mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center transition">
+                        <i id="toggleIcon" class="fas fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 下一阶段提示 -->
+            <div class="absolute bottom-10 text-center opacity-80">
+                <p class="text-sm uppercase tracking-wide">Up Next</p>
+                <p id="nextPhaseText" class="font-bold text-lg">WORK</p>
+            </div>
+        </div>
+
+        <!-- 3. Complete Screen -->
+        <div id="completeScreen"
+            class="hidden flex-col items-center justify-center text-center space-y-6 min-h-[calc(100vh-120px)] py-8">
+            <div class="text-6xl text-yellow-400 animate-bounce">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h2 class="text-4xl font-bold">Workout Complete!</h2>
+            <p class="text-lg text-slate-200">Great job!</p>
+
+            <!-- 训练统计 -->
+            <div class="w-full max-w-xs space-y-3 mt-4">
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-rose-500/30 rounded-full flex items-center justify-center">
+                            <i class="fas fa-clock text-rose-400"></i>
+                        </div>
+                        <span class="text-slate-300">Work Time</span>
+                    </div>
+                    <span id="finalWorkTime" class="text-xl font-bold text-rose-400">00:00</span>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-orange-500/30 rounded-full flex items-center justify-center">
+                            <i class="fas fa-fire text-orange-400"></i>
+                        </div>
+                        <span class="text-slate-300">Calories Burned</span>
+                    </div>
+                    <span id="finalCalories" class="text-xl font-bold text-orange-400">0 kcal</span>
+                </div>
+            </div>
+
+            <button id="homeBtn"
+                class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition">
+                Go Again
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // === 状态管理 ===
+        const state = {
+            phase: 'setup', // setup, getReady, work, rest, paused, finished
+            workTime: 45,
+            restTime: 30,
+            totalRounds: 8,
+            currentRound: 1,
+            timeLeft: 0,
+            intervalId: null,
+            isPaused: false,
+            audioContext: null,
+            weight: 70,
+            totalWorkTime: 0, // 累计运动时间（秒）
+            startTime: null,  // 实际开始时间
+            endTime: null,    // 实际结束时间
+            db: null // SQLite 数据库实例
+        };
+
+        // === DOM 元素 ===
+        const els = {
+            body: document.body,
+            setupScreen: document.getElementById('setupScreen'),
+            timerScreen: document.getElementById('timerScreen'),
+            completeScreen: document.getElementById('completeScreen'),
+
+            // Inputs
+            workInput: document.getElementById('workInput'),
+            restInput: document.getElementById('restInput'),
+            roundsInput: document.getElementById('roundsInput'),
+            weightInput: document.getElementById('weightInput'),
+
+            // Displays
+            workDisplay: document.getElementById('workDisplay'),
+            restDisplay: document.getElementById('restDisplay'),
+            roundsDisplay: document.getElementById('roundsDisplay'),
+            weightDisplay: document.getElementById('weightDisplay'),
+            totalTimeDisplay: document.getElementById('totalTimeDisplay'),
+
+            // Complete Screen Stats
+            finalWorkTime: document.getElementById('finalWorkTime'),
+            finalCalories: document.getElementById('finalCalories'),
+
+            // Timer UI
+            timerDisplay: document.getElementById('timerDisplay'),
+            phaseText: document.getElementById('phaseText'),
+            currentRoundDisplay: document.getElementById('currentRoundDisplay'),
+            totalRoundsDisplay: document.getElementById('totalRoundsDisplay'),
+            progressCircle: document.getElementById('progressCircle'),
+            nextPhaseText: document.getElementById('nextPhaseText'),
+            toggleIcon: document.getElementById('toggleIcon'),
+
+            // Buttons
+            startBtn: document.getElementById('startBtn'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            homeBtn: document.getElementById('homeBtn')
+        };
+
+        // === 圆环设置 ===
+        const radius = 52;
+        const circumference = 2 * Math.PI * radius;
+        els.progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+        els.progressCircle.style.strokeDashoffset = circumference;
+
+        // === 声音控制 (简单的振荡器) ===
+        const playBeep = (type = 'normal') => {
+            if (!state.audioContext) {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (state.audioContext.state === 'suspended') {
+                state.audioContext.resume();
+            }
+
+            const oscillator = state.audioContext.createOscillator();
+            const gainNode = state.audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(state.audioContext.destination);
+
+            if (type === 'high') { // 结束/开始的长音
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, state.audioContext.currentTime); // A5
+                gainNode.gain.setValueAtTime(0.1, state.audioContext.currentTime);
+                oscillator.start();
+                oscillator.stop(state.audioContext.currentTime + 0.6);
+            } else { // 倒计时的短音
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(660, state.audioContext.currentTime); // E5
+                gainNode.gain.setValueAtTime(0.1, state.audioContext.currentTime);
+                oscillator.start();
+                oscillator.stop(state.audioContext.currentTime + 0.1);
+            }
+        };
+
+        // === 辅助函数 ===
+        const formatTime = (seconds) => {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        const calculateTotalTime = () => {
+            const w = parseInt(els.workInput.value);
+            const r = parseInt(els.restInput.value);
+            const rounds = parseInt(els.roundsInput.value);
+            // 总时间 = (工作+休息) * 轮数 - 最后一轮不需要休息
+            const totalSecs = (w + r) * rounds - r;
+            els.totalTimeDisplay.innerText = formatTime(totalSecs > 0 ? totalSecs : 0);
+        };
+
+        const setProgress = (percent) => {
+            const offset = circumference - (percent / 100) * circumference;
+            els.progressCircle.style.strokeDashoffset = offset;
+        };
+
+        const updateColors = (phase) => {
+            // 重置所有类
+            els.body.classList.remove('bg-rose-600', 'bg-emerald-600', 'bg-slate-900', 'bg-yellow-600');
+
+            if (phase === 'setup' || phase === 'finished') {
+                els.body.classList.add('bg-slate-900');
+            } else if (phase === 'work') {
+                els.body.classList.add('bg-rose-600'); // 红色/运动
+            } else if (phase === 'rest') {
+                els.body.classList.add('bg-emerald-600'); // 绿色/休息
+            } else if (phase === 'getReady') {
+                els.body.classList.add('bg-yellow-600'); // 黄色/准备
+            }
+        };
+
+        // === 核心逻辑 ===
+
+        const startTimer = () => {
+            if (state.intervalId) clearInterval(state.intervalId);
+            state.isPaused = false;
+            els.toggleIcon.className = 'fas fa-pause';
+
+            let lastTime = Date.now();
+
+            state.intervalId = setInterval(() => {
+                if (state.isPaused) {
+                    lastTime = Date.now(); // 防止暂停时时间跳跃
+                    return;
+                }
+
+                const now = Date.now();
+                const delta = (now - lastTime) / 1000;
+                lastTime = now;
+
+                if (state.timeLeft > 0) {
+                    state.timeLeft -= delta;
+
+                    // 累计运动时间（只在运动阶段累计）
+                    if (state.phase === 'work') {
+                        state.totalWorkTime += delta;
+                    }
+
+                    // 音效逻辑：最后3秒，且是整数秒附近
+                    const ceilTime = Math.ceil(state.timeLeft);
+                    if (state.timeLeft <= 3.1 && state.timeLeft > 0) {
+                        // 简单的去抖动检查，防止一秒响多次
+                        const prevCeil = Math.ceil(state.timeLeft + delta);
+                        if (ceilTime !== prevCeil) {
+                            playBeep('normal');
+                        }
+                    }
+
+                } else {
+                    // 时间到，切换阶段
+                    playBeep('high');
+                    switchPhase();
+                }
+
+                updateTimerUI();
+            }, 100); // 100ms 更新一次UI，保证圆环流畅
+        };
+
+        const switchPhase = () => {
+            if (state.phase === 'getReady') {
+                // 准备结束，进入第一轮运动
+                state.phase = 'work';
+                state.timeLeft = state.workTime;
+            } else if (state.phase === 'work') {
+                // 运动结束，检查是否所有轮次都完成了
+                if (state.currentRound >= state.totalRounds) {
+                    finishWorkout();
+                    return;
+                }
+                // 还没结束，进入休息
+                state.phase = 'rest';
+                state.timeLeft = state.restTime;
+                // 注意：这里删除了 state.currentRound++，防止在休息时显示下一轮
+            } else if (state.phase === 'rest') {
+                // 休息结束，进入下一轮运动
+                state.currentRound++; // 在这里增加轮数
+                state.phase = 'work';
+                state.timeLeft = state.workTime;
+            }
+            updateTimerUI(true); // 强制刷新文本
+        };
+
+        const updateTimerUI = (forceTextUpdate = false) => {
+            if (state.phase === 'finished') return;
+
+            // 防止显示负数
+            const displayTime = Math.max(0, Math.ceil(state.timeLeft));
+            els.timerDisplay.innerText = formatTime(displayTime);
+
+            // 更新圆环
+            let totalPhaseTime;
+            if (state.phase === 'getReady') totalPhaseTime = 5; // 准备时间固定5秒
+            else if (state.phase === 'work') totalPhaseTime = state.workTime;
+            else totalPhaseTime = state.restTime;
+
+            const percent = (state.timeLeft / totalPhaseTime) * 100;
+            setProgress(percent);
+
+            // Update text and colors
+            if (state.phase === 'getReady') {
+                els.phaseText.innerText = 'GET READY';
+                els.nextPhaseText.innerText = 'WORK';
+                els.currentRoundDisplay.innerText = state.currentRound;
+            } else if (state.phase === 'work') {
+                els.phaseText.innerText = 'WORK';
+                els.nextPhaseText.innerText = (state.currentRound === state.totalRounds) ? 'FINISH' : 'REST';
+                els.currentRoundDisplay.innerText = state.currentRound;
+            } else if (state.phase === 'rest') {
+                els.phaseText.innerText = 'REST';
+                els.nextPhaseText.innerText = 'WORK';
+                els.currentRoundDisplay.innerText = state.currentRound;
+            }
+
+            updateColors(state.phase);
+        };
+
+        const initWorkout = () => {
+            // 获取输入值
+            state.workTime = parseInt(els.workInput.value);
+            state.restTime = parseInt(els.restInput.value);
+            state.totalRounds = parseInt(els.roundsInput.value);
+            state.weight = parseInt(els.weightInput.value);
+            state.currentRound = 1;
+            state.totalWorkTime = 0; // 重置累计运动时间
+            state.startTime = new Date().toISOString(); // 记录开始时间
+            state.endTime = null; // 重置结束时间
+
+            // UI 切换
+            els.setupScreen.classList.add('hidden');
+            els.timerScreen.classList.remove('hidden');
+            els.timerScreen.classList.add('flex');
+            els.resetBtn.classList.remove('hidden');
+            els.completeScreen.classList.add('hidden');
+            els.completeScreen.classList.remove('flex');
+
+            // 进入准备阶段
+            state.phase = 'getReady';
+            state.timeLeft = 5; // 5秒准备时间
+            els.totalRoundsDisplay.innerText = state.totalRounds;
+
+            // 初始化声音上下文（需要用户交互）
+            if (!state.audioContext) {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            updateTimerUI(true);
+            startTimer();
+        };
+
+        const finishWorkout = async () => {
+            clearInterval(state.intervalId);
+            state.phase = 'finished';
+            state.endTime = new Date().toISOString(); // 记录结束时间
+            updateColors('finished');
+
+            // 计算统计数据
+            const workMinutes = state.totalWorkTime / 60;
+            // 高强度HIIT跳绳: 约 0.2 卡路里/公斤/分钟
+            const caloriesBurned = Math.round(0.2 * state.weight * workMinutes);
+
+            // 计算总耗时 (秒)
+            const durationMs = new Date(state.endTime) - new Date(state.startTime);
+            const totalDuration = Math.round(durationMs / 1000);
+
+            // 保存到数据库
+            await saveWorkout({
+                date: state.startTime, // 使用开始时间作为日期
+                rounds: state.totalRounds,
+                workTime: state.workTime,
+                restTime: state.restTime,
+                totalWorkTime: Math.round(state.totalWorkTime),
+                totalTime: totalDuration, // 总耗时
+                startTime: state.startTime,
+                endTime: state.endTime,
+                calories: caloriesBurned,
+                weight: state.weight
+            });
+
+            // 更新完成页面显示
+            els.finalWorkTime.innerText = formatTime(Math.round(state.totalWorkTime));
+            els.finalCalories.innerText = `${caloriesBurned} kcal`;
+
+            els.timerScreen.classList.add('hidden');
+            els.timerScreen.classList.remove('flex');
+            els.completeScreen.classList.remove('hidden');
+            els.completeScreen.classList.add('flex');
+            els.resetBtn.classList.add('hidden');
+        };
+
+        const resetWorkout = () => {
+            clearInterval(state.intervalId);
+            state.phase = 'setup';
+            updateColors('setup');
+
+            els.setupScreen.classList.remove('hidden');
+            els.timerScreen.classList.add('hidden');
+            els.timerScreen.classList.remove('flex');
+            els.completeScreen.classList.add('hidden');
+            els.completeScreen.classList.remove('flex');
+            els.resetBtn.classList.add('hidden');
+        };
+
+        const togglePause = () => {
+            state.isPaused = !state.isPaused;
+            els.toggleIcon.className = state.isPaused ? 'fas fa-play' : 'fas fa-pause';
+            // 可以在这里添加透明度变化表示暂停
+            els.timerDisplay.style.opacity = state.isPaused ? '0.5' : '1';
+        };
+
+        // === 事件监听 ===
+
+        // 输入变化实时更新
+        els.workInput.addEventListener('input', (e) => {
+            els.workDisplay.innerText = `${e.target.value}s`;
+            calculateTotalTime();
+        });
+        els.restInput.addEventListener('input', (e) => {
+            els.restDisplay.innerText = `${e.target.value}s`;
+            calculateTotalTime();
+        });
+        els.roundsInput.addEventListener('input', (e) => {
+            els.roundsDisplay.innerText = `${e.target.value}`;
+            calculateTotalTime();
+        });
+        els.weightInput.addEventListener('input', (e) => {
+            els.weightDisplay.innerText = `${e.target.value} kg`;
+        });
+
+        // +/- 按钮事件监听
+        document.querySelectorAll('.adjust-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = btn.dataset.target;
+                const delta = parseInt(btn.dataset.delta);
+                const input = document.getElementById(targetId);
+                const min = parseInt(input.min);
+                const max = parseInt(input.max);
+                let newValue = parseInt(input.value) + delta;
+
+                // 限制在范围内
+                newValue = Math.max(min, Math.min(max, newValue));
+                input.value = newValue;
+
+                // 触发 input 事件以更新显示
+                input.dispatchEvent(new Event('input'));
+            });
+        });
+
+        els.startBtn.addEventListener('click', initWorkout);
+        els.resetBtn.addEventListener('click', resetWorkout);
+        els.homeBtn.addEventListener('click', resetWorkout);
+        els.toggleBtn.addEventListener('click', togglePause);
+
+        // === SQLite 数据库操作 ===
+        const DB_NAME = 'hiit_workouts_db';
+
+        async function initDatabase() {
+            try {
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+                });
+
+                // 尝试从 IndexedDB 加载已有数据库
+                const savedDb = await loadDbFromIndexedDB();
+                if (savedDb) {
+                    state.db = new SQL.Database(savedDb);
+                } else {
+                    state.db = new SQL.Database();
+                }
+
+                // 创建表（如果不存在）
+                state.db.run(`
+                    CREATE TABLE IF NOT EXISTS workouts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        date TEXT NOT NULL,
+                        rounds INTEGER,
+                        work_time INTEGER,
+                        rest_time INTEGER,
+                        total_work_time INTEGER,
+                        calories INTEGER,
+                        weight REAL
+                    )
+                `);
+
+                // 尝试添加新列（如果表已存在但缺少列）
+                try {
+                    state.db.run("ALTER TABLE workouts ADD COLUMN total_time INTEGER;");
+                    state.db.run("ALTER TABLE workouts ADD COLUMN start_time TEXT;");
+                    state.db.run("ALTER TABLE workouts ADD COLUMN end_time TEXT;");
+                } catch (e) {
+                    // 忽略“Column already exists”错误
+                    // console.warn("ALTER TABLE failed, column might already exist:", e.message);
+                }
+
+                console.log('Database initialized');
+            } catch (err) {
+                console.error('Database init error:', err);
+                alert('数据库加载失败，数据可能无法保存。请检查网络连接。');
+            }
+        }
+
+        async function saveWorkout(data) {
+            // Check if running in App Shell (Iframe)
+            if (window.parent !== window) {
+                console.log('Running in App Shell, sending SAVE_WORKOUT message...');
+                return new Promise((resolve, reject) => {
+                    const requestId = 'req_' + Date.now();
+
+                    const handler = (event) => {
+                        if (event.data.requestId === requestId) {
+                            window.removeEventListener('message', handler);
+                            if (event.data.type === 'SAVE_SUCCESS') {
+                                console.log('App Shell saved workout successfully');
+                                resolve();
+                            } else {
+                                console.error('App Shell save failed:', event.data.message);
+                                reject(new Error(event.data.message));
+                            }
+                        }
+                    };
+                    window.addEventListener('message', handler);
+
+                    window.parent.postMessage({
+                        type: 'SAVE_WORKOUT',
+                        requestId: requestId,
+                        data: data
+                    }, '*');
+                });
+            }
+
+            // Standalone Mode Fallback
+            if (!state.db) await initDatabase();
+
+            try {
+                // ... Existing fallback logic ...
+                state.db.run(`
+                    INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [data.date, data.rounds, data.workTime, data.restTime, data.totalWorkTime, data.calories, data.weight, data.totalTime, data.startTime, data.endTime]);
+
+                // 保存到 IndexedDB 持久化
+                await saveDbToIndexedDB(state.db.export());
+                console.log('Workout saved locally:', data);
+            } catch (err) {
+                console.error('Save workout error:', err);
+                alert('独立模式保存失败 (IndexedDB可能不稳定): ' + err.message);
+            }
+        }
+
+        // IndexedDB 持久化
+        function saveDbToIndexedDB(data) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    e.target.result.createObjectStore('database');
+                };
+                request.onsuccess = (e) => {
+                    const db = e.target.result;
+                    const tx = db.transaction('database', 'readwrite');
+                    tx.objectStore('database').put(data, 'sqlite');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function loadDbFromIndexedDB() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    e.target.result.createObjectStore('database');
+                };
+                request.onsuccess = (e) => {
+                    const db = e.target.result;
+                    const tx = db.transaction('database', 'readonly');
+                    const getReq = tx.objectStore('database').get('sqlite');
+                    getReq.onsuccess = () => resolve(getReq.result ? new Uint8Array(getReq.result) : null);
+                    getReq.onerror = () => resolve(null);
+                };
+                request.onerror = () => resolve(null);
+            });
+        }
+
+        // 初始化
+        calculateTotalTime();
+        initDatabase();
+
+    </script>
+</body>
+
+</html>

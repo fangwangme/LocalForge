@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>16:9 图片处理与去水印工具</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-color: #2d2d2d;
+            --accent-color: #4a90e2;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        /* 布局 */
+        #sidebar {
+            width: 250px;
+            background: var(--panel-color);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #444;
+        }
+
+        #main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+
+        #toolbar {
+            width: 280px;
+            background: var(--panel-color);
+            padding: 15px;
+            border-left: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        /* 文件列表 */
+        #file-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #file-list li {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #3d3d3d;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #file-list li:hover {
+            background: #3d3d3d;
+        }
+
+        #file-list li.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Canvas 容器 */
+        #canvas-wrapper {
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            max-height: 80vh;
+        }
+
+        /* 交互层 (用于绘制选框和笔刷) */
+        #interaction-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* 按钮与控件 */
+        button {
+            background: #444;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 13px;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        button.primary {
+            background: var(--accent-color);
+        }
+
+        button.primary:hover {
+            background: #357abd;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .control-group {
+            background: #363636;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .control-group h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            flex: 1;
+        }
+
+        .status-bar {
+            padding: 10px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            border-top: 1px solid #444;
+        }
+
+        #toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <div style="padding: 15px; border-bottom: 1px solid #444;">
+            <h3 style="margin: 0 0 10px 0;">资源管理器</h3>
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <button id="btn-single" style="flex: 1;" title="处理单个文件">📄 单文件</button>
+                <button id="btn-input" style="flex: 1;" title="批量处理目录">📂 目录</button>
+            </div>
+            <button id="btn-output" style="width: 100%; display: none;" title="批量模式需要选择输出目录">💾 选择输出目录</button>
+        </div>
+        <ul id="file-list">
+            <li style="text-align:center; color:#666; padding:20px;">选择单文件或目录开始</li>
+        </ul>
+        <div class="status-bar" id="file-count">0 张图片</div>
+    </div>
+
+    <div id="main-area">
+        <div id="canvas-wrapper">
+            <canvas id="main-canvas"></canvas>
+            <canvas id="interaction-layer"></canvas>
+        </div>
+        <div id="toast">提示消息</div>
+    </div>
+
+    <div id="toolbar">
+        <div class="control-group">
+            <h4>16:9 处理模式</h4>
+            <label><input type="radio" name="crop-mode" value="pad" checked> 填充 (Pad)</label>
+            <div style="font-size:12px; color:#aaa; margin-left:24px; margin-bottom:5px;">两边填充背景色，保持全图。</div>
+            <label><input type="radio" name="crop-mode" value="crop"> 裁剪 (Crop)</label>
+            <div style="font-size:12px; color:#aaa; margin-left:24px;">拖动选框截取局部。</div>
+        </div>
+
+        <div class="control-group">
+            <h4>💧 去水印 (双选框模式)</h4>
+            <div style="font-size:12px; color:#aaa; margin-bottom:10px;">
+                1. 先画<b style="color:#4a90e2;">外框</b>（采样颜色区域）<br>
+                2. 再画<b style="color:#e24a4a;">内框</b>（水印区域，将被填充）
+            </div>
+            <div id="watermark-status"
+                style="padding:8px; background:#444; border-radius:4px; font-size:13px; margin-bottom:8px;">
+                当前状态：等待绘制外框...
+            </div>
+            <button id="btn-clear-mask" style="width:100%; margin-top:5px;">清除选框重新开始</button>
+            <div style="margin-top:10px; border-top:1px solid #555; padding-top:10px;">
+                <label><input type="checkbox" id="chk-persist-mask" checked> <b>保留选框位置</b></label>
+                <div style="font-size:12px; color:#aaa; margin-left:24px;">勾选后，下一张图片会自动应用相同的去水印区域（适合批量处理）。</div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h4>操作</h4>
+            <button id="btn-save" class="primary" style="width:100%; height:40px; font-weight:bold;">保存并下一张 (S)</button>
+            <button id="btn-download" style="width:100%; margin-top:5px; display:none;">⬇️ 下载到本地</button>
+            <label style="margin-top:10px;"><input type="checkbox" id="chk-auto-save"> 自动保存</label>
+        </div>
+
+        <div style="flex:1;"></div>
+        <div style="font-size:12px; color:#666;">
+            快捷键：<br>
+            ← / → : 切换图片<br>
+            S : 保存当前<br>
+            C : 清除选框
+        </div>
+    </div>
+
+    <script>
+        // === 状态管理 ===
+        const state = {
+            inputHandle: null,
+            outputHandle: null,
+            files: [], // { name, handle }
+            currentIndex: -1,
+            currentImage: null, // Image Object
+            currentFileName: '', // 当前文件名
+            isSingleFileMode: false, // 单文件模式
+            mode: 'pad', // 'pad' or 'crop'
+            cropRect: { x: 0, y: 0, w: 0, h: 0 }, // 裁剪模式下的选框
+            // 去水印双选框
+            watermarkOuter: null, // { x, y, w, h } - 归一化坐标 (0-1)
+            watermarkInner: null, // { x, y, w, h } - 归一化坐标 (0-1)
+            watermarkStep: 'outer', // 'outer' | 'inner' | 'done'
+            isDrawingRect: false,
+            rectStart: { x: 0, y: 0 },
+        };
+
+        // DOM 元素
+        const els = {
+            singleBtn: document.getElementById('btn-single'),
+            inputBtn: document.getElementById('btn-input'),
+            outputBtn: document.getElementById('btn-output'),
+            downloadBtn: document.getElementById('btn-download'),
+            fileList: document.getElementById('file-list'),
+            fileCount: document.getElementById('file-count'),
+            mainCanvas: document.getElementById('main-canvas'),
+            layerCanvas: document.getElementById('interaction-layer'),
+            ctxMain: document.getElementById('main-canvas').getContext('2d'),
+            ctxLayer: document.getElementById('interaction-layer').getContext('2d'),
+            radioModes: document.getElementsByName('crop-mode'),
+            clearMaskBtn: document.getElementById('btn-clear-mask'),
+            persistChk: document.getElementById('chk-persist-mask'),
+            saveBtn: document.getElementById('btn-save'),
+            toast: document.getElementById('toast'),
+            watermarkStatus: document.getElementById('watermark-status')
+        };
+
+        // === 1. 文件系统操作 ===
+
+        // 单文件模式
+        els.singleBtn.onclick = async () => {
+            try {
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: '图片文件',
+                        accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }
+                    }],
+                    multiple: false
+                });
+                await loadSingleFile(fileHandle);
+            } catch (err) { console.error(err); }
+        };
+
+        // 批量模式
+        els.inputBtn.onclick = async () => {
+            try {
+                state.inputHandle = await window.showDirectoryPicker();
+                state.isSingleFileMode = false;
+                els.outputBtn.style.display = 'block';
+                els.downloadBtn.style.display = 'none';
+                els.saveBtn.textContent = '保存并下一张 (S)';
+                await loadFileList();
+            } catch (err) { console.error(err); }
+        };
+
+        els.outputBtn.onclick = async () => {
+            try {
+                state.outputHandle = await window.showDirectoryPicker();
+                showToast("输出目录已设定");
+            } catch (err) { console.error(err); }
+        };
+
+        // 加载单个文件
+        async function loadSingleFile(fileHandle) {
+            state.isSingleFileMode = true;
+            state.files = [{ name: fileHandle.name, handle: fileHandle }];
+            state.currentIndex = 0;
+            state.currentFileName = fileHandle.name;
+
+            // 更新 UI
+            els.outputBtn.style.display = 'none';
+            els.downloadBtn.style.display = 'block';
+            els.saveBtn.textContent = '保存 (S)';
+
+            els.fileList.innerHTML = '';
+            const li = document.createElement('li');
+            li.textContent = fileHandle.name;
+            li.classList.add('active');
+            els.fileList.appendChild(li);
+            els.fileCount.textContent = '单文件模式';
+
+            // 读取并显示文件
+            const file = await fileHandle.getFile();
+            const bmp = await createImageBitmap(file);
+            state.currentImage = bmp;
+
+            // 重置选框
+            if (!els.persistChk.checked) {
+                state.watermarkOuter = null;
+                state.watermarkInner = null;
+                state.watermarkStep = 'outer';
+            }
+            updateWatermarkStatus();
+            initCropRect();
+            render();
+        }
+
+        async function loadFileList() {
+            state.files = [];
+            els.fileList.innerHTML = '';
+
+            for await (const entry of state.inputHandle.values()) {
+                if (entry.kind === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(entry.name)) {
+                    state.files.push({ name: entry.name, handle: entry });
+                }
+            }
+
+            // 排序
+            state.files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+            // 渲染列表
+            state.files.forEach((f, i) => {
+                const li = document.createElement('li');
+                li.textContent = f.name;
+                li.onclick = () => loadFile(i);
+                els.fileList.appendChild(li);
+            });
+
+            els.fileCount.textContent = `${state.files.length} 张图片`;
+            if (state.files.length > 0) loadFile(0);
+        }
+
+        async function loadFile(index) {
+            if (index < 0 || index >= state.files.length) return;
+
+            // UI 更新
+            const items = els.fileList.children;
+            if (state.currentIndex >= 0 && items[state.currentIndex]) items[state.currentIndex].classList.remove('active');
+            state.currentIndex = index;
+            items[index].classList.add('active');
+            items[index].scrollIntoView({ block: 'nearest' });
+
+            // 读取文件
+            const file = await state.files[index].handle.getFile();
+            const bmp = await createImageBitmap(file);
+
+            state.currentImage = bmp;
+
+            // 遮罩处理：如果不保留，则清空
+            if (!els.persistChk.checked) {
+                state.watermarkOuter = null;
+                state.watermarkInner = null;
+                state.watermarkStep = 'outer';
+            }
+            updateWatermarkStatus();
+
+            // 初始化裁剪框 (默认居中)
+            initCropRect();
+
+            render();
+        }
+
+        function initCropRect() {
+            if (!state.currentImage) return;
+            const imgW = state.currentImage.width;
+            const imgH = state.currentImage.height;
+
+            // 目标是 16:9
+            // 如果是裁剪模式，初始化一个最大的 16:9 框
+            let targetW = imgW;
+            let targetH = targetW * (9 / 16);
+            if (targetH > imgH) {
+                targetH = imgH;
+                targetW = targetH * (16 / 9);
+            }
+
+            state.cropRect = {
+                x: (imgW - targetW) / 2,
+                y: (imgH - targetH) / 2,
+                w: targetW,
+                h: targetH
+            };
+        }
+
+        // === 2. 渲染逻辑 ===
+
+        // 监听模式切换
+        els.radioModes.forEach(r => r.addEventListener('change', (e) => {
+            state.mode = e.target.value;
+            render();
+        }));
+
+        function render() {
+            if (!state.currentImage) return;
+
+            // 1. 设置画布尺寸
+            // 这里的逻辑是：MainCanvas 始终作为"最终输出预览"
+            // Pad 模式下：MainCanvas 是 16:9 的扩充图
+            // Crop 模式下：MainCanvas 显示原图，用 InteractionLayer 显示裁剪框
+            // 为了简化统一，我们在 MainCanvas 上总是绘制"所见即所得"的结果不太容易，
+            // 策略：MainCanvas 绘制底图（原图），我们在保存时再做真正的裁切/填充。
+            // 只有这样，去水印的笔刷坐标才能统一对应到原图上。
+
+            const img = state.currentImage;
+            els.mainCanvas.width = img.width;
+            els.mainCanvas.height = img.height;
+            els.layerCanvas.width = img.width;
+            els.layerCanvas.height = img.height;
+
+            // 绘制原图
+            els.ctxMain.drawImage(img, 0, 0);
+
+            // 2. 应用去水印 (简单的周围填充算法)
+            applyInpainting();
+
+            // 3. 绘制交互层 (裁剪框)
+            drawOverlay();
+        }
+
+        function applyInpainting() {
+            // 新逻辑：用外框采样的颜色完全填充内框区域
+            if (!state.watermarkOuter || !state.watermarkInner) return;
+
+            const ctx = els.ctxMain;
+            const imgW = els.mainCanvas.width;
+            const imgH = els.mainCanvas.height;
+
+            // 还原外框坐标（归一化 -> 像素）
+            const outer = {
+                x: state.watermarkOuter.x * imgW,
+                y: state.watermarkOuter.y * imgH,
+                w: state.watermarkOuter.w * imgW,
+                h: state.watermarkOuter.h * imgH
+            };
+
+            // 还原内框坐标
+            const inner = {
+                x: state.watermarkInner.x * imgW,
+                y: state.watermarkInner.y * imgH,
+                w: state.watermarkInner.w * imgW,
+                h: state.watermarkInner.h * imgH
+            };
+
+            // 从外框区域采样颜色（排除内框区域）
+            // 为了性能，采样外框四个角和四条边中点
+            let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
+
+            // 采样点：外框的边缘区域
+            const samplePoints = [
+                // 四角
+                { x: outer.x + 2, y: outer.y + 2 },
+                { x: outer.x + outer.w - 2, y: outer.y + 2 },
+                { x: outer.x + 2, y: outer.y + outer.h - 2 },
+                { x: outer.x + outer.w - 2, y: outer.y + outer.h - 2 },
+                // 四条边中点
+                { x: outer.x + outer.w / 2, y: outer.y + 2 },
+                { x: outer.x + outer.w / 2, y: outer.y + outer.h - 2 },
+                { x: outer.x + 2, y: outer.y + outer.h / 2 },
+                { x: outer.x + outer.w - 2, y: outer.y + outer.h / 2 }
+            ];
+
+            samplePoints.forEach(pt => {
+                const sx = Math.floor(pt.x);
+                const sy = Math.floor(pt.y);
+                if (sx >= 0 && sx < imgW && sy >= 0 && sy < imgH) {
+                    const pixel = ctx.getImageData(sx, sy, 1, 1).data;
+                    rTotal += pixel[0];
+                    gTotal += pixel[1];
+                    bTotal += pixel[2];
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                // 用采样颜色完全填充内框
+                ctx.fillStyle = `rgb(${Math.round(rTotal / count)}, ${Math.round(gTotal / count)}, ${Math.round(bTotal / count)})`;
+                ctx.fillRect(inner.x, inner.y, inner.w, inner.h);
+            }
+        }
+
+        function drawOverlay() {
+            const ctx = els.ctxLayer;
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            // 裁剪模式下绘制遮罩
+            if (state.mode === 'crop') {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                // 挖空选中区域
+                const { x, y, w, h } = state.cropRect;
+                ctx.clearRect(x, y, w, h);
+
+                // 绘制边框
+                ctx.strokeStyle = '#4a90e2';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, w, h);
+
+                // 绘制三分线 (辅助构图)
+                ctx.beginPath();
+                ctx.moveTo(x + w / 3, y); ctx.lineTo(x + w / 3, y + h);
+                ctx.moveTo(x + 2 * w / 3, y); ctx.lineTo(x + 2 * w / 3, y + h);
+                ctx.moveTo(x, y + h / 3); ctx.lineTo(x + w, y + h / 3);
+                ctx.moveTo(x, y + 2 * h / 3); ctx.lineTo(x + w, y + 2 * h / 3);
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.stroke();
+            } else {
+                // Pad 模式下，提示最终范围（虽然是全图，但给个边框提示）
+                // Pad 模式其实不需要 overlay，除非我们想预览填充后的效果
+                // 简单起见，Pad 模式不显示特殊 Overlay，只显示笔刷
+            }
+
+            // 绘制笔刷光标 (如果鼠标在画布上)
+            // (由 mousemove 处理)
+        }
+
+
+        // === 3. 交互逻辑 (双选框去水印 + 裁剪) ===
+
+        // 更新去水印状态提示
+        function updateWatermarkStatus() {
+            if (!els.watermarkStatus) return;
+            if (state.watermarkStep === 'outer') {
+                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#4a90e2;">请绘制外框</span>（采样颜色区域）';
+            } else if (state.watermarkStep === 'inner') {
+                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#e24a4a;">请绘制内框</span>（水印区域）';
+            } else {
+                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#4ae24a;">✓ 去水印已完成</span>';
+            }
+        }
+
+        // 清除选框
+        els.clearMaskBtn.onclick = () => {
+            state.watermarkOuter = null;
+            state.watermarkInner = null;
+            state.watermarkStep = 'outer';
+            updateWatermarkStatus();
+            render();
+        };
+
+        // 鼠标事件
+        let isDraggingCrop = false;
+        let lastMouse = { x: 0, y: 0 };
+        let tempRect = null; // 临时绘制的选框
+
+        els.layerCanvas.addEventListener('mousedown', (e) => {
+            const rect = els.layerCanvas.getBoundingClientRect();
+            const scaleX = els.layerCanvas.width / rect.width;
+            const scaleY = els.layerCanvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            if (state.mode === 'crop') {
+                // 裁剪模式：拖动选框
+                if (mx >= state.cropRect.x && mx <= state.cropRect.x + state.cropRect.w &&
+                    my >= state.cropRect.y && my <= state.cropRect.y + state.cropRect.h) {
+                    isDraggingCrop = true;
+                    lastMouse = { x: mx, y: my };
+                }
+            } else {
+                // Pad 模式：双选框去水印
+                if (state.watermarkStep !== 'done') {
+                    state.isDrawingRect = true;
+                    state.rectStart = { x: mx, y: my };
+                    tempRect = { x: mx, y: my, w: 0, h: 0 };
+                }
+            }
+        });
+
+        els.layerCanvas.addEventListener('mousemove', (e) => {
+            const rect = els.layerCanvas.getBoundingClientRect();
+            const scaleX = els.layerCanvas.width / rect.width;
+            const scaleY = els.layerCanvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+
+            // 重绘交互层
+            drawOverlay();
+            const ctx = els.ctxLayer;
+
+            if (state.mode === 'crop' && isDraggingCrop) {
+                const dx = mx - lastMouse.x;
+                const dy = my - lastMouse.y;
+                state.cropRect.x += dx;
+                state.cropRect.y += dy;
+
+                // 限制边界
+                const cw = els.layerCanvas.width;
+                const ch = els.layerCanvas.height;
+                if (state.cropRect.x < 0) state.cropRect.x = 0;
+                if (state.cropRect.y < 0) state.cropRect.y = 0;
+                if (state.cropRect.x + state.cropRect.w > cw) state.cropRect.x = cw - state.cropRect.w;
+                if (state.cropRect.y + state.cropRect.h > ch) state.cropRect.y = ch - state.cropRect.h;
+                lastMouse = { x: mx, y: my };
+                drawOverlay();
+            } else if (state.isDrawingRect && state.mode === 'pad') {
+                // 绘制临时选框预览
+                tempRect = {
+                    x: Math.min(state.rectStart.x, mx),
+                    y: Math.min(state.rectStart.y, my),
+                    w: Math.abs(mx - state.rectStart.x),
+                    h: Math.abs(my - state.rectStart.y)
+                };
+
+                // 绘制临时选框
+                ctx.strokeStyle = state.watermarkStep === 'outer' ? '#4a90e2' : '#e24a4a';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(tempRect.x, tempRect.y, tempRect.w, tempRect.h);
+                ctx.setLineDash([]);
+            }
+
+            // 绘制已有的选框
+            drawWatermarkRects(ctx);
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (state.isDrawingRect && tempRect && tempRect.w > 5 && tempRect.h > 5) {
+                const img = state.currentImage;
+                if (img) {
+                    // 归一化存储
+                    const normalizedRect = {
+                        x: tempRect.x / img.width,
+                        y: tempRect.y / img.height,
+                        w: tempRect.w / img.width,
+                        h: tempRect.h / img.height
+                    };
+
+                    if (state.watermarkStep === 'outer') {
+                        state.watermarkOuter = normalizedRect;
+                        state.watermarkStep = 'inner';
+                    } else if (state.watermarkStep === 'inner') {
+                        state.watermarkInner = normalizedRect;
+                        state.watermarkStep = 'done';
+                    }
+                    updateWatermarkStatus();
+                }
+            }
+
+            state.isDrawingRect = false;
+            isDraggingCrop = false;
+            tempRect = null;
+            if (state.currentImage) render();
+        });
+
+        // 绘制已存在的去水印选框
+        function drawWatermarkRects(ctx) {
+            const img = state.currentImage;
+            if (!img) return;
+
+            // 绘制外框（蓝色）
+            if (state.watermarkOuter) {
+                const outer = {
+                    x: state.watermarkOuter.x * img.width,
+                    y: state.watermarkOuter.y * img.height,
+                    w: state.watermarkOuter.w * img.width,
+                    h: state.watermarkOuter.h * img.height
+                };
+                ctx.strokeStyle = '#4a90e2';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(outer.x, outer.y, outer.w, outer.h);
+
+                // 标注"外框"
+                ctx.fillStyle = '#4a90e2';
+                ctx.font = '14px sans-serif';
+                ctx.fillText('外框 (采样)', outer.x + 4, outer.y + 16);
+            }
+
+            // 绘制内框（红色）
+            if (state.watermarkInner) {
+                const inner = {
+                    x: state.watermarkInner.x * img.width,
+                    y: state.watermarkInner.y * img.height,
+                    w: state.watermarkInner.w * img.width,
+                    h: state.watermarkInner.h * img.height
+                };
+                ctx.strokeStyle = '#e24a4a';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(inner.x, inner.y, inner.w, inner.h);
+
+                // 标注"内框"
+                ctx.fillStyle = '#e24a4a';
+                ctx.font = '14px sans-serif';
+                ctx.fillText('内框 (填充)', inner.x + 4, inner.y + 16);
+            }
+        }
+
+
+        // === 4. 保存逻辑 ===
+
+        els.saveBtn.onclick = processAndSave;
+        els.downloadBtn.onclick = downloadToLocal;
+
+        // 生成处理后的图像（共用逻辑）
+        function generateProcessedImage() {
+            if (!state.currentImage) return null;
+
+            const img = state.currentImage;
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+
+            let finalW, finalH;
+
+            if (state.mode === 'pad') {
+                const ratio = 16 / 9;
+                if (img.width / img.height < ratio) {
+                    finalH = img.height;
+                    finalW = finalH * ratio;
+                } else {
+                    finalW = img.width;
+                    finalH = finalW / ratio;
+                }
+
+                offCanvas.width = finalW;
+                offCanvas.height = finalH;
+
+                const pixel = els.ctxMain.getImageData(0, 0, 1, 1).data;
+                offCtx.fillStyle = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+                offCtx.fillRect(0, 0, finalW, finalH);
+
+                const dx = (finalW - img.width) / 2;
+                const dy = (finalH - img.height) / 2;
+                offCtx.drawImage(els.mainCanvas, dx, dy);
+            } else {
+                offCanvas.width = state.cropRect.w;
+                offCanvas.height = state.cropRect.h;
+                offCtx.drawImage(els.mainCanvas,
+                    state.cropRect.x, state.cropRect.y, state.cropRect.w, state.cropRect.h,
+                    0, 0, state.cropRect.w, state.cropRect.h
+                );
+            }
+
+            return offCanvas;
+        }
+
+        // 下载到本地（单文件模式）
+        async function downloadToLocal() {
+            const offCanvas = generateProcessedImage();
+            if (!offCanvas) return;
+
+            try {
+                const blob = await new Promise(r => offCanvas.toBlob(r, 'image/jpeg', 0.95));
+                const filename = state.currentFileName.replace(/\.[^.]+$/, '_processed.jpg');
+
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast(`已下载: ${filename}`);
+            } catch (err) {
+                console.error(err);
+                alert("下载失败");
+            }
+        }
+
+        // 保存到输出目录（批量模式）
+        async function processAndSave() {
+            // 单文件模式直接下载
+            if (state.isSingleFileMode) {
+                await downloadToLocal();
+                return;
+            }
+
+            if (!state.currentImage) return;
+            if (!state.outputHandle) {
+                alert("请先选择输出目录！");
+                return;
+            }
+
+            const offCanvas = generateProcessedImage();
+            if (!offCanvas) return;
+
+            try {
+                const blob = await new Promise(r => offCanvas.toBlob(r, 'image/jpeg', 0.95));
+                const filename = state.files[state.currentIndex].name;
+
+                const newFileHandle = await state.outputHandle.getFileHandle(filename, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+
+                showToast(`已保存: ${filename}`);
+
+                if (state.currentIndex < state.files.length - 1) {
+                    loadFile(state.currentIndex + 1);
+                } else {
+                    showToast("所有图片处理完毕！");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("保存失败，请检查目录权限");
+            }
+        }
+
+        // === 辅助 ===
+
+        function showToast(msg) {
+            els.toast.textContent = msg;
+            els.toast.style.display = 'block';
+            setTimeout(() => els.toast.style.display = 'none', 2000);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') loadFile(state.currentIndex + 1);
+            if (e.key === 'ArrowLeft') loadFile(state.currentIndex - 1);
+            if (e.key.toLowerCase() === 's') processAndSave();
+            if (e.key.toLowerCase() === 'c') {
+                // 快捷键清除选框
+                state.watermarkOuter = null;
+                state.watermarkInner = null;
+                state.watermarkStep = 'outer';
+                updateWatermarkStatus();
+                render();
+            }
+        });
+
+    </script>
+</body>
+
+</html>
