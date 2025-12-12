@@ -113,6 +113,17 @@
                             <span class="nav-text ml-3">训练统计</span>
                         </button>
                     </li>
+
+                    <div
+                        class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
+                        效率工具</div>
+                    <li>
+                        <button onclick="openTool('pomodoro.html');" id="nav-pomodoro"
+                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
+                            <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-red-400 transition"></i>
+                            <span class="nav-text ml-3">番茄钟</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
 
@@ -175,13 +186,23 @@
                         </div>
 
                         <div onclick="openTool('hiit_stats.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-orange-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
+                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
                             <div
-                                class="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                                class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
                                 <i class="fas fa-chart-line"></i>
                             </div>
                             <h3 class="text-lg font-bold text-white mb-2">训练统计</h3>
                             <p class="text-slate-400 text-sm leading-relaxed">可视化数据分析。</p>
+                        </div>
+
+                        <div onclick="openTool('pomodoro.html')"
+                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-red-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-2">番茄钟</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">专注计时，历史记录。</p>
                         </div>
                     </div>
                 </div>
@@ -192,6 +213,9 @@
                 </div>
             </div>
         </main>
+
+        <!-- Hidden File Input for Legacy Browsers -->
+        <input type="file" id="db-file-input" hidden accept=".sqlite,.db,application/x-sqlite3">
 
         <!-- Settings Modal Overlay -->
         <div id="settings-modal"
@@ -257,6 +281,7 @@
         const iframeContainer = document.getElementById('app-frame-container');
         const iframe = document.getElementById('app-frame');
         const pageTitle = document.getElementById('page-title');
+        const dbFileInput = document.getElementById('db-file-input');
 
         let isSidebarCollapsed = false;
 
@@ -315,6 +340,7 @@
             else if (url.includes('resize')) { title = '图片压缩'; navId = 'nav-resize'; }
             else if (url.includes('jump')) { title = 'HIIT 计时器'; navId = 'nav-timer'; }
             else if (url.includes('stats')) { title = '训练统计'; navId = 'nav-stats'; }
+            else if (url.includes('pomodoro')) { title = '番茄钟'; navId = 'nav-pomodoro'; }
 
             pageTitle.innerText = title;
             setActiveNav(navId);
@@ -343,82 +369,226 @@
 
         async function handleCreateNewDatabase() {
             if (db) {
-                // Determine if we should warn? 
-                // A simple confirm is safer.
                 if (!confirm('确定要新建吗？如果当前有未保存的数据，将会丢失。新数据文件将覆盖当前会话。')) return;
             }
 
             dbHandle = null; // Clear key handle to force "Save As" behavior
             await createNewDatabase(); // Init clean in-memory
-
-            // Immediately prompt to save to disk to create the file
+            // Trigger save after create
             await saveDatabaseToDisk();
         }
 
-        async function openDatabase() {
-            try {
-                [dbHandle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'SQLite Database',
-                        accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
-                    }]
-                });
+        // === IndexedDB Persistence Logic ===
+        const IDB_NAME = 'LocalForgeDB';
+        const IDB_STORE = 'snapshots';
+        const IDB_KEY = 'main_db';
 
-                const file = await dbHandle.getFile();
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(IDB_NAME, 1);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        db.createObjectStore(IDB_STORE);
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        async function saveSnapshotToIDB(data, handle = null, filename = null) {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readwrite');
+                const store = tx.objectStore(IDB_STORE);
+
+                const record = {
+                    data: data,
+                    updated_at: Date.now()
+                };
+                if (handle) record.handle = handle;
+                if (filename) record.filename = filename;
+
+                // Merge with existing to keep handle if not provided
+                // But wait, 'put' overwrites value. We should read first if we want to merge?
+                // Actually, simpler: The caller should pass the handle if available.
+                // Global dbHandle is available.
+                if (dbHandle && !handle) record.handle = dbHandle;
+
+                store.put(record, IDB_KEY);
+                return new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = reject;
+                });
+            } catch (err) {
+                console.error('IDB Save Error:', err);
+            }
+        }
+
+        async function loadSnapshotFromIDB() {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const request = store.get(IDB_KEY);
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (err) {
+                console.error('IDB Load Error:', err);
+                return null;
+            }
+        }
+
+        // Handle File Input Change (Legacy Import)
+        dbFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
                 const arrayBuffer = await file.arrayBuffer();
                 const uInt8Array = new Uint8Array(arrayBuffer);
 
                 await initSql();
                 db = new SQL.Database(uInt8Array);
-                initAllTables(); // Ensure tables exist
+                initAllTables();
 
-                updateDbStatus(`已加载: ${file.name}`, 'emerald');
+                // Save imported to IDB (No handle in legacy)
+                await saveSnapshotToIDB(uInt8Array, null, file.name);
+
+                updateDbStatus(`已加载: ${file.name} (IDB Sync)`, 'emerald');
+                dbHandle = null;
                 closeSettings();
 
-                // Refresh iframe if open
                 if (iframe.contentWindow) {
                     iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
                 }
-
             } catch (err) {
-                console.error('Open database error:', err);
-                if (err.name !== 'AbortError') {
-                    alert('打开数据库失败: ' + err.message);
-                }
+                console.error('Legacy open error:', err);
+                alert('加载失败: ' + err.message);
             }
-        }
+            dbFileInput.value = '';
+        });
 
-        async function saveDatabaseToDisk(event) {
-            if (!db) return;
-            try {
-                const data = db.export();
-                if (dbHandle) {
-                    const writable = await dbHandle.createWritable();
-                    await writable.write(data);
-                    await writable.close();
-
-                    // Feedback in button
-                    if (event && event.currentTarget) {
-                        const btn = event.currentTarget;
-                        const icon = btn.querySelector('i');
-                        const originalClass = icon.className;
-                        icon.className = 'fas fa-check text-white';
-                        setTimeout(() => icon.className = originalClass, 1500);
-                    }
-                } else {
-                    const handle = await window.showSaveFilePicker({
+        async function openDatabase() {
+            // Check support
+            if (typeof window.showOpenFilePicker === 'function') {
+                try {
+                    [dbHandle] = await window.showOpenFilePicker({
                         types: [{
                             description: 'SQLite Database',
                             accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
-                        }],
-                        suggestedName: `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`
+                        }]
                     });
-                    dbHandle = handle;
-                    const writable = await handle.createWritable();
-                    await writable.write(data);
-                    await writable.close();
-                    updateDbStatus(`已保存: ${handle.name}`, 'emerald');
+
+                    const file = await dbHandle.getFile();
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uInt8Array = new Uint8Array(arrayBuffer);
+
+                    await initSql();
+                    db = new SQL.Database(uInt8Array);
+                    initAllTables(); // Ensure tables exist
+
+                    updateDbStatus(`已加载: ${file.name}`, 'emerald');
+                    closeSettings();
+
+                    // Refresh iframe if open
+                    if (iframe.contentWindow) {
+                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                    }
+
+                } catch (err) {
+                    console.error('Open database error:', err);
+                    if (err.name !== 'AbortError') {
+                        alert('打开数据库失败: ' + err.message);
+                    }
                 }
+            } else {
+                // Fallback
+                dbFileInput.click();
+            }
+        }
+
+        async function saveDatabaseToDisk(event, isAutoSave = false) {
+            if (!db) return;
+            try {
+                const data = db.export();
+
+                // ALWAYS save to IDB snapshot for persistence across reloads (Legacy/Backup)
+                await saveSnapshotToIDB(data);
+
+                if (typeof window.showSaveFilePicker === 'function') {
+                    // Modern API
+                    if (dbHandle) {
+                        // Check/Request Permission
+                        const opts = { mode: 'readwrite' };
+                        if ((await dbHandle.queryPermission(opts)) !== 'granted') {
+                            if (isAutoSave) {
+                                // Cannot prompt during auto-save, skip disk write
+                                updateDbStatus('自动保存暂停 (需手动保存验证)', 'amber');
+                                return;
+                            }
+                            // Manual save: request permission
+                            if ((await dbHandle.requestPermission(opts)) !== 'granted') {
+                                alert('请授予写入权限以保存文件。');
+                                return;
+                            }
+                        }
+
+                        const writable = await dbHandle.createWritable();
+                        await writable.write(data);
+                        await writable.close();
+
+                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
+
+                        // Feedback in button
+                        if (event && event.currentTarget) {
+                            const btn = event.currentTarget;
+                            const icon = btn.querySelector('i');
+                            const tempClass = icon.className;
+                            icon.className = 'fas fa-check text-white';
+                            setTimeout(() => icon.className = tempClass, 1500);
+                        }
+                    } else {
+                        // If auto-save and no handle, skip prompt to avoid annoyance
+                        if (isAutoSave) return;
+
+                        const handle = await window.showSaveFilePicker({
+                            types: [{
+                                description: 'SQLite Database',
+                                accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
+                            }],
+                            suggestedName: `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`
+                        });
+                        dbHandle = handle;
+                        const writable = await handle.createWritable();
+                        await writable.write(data);
+                        await writable.close();
+
+                        // Save new handle to IDB
+                        await saveSnapshotToIDB(data, dbHandle, handle.name);
+
+                        updateDbStatus(`已保存: ${handle.name}`, 'emerald');
+                    }
+                } else {
+                    // Legacy Fallback (Download)
+                    // If auto-save, DO NOT download automatically as it spams the user.
+                    if (isAutoSave) return;
+
+                    const blob = new Blob([data], { type: 'application/x-sqlite3' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    updateDbStatus('已导出 (Legacy)', 'emerald');
+                }
+
             } catch (err) {
                 console.error('Save database error:', err);
                 if (err.name !== 'AbortError') {
@@ -427,11 +597,109 @@
             }
         }
 
+        // Init on startup
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initSql();
+
+            const snapshot = await loadSnapshotFromIDB();
+            if (snapshot && snapshot.data) {
+                try {
+                    // 1. Initial Load from IDB (Fastest)
+                    db = new SQL.Database(snapshot.data);
+
+                    if (snapshot.handle) {
+                        dbHandle = snapshot.handle;
+
+                        // 2. Try to Sync with File (Source of Truth)
+                        try {
+                            // Check read permission
+                            const perm = await dbHandle.queryPermission({ mode: 'read' });
+                            if (perm === 'granted') {
+                                const file = await dbHandle.getFile();
+                                const buf = await file.arrayBuffer();
+                                const u8 = new Uint8Array(buf);
+                                db = new SQL.Database(u8); // Reload with fresh file data
+                                updateDbStatus(`已同步: ${file.name}`, 'emerald');
+
+                                // Update IDB cache to match file
+                                await saveSnapshotToIDB(u8, dbHandle, file.name);
+                            } else {
+                                const name = snapshot.filename || 'database.sqlite';
+                                updateDbStatus(`缓存已加载: ${name} (需点击保存以同步文件)`, 'amber');
+                            }
+                        } catch (e) {
+                            console.warn('File sync failed:', e);
+                            const name = snapshot.filename || 'database.sqlite';
+                            updateDbStatus(`已恢复: ${name} (文件同步失败)`, 'amber');
+                        }
+                    } else {
+                        const name = snapshot.filename || 'Session Data';
+                        updateDbStatus(`已恢复: ${name} (IDB)`, 'emerald');
+                    }
+
+                    initAllTables();
+
+                    // Notify iframe that DB is ready
+                    if (iframe.contentWindow) {
+                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                    }
+
+                } catch (err) {
+                    console.error('Restore error:', err);
+                    updateDbStatus('恢复失败', 'text-red-500');
+                }
+            } else {
+                // First time load or empty
+            }
+        });
+
+        async function openDatabase() {
+            // Check support
+            if (typeof window.showOpenFilePicker === 'function') {
+                try {
+                    [dbHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'SQLite Database',
+                            accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
+                        }]
+                    });
+
+                    const file = await dbHandle.getFile();
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uInt8Array = new Uint8Array(arrayBuffer);
+
+                    await initSql();
+                    db = new SQL.Database(uInt8Array);
+                    initAllTables();
+
+                    // Save new state (Link Handle)
+                    await saveSnapshotToIDB(uInt8Array, dbHandle, file.name);
+
+                    updateDbStatus(`已加载: ${file.name}`, 'emerald');
+                    closeSettings();
+
+                    // Refresh iframe if open
+                    if (iframe.contentWindow) {
+                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                    }
+
+                } catch (err) {
+                    console.error('Open database error:', err);
+                    if (err.name !== 'AbortError') {
+                        alert('打开数据库失败: ' + err.message);
+                    }
+                }
+            } else {
+                // Fallback
+                dbFileInput.click();
+            }
+        }
+
         // Init all tables for all tools
         function initAllTables() {
             if (!db) return;
             initHiitTables();
-            // Future: initImageToolsTables();
+            initPomodoroTables();
         }
 
         function initHiitTables() {
@@ -460,6 +728,53 @@
             } catch (e) { }
         }
 
+        function initPomodoroTables() {
+            db.run(`
+                CREATE TABLE IF NOT EXISTS pomodoro_tags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    color TEXT NOT NULL,
+                    is_default INTEGER DEFAULT 0
+                )
+            `);
+
+            // Check if tags exist, if not add defaults
+            const result = db.exec("SELECT count(*) FROM pomodoro_tags");
+            if (result[0].values[0][0] === 0) {
+                // Requested list: Writing, Plotting, Coding, Review, Design, Learning, Reading, Planning, Entertainment, Relax, Fitness
+                const tags = [
+                    ['Writing', '#10b981'], // Emerald
+                    ['Plotting', '#8b5cf6'], // Violet
+                    ['Coding', '#2563eb'], // Blue
+                    ['Review', '#0ea5e9'], // Sky
+                    ['Design', '#ec4899'], // Pink
+                    ['Learning', '#f59e0b'], // Amber
+                    ['Reading', '#84cc16'], // Lime
+                    ['Planning', '#f97316'], // Orange
+                    ['Entertainment', '#ef4444'], // Red
+                    ['Relax', '#64748b'], // Slate
+                    ['Fitness', '#14b8a6'] // Teal
+                ];
+
+                const placeholders = tags.map(() => '(?, ?, 1)').join(',');
+                const flatValues = tags.flat();
+
+                db.run(`INSERT INTO pomodoro_tags (name, color, is_default) VALUES ${placeholders}`, flatValues);
+            }
+
+            db.run(`
+                CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    start_time TEXT NOT NULL,
+                    end_time TEXT NOT NULL,
+                    duration_minutes INTEGER NOT NULL,
+                    tag_id INTEGER,
+                    status TEXT,
+                    created_at TEXT NOT NULL
+                )
+            `);
+        }
+
         function updateDbStatus(text, color) {
             const statusText = document.getElementById('modal-db-status-text');
             const statusDot = document.querySelector('#modal-db-status div');
@@ -477,18 +792,31 @@
             const msg = event.data;
             if (!msg || !msg.type) return;
 
+            console.log('[Host] Received message:', msg.type, msg);
+
             if (msg.type === 'REQUEST_DB_DATA') {
+                const targetFrame = document.getElementById('app-frame');
+                if (!targetFrame || !targetFrame.contentWindow) {
+                    console.error('[Host] Target iframe not found!');
+                    return;
+                }
+                const target = targetFrame.contentWindow;
+
                 if (db) {
                     try {
+                        console.log('[Host] Executing SQL:', msg.sql);
                         const result = db.exec(msg.sql);
-                        iframe.contentWindow.postMessage({
+                        console.log('[Host] Query Result Rows:', result.length > 0 ? result[0].values.length : 0);
+
+                        target.postMessage({
                             type: 'DB_QUERY_RESULT',
                             requestId: msg.requestId,
                             result: result,
                             status: 'success'
                         }, '*');
                     } catch (e) {
-                        iframe.contentWindow.postMessage({
+                        console.error('[Host] Query Error:', e);
+                        target.postMessage({
                             type: 'DB_QUERY_RESULT',
                             requestId: msg.requestId,
                             status: 'error',
@@ -496,7 +824,8 @@
                         }, '*');
                     }
                 } else {
-                    iframe.contentWindow.postMessage({
+                    console.error('[Host] Database NOT loaded yet!');
+                    target.postMessage({
                         type: 'DB_QUERY_RESULT',
                         requestId: msg.requestId,
                         status: 'error',
@@ -509,7 +838,7 @@
                     db.run(`INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [msg.data.date, msg.data.rounds, msg.data.workTime, msg.data.restTime, msg.data.totalWorkTime, msg.data.calories, msg.data.weight, msg.data.totalTime, msg.data.startTime, msg.data.endTime]);
 
-                    await saveDatabaseToDisk();
+                    await saveDatabaseToDisk(null, true);
 
                     iframe.contentWindow.postMessage({ type: 'SAVE_SUCCESS', requestId: msg.requestId }, '*');
                 } catch (err) {
@@ -519,7 +848,7 @@
                 if (db) {
                     try {
                         db.run('DELETE FROM workouts WHERE id = ?', [msg.id]);
-                        await saveDatabaseToDisk();
+                        await saveDatabaseToDisk(null, true);
                         // Notify success/refresh
                         iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
                     } catch (err) {
@@ -533,15 +862,45 @@
                         const d = msg.data;
                         // Recalculate total_work_time
                         const totalWork = d.rounds * d.work_time;
-                        db.run(`UPDATE workouts SET date=?, rounds=?, work_time=?, rest_time=?, calories=?, weight=?, total_work_time=? WHERE id=?`,
-                            [d.date, d.rounds, d.work_time, d.rest_time, d.calories, d.weight, totalWork, d.id]);
+                        db.run(`UPDATE workouts SET date = ?, rounds = ?, work_time = ?, rest_time = ?, total_work_time = ?, calories = ?, weight = ? WHERE id = ?`,
+                            [d.date, d.rounds, d.work_time, d.rest_time, totalWork, d.calories, d.weight, d.id]);
 
-                        await saveDatabaseToDisk();
+                        await saveDatabaseToDisk(null, true);
                         iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
                     } catch (err) {
                         console.error('Update error:', err);
                         alert('更新失败: ' + err.message);
                     }
+                }
+            } else if (msg.type === 'SAVE_POMODORO') {
+                if (!db) await createNewDatabase();
+                try {
+                    db.run(`INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+                        [msg.data.startTime, msg.data.endTime, msg.data.duration, msg.data.tagId, msg.data.status, new Date().toISOString()]);
+                    await saveDatabaseToDisk(null, true);
+                    iframe.contentWindow.postMessage({ type: 'SAVE_SUCCESS', requestId: msg.requestId }, '*');
+                } catch (err) {
+                    iframe.contentWindow.postMessage({ type: 'SAVE_ERROR', requestId: msg.requestId, message: err.message }, '*');
+                }
+            } else if (msg.type === 'DELETE_POMODORO') {
+                if (db) {
+                    try {
+                        db.run('DELETE FROM pomodoro_sessions WHERE id = ?', [msg.id]);
+                        await saveDatabaseToDisk(null, true);
+                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                    } catch (err) {
+                        console.error('Delete Pomodoro error:', err);
+                    }
+                }
+            } else if (msg.type === 'SAVE_TAG') {
+                if (!db) await createNewDatabase();
+                try {
+                    db.run(`INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, 0)`,
+                        [msg.data.name, msg.data.color]);
+                    await saveDatabaseToDisk(null, true);
+                    iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                } catch (err) {
+                    console.error('Save Tag error:', err);
                 }
             }
         });

@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番茄钟</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .pixel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(12px, 1fr));
+            gap: 2px;
+        }
+
+        .pixel-block {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .pixel-filled {
+            box-shadow: 0 0 2px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 text-white font-sans min-h-screen">
+
+    <!-- Header -->
+    <header
+        class="p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-800">
+        <div class="flex items-center gap-4">
+            <a href="index.html"
+                class="text-xl font-bold tracking-wider hover:opacity-80 transition flex items-center gap-2">
+                <i class="fas fa-clock text-rose-500"></i>番茄钟
+            </a>
+            <!-- Tag Selector -->
+            <div class="relative group">
+                <button onclick="toggleTagMenu()" id="currentTagBtn"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition">
+                    <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <span id="currentTagName">Work</span>
+                    <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+                </button>
+                <div id="tagMenu"
+                    class="hidden absolute top-full left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
+                    <div id="tagList" class="max-h-60 overflow-y-auto">
+                        <!-- Tags rendered here -->
+                    </div>
+                    <div class="border-t border-slate-700 mt-1 pt-1 px-2">
+                        <button onclick="openAddTagModal()"
+                            class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
+                            <i class="fas fa-plus"></i> 新建标签
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openStats()" class="p-2 text-slate-400 hover:text-white transition" title="统计历史">
+                <i class="fas fa-history text-lg"></i>
+            </button>
+            <button onclick="exportData()" class="p-2 text-slate-400 hover:text-white transition" title="导出数据">
+                <i class="fas fa-download text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+
+        <!-- Timer View -->
+        <div id="timerView" class="flex flex-col items-center justify-center min-h-[60vh]">
+
+            <!-- Digital Timer -->
+            <div class="text-[8rem] font-bold font-mono tracking-tighter leading-none mb-4 tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400"
+                id="digitalTimer">
+                25:00
+            </div>
+
+            <!-- Pixel Tomato -->
+            <div class="w-full max-w-md mb-12">
+                <div id="pixelGrid"
+                    class="pixel-grid bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                    <!-- Blocks injected here -->
+                </div>
+                <div class="text-center mt-2 text-xs text-slate-500">
+                    <span id="progressText">0 / 25 min</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-6">
+
+                <!-- Duration Settings (Only valid when stopped) -->
+                <div id="durationSettings"
+                    class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700">
+                    <button onclick="setDuration(25)"
+                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
+                        data-min="25">25</button>
+                    <button onclick="setDuration(45)"
+                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                        data-min="45">45</button>
+                    <button onclick="setDuration(60)"
+                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                        data-min="60">60</button>
+                    <button onclick="askCustomDuration()"
+                        class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
+                            class="fas fa-edit"></i></button>
+                </div>
+
+                <!-- Main Action -->
+                <button id="mainBtn" onclick="toggleTimer()"
+                    class="h-16 w-16 rounded-full bg-rose-500 hover:bg-rose-400 text-white text-2xl flex items-center justify-center shadow-lg shadow-rose-500/30 transition transform hover:scale-105 active:scale-95">
+                    <i class="fas fa-play ml-1"></i>
+                </button>
+
+                <!-- Reset (Hidden when stopped) -->
+                <button id="resetBtn" onclick="resetTimer()"
+                    class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition opacity-50 cursor-not-allowed pointer-events-none">
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Stats View (Modal/Overlay) -->
+        <div id="statsOverlay"
+            class="fixed inset-0 bg-slate-900 z-30 transform translate-y-full transition duration-300 overflow-y-auto">
+            <div class="max-w-5xl mx-auto px-4 py-8">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold flex items-center gap-2">
+                        <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
+                    </h2>
+                    <button onclick="closeStats()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                        <div class="text-slate-400 text-xs mb-1">今日专注</div>
+                        <div class="text-2xl font-bold text-white"><span id="todayCount">0</span> <span
+                                class="text-sm font-normal text-slate-500">个番茄</span></div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                        <div class="text-slate-400 text-xs mb-1">今日时长</div>
+                        <div class="text-2xl font-bold text-blue-400"><span id="todayMins">0</span> <span
+                                class="text-sm font-normal text-slate-500">分钟</span></div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                        <div class="text-slate-400 text-xs mb-1">本周累计</div>
+                        <div class="text-2xl font-bold text-emerald-400"><span id="weekCount">0</span> <span
+                                class="text-sm font-normal text-slate-500">个</span></div>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                        <div class="text-slate-400 text-xs mb-1">总专注时长</div>
+                        <div class="text-2xl font-bold text-amber-400"><span id="totalHours">0.0</span> <span
+                                class="text-sm font-normal text-slate-500">小时</span></div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                        <h3 class="text-sm font-medium text-slate-300 mb-4">专注趋势</h3>
+                        <div class="h-64">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                        <h3 class="text-sm font-medium text-slate-300 mb-4">分布占比</h3>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="distChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History List -->
+                <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
+                    <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="font-medium text-slate-300">详细记录</h3>
+                        <div class="flex gap-2">
+                            <select id="historyFilter" onchange="renderHistoryList()"
+                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 outline-none focus:border-blue-500">
+                                <option value="all">全部</option>
+                                <option value="today">今天</option>
+                                <option value="week">本周</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="historyList" class="divide-y divide-slate-700/50 max-h-96 overflow-y-auto">
+                        <!-- Items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Save Modal -->
+    <div id="saveModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div
+            class="bg-slate-800 border-t-4 border-rose-500 rounded-2xl w-full max-w-sm p-8 shadow-2xl transform scale-90 transition-transform duration-300">
+            <div class="text-center mb-6">
+                <div
+                    class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-3xl animate-bounce">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">专注达成！</h3>
+                <p class="text-slate-400">刚刚完成了 <span id="saveDuration" class="text-white font-bold">25</span> 分钟的专注。
+                </p>
+            </div>
+
+            <div class="bg-slate-900/50 rounded-lg p-4 mb-6">
+                <div class="text-xs text-slate-500 mb-1">标签</div>
+                <div class="flex items-center gap-2">
+                    <span id="saveTagColor" class="w-3 h-3 rounded-full bg-blue-500"></span>
+                    <span id="saveTagName" class="text-sm font-medium text-slate-300">Work</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="discardSession()"
+                    class="py-3 rounded-xl border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">
+                    丢弃
+                </button>
+                <button onclick="confirmSaveSession()"
+                    class="py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-lg shadow-rose-600/20 transition">
+                    记录
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Tag Modal -->
+    <div id="addTagModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
+            <h3 class="font-bold text-lg mb-4">新建标签</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">名称</label>
+                    <input type="text" id="newTagName" placeholder="例如：Coding"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">颜色</label>
+                    <div class="grid grid-cols-5 gap-2" id="colorPicker">
+                        <!-- Colors generated by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="document.getElementById('addTagModal').classList.add('hidden')"
+                    class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">取消</button>
+                <button onclick="confirmAddTag()"
+                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('[Pomodoro] Script starting...');
+
+        // === Core State ===
+        let currentState = 'stopped'; // stopped, running, paused
+        let durationMinutes = 25;
+        let timeLeftSeconds = 25 * 60;
+        let timerInterval = null;
+        let startTime = null;
+
+        let currentTag = { id: 1, name: 'Work', color: '#3b82f6' }; // Default
+        let tags = [];
+        let sessions = [];
+
+        // === DOM Elements ===
+        const els = {
+            digital: document.getElementById('digitalTimer'),
+            pixelGrid: document.getElementById('pixelGrid'),
+            mainBtn: document.getElementById('mainBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            durationBtns: document.querySelectorAll('.duration-btn'),
+            statsOverlay: document.getElementById('statsOverlay'),
+            saveModal: document.getElementById('saveModal'),
+            tagMenu: document.getElementById('tagMenu'),
+            tagList: document.getElementById('tagList'),
+            currentTagName: document.getElementById('currentTagName'),
+            currentTagDot: document.getElementById('currentTagDot'),
+            progressText: document.getElementById('progressText')
+        };
+
+        // === Init ===
+        function init() {
+            console.log('[Pomodoro] init() called.');
+            document.getElementById('historyFilter').value = 'today'; // Default to Today
+            renderPixels();
+            loadTags();
+            // Start listener
+            window.addEventListener('message', handleMessage);
+            // Request data
+            requestData();
+        }
+
+        // === Timer Logic ===
+        function setDuration(mins) {
+            if (currentState === 'running') return;
+            durationMinutes = mins;
+            timeLeftSeconds = mins * 60;
+            updateDigitalDisplay();
+            renderPixels();
+
+            // UI Update
+            els.durationBtns.forEach(btn => {
+                const btnMins = parseInt(btn.dataset.min);
+                if (btnMins === mins) {
+                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm';
+                } else {
+                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white';
+                }
+            });
+        }
+
+        function askCustomDuration() {
+            if (currentState === 'running') return;
+            const input = prompt('请输入时长 (分钟):', durationMinutes);
+            if (input) {
+                const mins = parseInt(input);
+                if (!isNaN(mins) && mins > 0 && mins <= 240) {
+                    setDuration(mins);
+                }
+            }
+        }
+
+        function toggleTimer() {
+            if (currentState === 'stopped' || currentState === 'paused') {
+                startTimer();
+            } else {
+                pauseTimer();
+            }
+        }
+
+        function startTimer() {
+            if (currentState === 'stopped') {
+                startTime = new Date();
+                timeLeftSeconds = durationMinutes * 60; // Reset just in case
+            }
+
+            currentState = 'running';
+            els.mainBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            els.mainBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+            els.mainBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
+
+            els.resetBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            els.resetBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500', 'hover:bg-red-600');
+            els.resetBtn.onclick = resetTimer; // Enable click
+            els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
+
+            timerInterval = setInterval(() => {
+                if (timeLeftSeconds > 0) {
+                    timeLeftSeconds--;
+                    updateDigitalDisplay();
+                    updatePixelDisplay();
+                } else {
+                    completeSession();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            currentState = 'paused';
+            clearInterval(timerInterval);
+            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
+            els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
+            els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            currentState = 'stopped';
+            timeLeftSeconds = durationMinutes * 60;
+            updateDigitalDisplay();
+            renderPixels(); // Reset pixels
+
+            els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+            els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+        }
+
+        function completeSession() {
+            pauseTimer(); // Stop interval
+            currentState = 'stopped'; // Reset state
+            playCompletionSound();
+
+            // Show Modal
+            document.getElementById('saveDuration').innerText = durationMinutes;
+            document.getElementById('saveTagColor').style.backgroundColor = currentTag.color;
+            document.getElementById('saveTagName').innerText = currentTag.name;
+
+            const modal = els.saveModal;
+            modal.classList.remove('hidden');
+            // Trigger animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-90');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function discardSession() {
+            closeSaveModal();
+            resetTimer();
+        }
+
+        let pomosCompleted = 0;
+        let lastWorkTagId = null;
+
+        function confirmSaveSession() {
+            // Save to DB
+            const end = new Date();
+            const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
+
+            window.parent.postMessage({
+                type: 'SAVE_POMODORO',
+                requestId: 'save_pom_' + Date.now(),
+                data: {
+                    startTime: start.toISOString(),
+                    endTime: end.toISOString(),
+                    duration: durationMinutes,
+                    tagId: currentTag.id,
+                    status: 'completed'
+                }
+            }, '*');
+
+            closeSaveModal();
+            handleAutoFlow();
+        }
+
+        function handleAutoFlow() {
+            // Check if current was Relax
+            const isRelax = currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest' || currentTag.name === 'Relax';
+
+            if (isRelax) {
+                // Determine next step: Back to Work
+                // Restore last work tag if available
+                if (lastWorkTagId) {
+                    const workTag = tags.find(t => t.id === lastWorkTagId);
+                    if (workTag) {
+                        currentTag = workTag;
+                        els.currentTagName.innerText = workTag.name;
+                        els.currentTagDot.style.backgroundColor = workTag.color;
+                    }
+                }
+                // Default work duration
+                setDuration(25);
+                resetTimer(); // Updates display
+
+            } else {
+                // Must be work session
+                pomosCompleted++;
+                lastWorkTagId = currentTag.id;
+
+                let breakMins = 5;
+                if (pomosCompleted % 4 === 0) {
+                    breakMins = 15; // Long break
+                }
+
+                // Find Relax Tag (Default is provided in index.html as 'Relax')
+                // But we load tags from DB. We need to find one with name 'Relax'.
+                const relaxTag = tags.find(t => t.name === 'Relax') || tags.find(t => t.name === 'Rest');
+                if (relaxTag) {
+                    selectTag(relaxTag.id);
+                }
+
+                setDuration(breakMins);
+                resetTimer();
+
+                if (breakMins === 15) {
+                    // Optional: Notify user of long break
+                }
+            }
+        }
+
+        function closeSaveModal() {
+            const modal = els.saveModal;
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-90');
+            modal.querySelector('div').classList.remove('scale-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // === Audio Logic ===
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playCompletionSound() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const now = audioCtx.currentTime;
+
+            // Note 1: E5 (659.25 Hz)
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(659.25, now);
+            gain1.gain.setValueAtTime(0.1, now);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            osc1.start(now);
+            osc1.stop(now + 0.5);
+
+            // Note 2: G#5 (830.61 Hz)
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(830.61, now + 0.1);
+            gain2.gain.setValueAtTime(0.1, now + 0.1);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start(now + 0.1);
+            osc2.stop(now + 0.6);
+
+            // Note 3: B5 (987.77 Hz) - Major chord finish
+            const osc3 = audioCtx.createOscillator();
+            const gain3 = audioCtx.createGain();
+            osc3.type = 'sine';
+            osc3.frequency.setValueAtTime(987.77, now + 0.2);
+            gain3.gain.setValueAtTime(0.1, now + 0.2);
+            gain3.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+            osc3.connect(gain3);
+            gain3.connect(audioCtx.destination);
+            osc3.start(now + 0.2);
+            osc3.stop(now + 1.2);
+        }
+
+        // === UI Rendering ===
+        function updateDigitalDisplay() {
+            const mins = Math.floor(timeLeftSeconds / 60);
+            const secs = timeLeftSeconds % 60;
+            els.digital.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            document.title = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} - 番茄钟`;
+        }
+
+        // Smoother, rounder tomato shape
+        const TOMATO_MAP = [
+            [0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0],
+            [0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0]
+        ];
+
+        function renderPixels() {
+            els.pixelGrid.innerHTML = '';
+            els.pixelGrid.style.display = 'grid';
+            els.pixelGrid.style.gridTemplateColumns = `repeat(13, 1fr)`;
+            els.pixelGrid.style.gap = '2px';
+            els.pixelGrid.style.maxWidth = '300px';
+            els.pixelGrid.style.margin = '0 auto';
+
+            TOMATO_MAP.flat().forEach((val, index) => {
+                const div = document.createElement('div');
+                div.id = `pixel-${index}`;
+
+                if (val === 0) {
+                    div.className = 'pixel-block invisible';
+                } else {
+                    div.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
+                    div.dataset.type = val; // 1=Body, 2=Stem
+                    // Keep aspect ratio roughly square
+                    div.style.aspectRatio = '1/1';
+                }
+                els.pixelGrid.appendChild(div);
+            });
+
+            els.progressText.innerText = `0 / ${durationMinutes} min`;
+        }
+
+        function updatePixelDisplay() {
+            const totalSeconds = durationMinutes * 60;
+            const elapsed = totalSeconds - timeLeftSeconds;
+            const percentage = elapsed / totalSeconds;
+            const elapsedMins = Math.floor(elapsed / 60);
+
+            // Update text
+            els.progressText.innerText = `${elapsedMins} / ${durationMinutes} min`;
+
+            // Calculate active pixels
+            const allPixels = Array.from(els.pixelGrid.children);
+            const fillablePixels = allPixels.filter(el => !el.classList.contains('invisible'));
+            const countToFill = Math.floor(fillablePixels.length * percentage);
+
+            fillablePixels.forEach((block, i) => {
+                const type = block.dataset.type;
+                if (i < countToFill) {
+                    if (type === '2') {
+                        block.style.backgroundColor = '#4ade80'; // Green stem
+                    } else {
+                        block.style.backgroundColor = currentTag.color; // Tag color body
+                    }
+                    block.classList.add('shadow-[0_0_5px_rgba(0,0,0,0.5)]');
+                    // Add a slight "lit" effect override opacity/brightness if needed
+                    block.style.filter = 'brightness(1.2)';
+                } else {
+                    block.style.backgroundColor = ''; // Revert to slate-800
+                    block.classList.remove('bg-slate-800'); // Wait, we need base color
+                    block.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
+                    block.style.filter = '';
+                    block.style.boxShadow = '';
+                }
+            });
+        }
+
+        // === Tag Logic ===
+        function toggleTagMenu() {
+            els.tagMenu.classList.toggle('hidden');
+        }
+
+        function selectTag(id) {
+            const t = tags.find(tag => tag.id === id);
+            if (t) {
+                currentTag = t;
+                els.currentTagName.innerText = t.name;
+                els.currentTagDot.style.backgroundColor = t.color;
+                // Update visuals if not running
+                if (currentState === 'stopped') {
+                    // Update pixel colors if any were filled? No, they are empty when stopped.
+                }
+            }
+            els.tagMenu.classList.add('hidden');
+        }
+
+        function loadTags() {
+            // Request tags from DB
+            window.parent.postMessage({
+                type: 'REQUEST_DB_DATA',
+                requestId: 'get_tags_' + Date.now(),
+                sql: "SELECT * FROM pomodoro_tags ORDER BY name ASC"
+            }, '*');
+        }
+
+        function renderTags(tagList) {
+            tags = tagList.map(r => ({ id: r.values[0], name: r.values[1], color: r.values[2] }));
+            if (tags.length === 0) return; // Should not happen due to defaults
+
+            if (!tags.find(t => t.id === currentTag.id)) {
+                currentTag = tags[0]; // Fallback
+                selectTag(currentTag.id);
+            }
+
+            els.tagList.innerHTML = tags.map(t => `
+                <button onclick="selectTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-700 transition flex items-center justify-between group">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
+                        <span class="text-sm text-slate-300 group-hover:text-white">${t.name}</span>
+                    </div>
+                    ${t.id === currentTag.id ? '<i class="fas fa-check text-xs text-blue-500"></i>' : ''}
+                </button>
+            `).join('');
+        }
+
+        // Add Tag color picker
+        const presetColors = [
+            '#64748b', '#78716c', // Slate, Stone
+            '#ef4444', '#f97316', '#f59e0b', '#eab308', // Red, Orange, Amber, Yellow
+            '#84cc16', '#22c55e', '#10b981', '#14b8a6', // Lime, Green, Emerald, Teal
+            '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', // Cyan, Sky, Blue, Indigo
+            '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e' // Violet, Purple, Fuchsia, Pink, Rose
+        ];
+        let newTagColor = presetColors[0];
+
+        function openAddTagModal() {
+            els.tagMenu.classList.add('hidden');
+            const picker = document.getElementById('colorPicker');
+            picker.innerHTML = presetColors.map(c => `
+                <button onclick="selectNewTagColor('${c}')" class="w-6 h-6 rounded-full border-2 ${c === newTagColor ? 'border-white' : 'border-transparent'} hover:scale-110 transition" style="background-color: ${c}"></button>
+            `).join('');
+            document.getElementById('addTagModal').classList.remove('hidden');
+        }
+
+        function selectNewTagColor(c) {
+            newTagColor = c;
+            openAddTagModal(); // Re-render selection
+        }
+
+        function confirmAddTag() {
+            const name = document.getElementById('newTagName').value.trim();
+            if (!name) return;
+
+            window.parent.postMessage({
+                type: 'SAVE_TAG',
+                requestId: 'add_tag_' + Date.now(),
+                data: { name, color: newTagColor }
+            }, '*');
+
+            document.getElementById('addTagModal').classList.add('hidden');
+            document.getElementById('newTagName').value = '';
+        }
+
+        // === Stats Logic ===
+        function openStats() {
+            els.statsOverlay.classList.remove('translate-y-full');
+            // Load stats data
+            requestData();
+        }
+
+        function closeStats() {
+            els.statsOverlay.classList.add('translate-y-full');
+        }
+
+        function requestData() {
+            console.log('[Pomodoro] Requesting data...');
+            // Get tags
+            window.parent.postMessage({
+                type: 'REQUEST_DB_DATA',
+                requestId: 'get_tags_load_' + Date.now(),
+                sql: "SELECT id, name, color, is_default FROM pomodoro_tags"
+            }, '*');
+
+            // Get Sessions
+            window.parent.postMessage({
+                type: 'REQUEST_DB_DATA',
+                requestId: 'get_sessions_' + Date.now(),
+                sql: "SELECT id, start_time, end_time, duration_minutes, tag_id, status FROM pomodoro_sessions ORDER BY start_time DESC"
+            }, '*');
+        }
+
+        function handleMessage(e) {
+            const msg = e.data;
+            console.log('[Pomodoro] Received message:', msg.type);
+
+            if (msg.type === 'DB_QUERY_RESULT') {
+                if (msg.requestId.startsWith('get_tags')) {
+                    console.log('[Pomodoro] Tags result:', msg.result);
+                    if (msg.result && msg.result.length > 0) {
+                        renderTags(msg.result[0].values.map(v => ({ values: v }))); // Adapt format
+                    } else {
+                        console.warn('[Pomodoro] No tags found!');
+                    }
+                } else if (msg.requestId.startsWith('get_sessions')) {
+                    console.log('[Pomodoro] Sessions result:', msg.result);
+                    if (msg.result && msg.result.length > 0) {
+                        const raw = msg.result[0].values;
+                        sessions = raw.map(r => ({
+                            id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5]
+                        }));
+                    } else {
+                        sessions = [];
+                        console.log('[Pomodoro] No sessions found.');
+                    }
+                    if (!els.statsOverlay.classList.contains('translate-y-full')) {
+                        updateStatsUI();
+                    }
+                }
+            } else if (msg.type === 'DB_UPDATED' || msg.type === 'SAVE_SUCCESS') {
+                console.log('[Pomodoro] DB Updated notification received. Reloading...');
+                requestData(); // Refresh all
+            }
+        }
+
+        let trendChart = null;
+        let distChart = null;
+
+        function updateStatsUI() {
+            // Helper: get tag
+            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+            const now = new Date();
+
+            // 1. Summary Cards
+            const today = sessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
+            const todayMins = today.reduce((sum, s) => sum + s.duration, 0);
+
+            // Week start (Monday)
+            const d = new Date(now);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const weekStart = new Date(d.setDate(diff));
+            weekStart.setHours(0, 0, 0, 0);
+
+            const week = sessions.filter(s => new Date(s.startTime) >= weekStart);
+            const totalMins = sessions.reduce((sum, s) => sum + s.duration, 0);
+
+            document.getElementById('todayCount').innerText = today.length;
+            document.getElementById('todayMins').innerText = todayMins;
+            document.getElementById('weekCount').innerText = week.length;
+            document.getElementById('totalHours').innerText = (totalMins / 60).toFixed(1);
+
+            // 2. Charts
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            const ctxDist = document.getElementById('distChart').getContext('2d');
+
+            // Trend: Last 7 days
+            const labels = [];
+            const data = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
+                labels.push(date.getDate() + '日'); // Simplified
+
+                const dayMins = sessions
+                    .filter(s => s.startTime.startsWith(dateStr))
+                    .reduce((sum, s) => sum + s.duration, 0);
+                data.push(dayMins);
+            }
+
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '专注时长 (分钟)',
+                        data: data,
+                        backgroundColor: '#f43f5e',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#334155' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Distribution: By Tag (All time)
+            const tagStats = {};
+            sessions.forEach(s => {
+                const t = getTag(s.tagId);
+                tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
+            });
+            const distLabels = Object.keys(tagStats);
+            const distData = Object.values(tagStats);
+            const distColors = distLabels.map(name => tags.find(t => t.name === name)?.color || '#ccc');
+
+            if (distChart) distChart.destroy();
+            distChart = new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: distLabels,
+                    datasets: [{
+                        data: distData,
+                        backgroundColor: distColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94a3b8' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.chart._metasets[context.datasetIndex].total;
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    return `${label}: ${value}分钟 (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. History List
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const filter = document.getElementById('historyFilter').value;
+            const list = document.getElementById('historyList');
+            const now = new Date();
+
+            let displayedSessions = [...sessions];
+            console.log(`[Pomodoro] Render History - Total: ${sessions.length}, Filter: ${filter}`);
+
+            if (filter === 'today') {
+                displayedSessions = displayedSessions.filter(s => {
+                    const match = new Date(s.startTime).toDateString() === now.toDateString();
+                    // console.log(`Date Check: ${s.startTime} vs ${now.toISOString()} -> ${match}`);
+                    return match;
+                });
+            } else if (filter === 'week') {
+                const d = new Date(now);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const weekStart = new Date(d.setDate(diff));
+                weekStart.setHours(0, 0, 0, 0);
+                displayedSessions = displayedSessions.filter(s => new Date(s.startTime) >= weekStart);
+            }
+
+            console.log(`[Pomodoro] Displayed Sessions: ${displayedSessions.length}`);
+
+            if (displayedSessions.length === 0) {
+                list.innerHTML = '<div class="p-8 text-center text-slate-500">暂无记录</div>';
+                return;
+            }
+
+            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+
+            list.innerHTML = displayedSessions.map(s => {
+                const tag = getTag(s.tagId);
+                const date = new Date(s.startTime);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold">
+                                ${s.duration}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
+                                    <span class="font-medium text-slate-200">${tag.name}</span>
+                                </div>
+                                <div class="text-xs text-slate-500">${dateStr}</div>
+                            </div>
+                        </div>
+                        <button onclick="deleteSession(${s.id})" class="text-slate-600 hover:text-rose-500 transition opacity-0 group-hover:opacity-100 p-2">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteSession(id) {
+            if (confirm('确定删除这条记录吗？')) {
+                window.parent.postMessage({
+                    type: 'DELETE_POMODORO',
+                    requestId: 'del_pom_' + Date.now(),
+                    id: id
+                }, '*');
+            }
+        }
+
+        function exportData() {
+            // Let parent handle it via standard Export button in index.html? 
+            // Or we can trigger a CSV export here.
+            // User asked for "Export Data", parent has global DB export.
+            // Let's rely on parent's global export for simplicity and consistency ("Export Database").
+            // But if user wants CSV:
+            if (confirm('是否要导出所有番茄钟记录为 CSV？')) {
+                const csvContent = "data:text/csv;charset=utf-8,"
+                    + "ID,StartTime,EndTime,Duration,TagName,Status\n"
+                    + sessions.map(s => {
+                        const t = tags.find(tag => tag.id === s.tagId)?.name || 'Unknown';
+                        return `${s.id},${s.startTime},${s.endTime},${s.duration},${t},${s.status}`;
+                    }).join("\n");
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "pomodoro_history.csv");
+                document.body.appendChild(link);
+                link.click();
+            }
+        }
+
+
+
+        // Run init
+        init();
+
+    </script>
+</body>
+
+</html>
