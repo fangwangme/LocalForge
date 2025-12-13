@@ -222,7 +222,15 @@
                         </div>
                     </div>
                     <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
-                        <h3 class="text-sm font-medium text-slate-300 mb-4">分布占比</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-medium text-slate-300">分布占比</h3>
+                            <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
+                                <button onclick="setDistMode('today')" id="distModeToday"
+                                    class="px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm">今天</button>
+                                <button onclick="setDistMode('week')" id="distModeWeek"
+                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                            </div>
+                        </div>
                         <div class="h-64 flex items-center justify-center">
                             <canvas id="distChart"></canvas>
                         </div>
@@ -361,6 +369,7 @@
         let currentTag = { id: 1, name: 'Work', color: '#3b82f6' }; // Default
         let tags = [];
         let sessions = [];
+        let currentDistMode = 'today'; // 'today' or 'week'
 
         // === DOM Elements ===
         const els = {
@@ -1137,48 +1146,12 @@
                 }
             });
 
-            // Distribution: By Tag (All time) - Exclude Relax (User request)
-            const tagStats = {};
-            focusSessions.forEach(s => {
-                const t = getTag(s.tagId);
-                tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
-            });
-            const distLabels = Object.keys(tagStats);
-            const distData = Object.values(tagStats);
-            const distColors = distLabels.map(name => tags.find(t => t.name === name)?.color || '#ccc');
 
-            if (distChart) distChart.destroy();
-            distChart = new Chart(ctxDist, {
-                type: 'doughnut',
-                data: {
-                    labels: distLabels,
-                    datasets: [{
-                        data: distData,
-                        backgroundColor: distColors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { color: '#94a3b8' } },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    const total = context.chart._metasets[context.datasetIndex].total;
-                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
-                                    return `${label}: ${value}分钟 (${percentage})`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
 
-            // 3. History List
+            // 3. Distribution Chart (Rendered separately)
+            renderDistChart();
+
+            // 4. History List
             renderHistoryList();
 
             // 4. Set Initial Slider Position (Center on Now)
@@ -1251,6 +1224,94 @@
                 trendChart.options.scales.x.max = start + 4; // Fixed 4h window
                 trendChart.update('none'); // Efficient update works better
             }
+        }
+
+        function setDistMode(mode) {
+            currentDistMode = mode;
+            // Update Toggle UI
+            const btnToday = document.getElementById('distModeToday');
+            const btnWeek = document.getElementById('distModeWeek');
+
+            if (mode === 'today') {
+                btnToday.className = 'px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm';
+                btnWeek.className = 'px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white';
+            } else {
+                btnToday.className = 'px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white';
+                btnWeek.className = 'px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm';
+            }
+
+            renderDistChart();
+        }
+
+        function renderDistChart() {
+            const ctxDist = document.getElementById('distChart').getContext('2d');
+            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+            const isRelax = (s) => getTag(s.tagId).name === 'Relax';
+
+            // Filter Sessions based on Mode
+            const focusSessions = sessions.filter(s => !isRelax(s));
+            const now = new Date();
+            let distSource = [];
+
+            if (currentDistMode === 'today') {
+                distSource = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
+            } else {
+                // Week
+                const d = new Date(now);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const weekStart = new Date(d.setDate(diff));
+                weekStart.setHours(0, 0, 0, 0);
+                distSource = focusSessions.filter(s => new Date(s.startTime) >= weekStart);
+            }
+
+            const tagStats = {};
+            distSource.forEach(s => {
+                const t = getTag(s.tagId);
+                tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
+            });
+
+            const distLabels = Object.keys(tagStats);
+            const distData = Object.values(tagStats);
+            const distColors = distLabels.map(name => tags.find(t => t.name === name)?.color || '#ccc');
+
+            if (distChart) distChart.destroy();
+
+            // Handle Empty Data
+            if (distData.length === 0) {
+                // Maybe show a "No Data" text or empty chart? 
+                // Chart.js handles empty data okay, but let's just render it.
+            }
+
+            distChart = new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: distLabels,
+                    datasets: [{
+                        data: distData,
+                        backgroundColor: distColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94a3b8' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.chart._metasets[context.datasetIndex].total;
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    return `${label}: ${value}分钟 (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderHistoryList() {
