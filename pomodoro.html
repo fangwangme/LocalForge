@@ -9,6 +9,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
         .pixel-grid {
             display: grid;
@@ -187,7 +189,24 @@
                 <!-- Charts -->
                 <div class="grid md:grid-cols-3 gap-6 mb-8">
                     <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
-                        <h3 class="text-sm font-medium text-slate-300 mb-4">专注趋势</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-medium text-slate-300">专注趋势</h3>
+                            <div class="flex items-center gap-4">
+                                <button onclick="toggleFullView()" id="fullViewBtn"
+                                    class="px-2 py-1 text-xs border border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400 transition">
+                                    <i class="fas fa-expand"></i> 全景
+                                </button>
+                                <div class="flex items-center gap-2 text-xs text-slate-400" id="sliderContainer">
+                                    <button onclick="moveSlider(-1)" class="p-1 hover:text-white transition"><i
+                                            class="fas fa-chevron-left"></i></button>
+                                    <input type="range" id="chartSlider" min="0" max="20" step="1" value="0"
+                                        class="w-24 md:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        oninput="onSliderChange(this.value)">
+                                    <button onclick="moveSlider(1)" class="p-1 hover:text-white transition"><i
+                                            class="fas fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="h-64">
                             <canvas id="trendChart"></canvas>
                         </div>
@@ -939,10 +958,10 @@
                     scales: {
                         x: {
                             min: 0,
-                            max: 24,
+                            max: 4, // Default 4h window
                             grid: { color: '#334155' },
                             ticks: {
-                                stepSize: 4, // Tick every 4 hours
+                                stepSize: 1, // STRICT 1 HOUR
                                 callback: function (value) {
                                     return value + ':00';
                                 },
@@ -1000,6 +1019,77 @@
 
             // 3. History List
             renderHistoryList();
+
+            // 4. Set Initial Slider Position (Center on Now)
+            const currentHour = new Date().getHours();
+            let safeStart = currentHour - 2;
+            if (safeStart < 0) safeStart = 0;
+            if (safeStart > 20) safeStart = 20;
+
+            document.getElementById('chartSlider').value = safeStart;
+            onSliderChange(safeStart);
+        }
+
+        let isFullView = false;
+        let lastSliderVal = 0;
+
+        function toggleFullView() {
+            if (!trendChart) return;
+            const btn = document.getElementById('fullViewBtn');
+            const slider = document.getElementById('chartSlider');
+            const sliderContainer = document.getElementById('sliderContainer');
+
+            isFullView = !isFullView;
+
+            if (isFullView) {
+                // Switch to Full View
+                lastSliderVal = slider.value;
+                trendChart.options.scales.x.min = 0;
+                trendChart.options.scales.x.max = 24;
+                trendChart.options.scales.x.ticks.stepSize = 4; // Less dense ticks
+                trendChart.update();
+
+                btn.classList.add('bg-blue-600', 'border-blue-500', 'text-white');
+                btn.classList.remove('text-slate-400', 'border-slate-600');
+                btn.innerHTML = '<i class="fas fa-compress"></i> 退出';
+
+                sliderContainer.classList.add('opacity-50', 'pointer-events-none');
+                slider.disabled = true;
+            } else {
+                // Restore Focus View
+                trendChart.options.scales.x.min = parseInt(lastSliderVal);
+                trendChart.options.scales.x.max = parseInt(lastSliderVal) + 4;
+                trendChart.options.scales.x.ticks.stepSize = 1; // Detailed ticks
+                trendChart.update();
+
+                btn.classList.remove('bg-blue-600', 'border-blue-500', 'text-white');
+                btn.classList.add('text-slate-400', 'border-slate-600');
+                btn.innerHTML = '<i class="fas fa-expand"></i> 全景';
+
+                sliderContainer.classList.remove('opacity-50', 'pointer-events-none');
+                slider.disabled = false;
+            }
+        }
+
+        function moveSlider(delta) {
+            const slider = document.getElementById('chartSlider');
+            let val = parseInt(slider.value) + delta;
+            // Clamp
+            if (val < 0) val = 0;
+            if (val > 20) val = 20;
+
+            slider.value = val;
+            onSliderChange(val);
+        }
+
+        function onSliderChange(val) {
+            if (isFullView) return; // Ignore if in full view
+            const start = parseInt(val);
+            if (trendChart) {
+                trendChart.options.scales.x.min = start;
+                trendChart.options.scales.x.max = start + 4; // Fixed 4h window
+                trendChart.update('none'); // Efficient update works better
+            }
         }
 
         function renderHistoryList() {
