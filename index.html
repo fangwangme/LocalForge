@@ -107,17 +107,11 @@
                         </button>
                     </li>
                     <li>
-                        <button onclick="openTool('hiit_stats.html');" id="nav-stats"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
-                            <i
-                                class="fas fa-chart-line w-6 text-center shrink-0 group-hover:text-orange-400 transition"></i>
-                            <span class="nav-text ml-3">训练统计</span>
-                        </button>
-                    </li>
 
-                    <div
-                        class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
-                        效率工具</div>
+
+                        <div
+                            class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
+                            效率工具</div>
                     <li>
                         <button onclick="openTool('pomodoro.html');" id="nav-pomodoro"
                             class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
@@ -186,15 +180,7 @@
                             <p class="text-slate-400 text-sm leading-relaxed">自定义间歇训练计时。</p>
                         </div>
 
-                        <div onclick="openTool('hiit_stats.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-white mb-2">训练统计</h3>
-                            <p class="text-slate-400 text-sm leading-relaxed">可视化数据分析。</p>
-                        </div>
+
 
                         <div onclick="openTool('pomodoro.html')"
                             class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-red-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
@@ -340,7 +326,6 @@
             if (url.includes('editor')) { title = '图片编辑器'; navId = 'nav-editor'; }
             else if (url.includes('resize')) { title = '图片压缩'; navId = 'nav-resize'; }
             else if (url.includes('jump')) { title = 'HIIT 计时器'; navId = 'nav-timer'; }
-            else if (url.includes('stats')) { title = '训练统计'; navId = 'nav-stats'; }
             else if (url.includes('pomodoro')) { title = '番茄钟'; navId = 'nav-pomodoro'; }
 
             pageTitle.innerText = title;
@@ -739,29 +724,7 @@
                 )
             `);
 
-            // Check if tags exist, if not add defaults
-            const result = db.exec("SELECT count(*) FROM pomodoro_tags");
-            if (result[0].values[0][0] === 0) {
-                // Requested list: Writing, Plotting, Coding, Review, Design, Learning, Reading, Planning, Entertainment, Relax, Fitness
-                const tags = [
-                    ['Writing', '#10b981'], // Emerald
-                    ['Plotting', '#8b5cf6'], // Violet
-                    ['Coding', '#2563eb'], // Blue
-                    ['Review', '#0ea5e9'], // Sky
-                    ['Design', '#ec4899'], // Pink
-                    ['Learning', '#f59e0b'], // Amber
-                    ['Reading', '#84cc16'], // Lime
-                    ['Planning', '#f97316'], // Orange
-                    ['Entertainment', '#ef4444'], // Red
-                    ['Relax', '#64748b'], // Slate
-                    ['Fitness', '#14b8a6'] // Teal
-                ];
 
-                const placeholders = tags.map(() => '(?, ?, 1)').join(',');
-                const flatValues = tags.flat();
-
-                db.run(`INSERT INTO pomodoro_tags (name, color, is_default) VALUES ${placeholders}`, flatValues);
-            }
 
             db.run(`
                 CREATE TABLE IF NOT EXISTS pomodoro_sessions (

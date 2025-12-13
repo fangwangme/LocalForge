@@ -839,10 +839,15 @@
         function updateStatsUI() {
             // Helper: get tag
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+            const isRelax = (s) => getTag(s.tagId).name === 'Relax';
+
             const now = new Date();
 
-            // 1. Summary Cards
-            const today = sessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
+            // 1. Summary Cards (Exclude Relax)
+            // Filter out Relax for ALL summary metrics
+            const focusSessions = sessions.filter(s => !isRelax(s));
+
+            const today = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
             const todayMins = today.reduce((sum, s) => sum + s.duration, 0);
 
             // Week start (Monday)
@@ -852,8 +857,8 @@
             const weekStart = new Date(d.setDate(diff));
             weekStart.setHours(0, 0, 0, 0);
 
-            const week = sessions.filter(s => new Date(s.startTime) >= weekStart);
-            const totalMins = sessions.reduce((sum, s) => sum + s.duration, 0);
+            const week = focusSessions.filter(s => new Date(s.startTime) >= weekStart);
+            const totalMins = focusSessions.reduce((sum, s) => sum + s.duration, 0);
 
             document.getElementById('todayCount').innerText = today.length;
             document.getElementById('todayMins').innerText = todayMins;
@@ -864,7 +869,7 @@
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
             const ctxDist = document.getElementById('distChart').getContext('2d');
 
-            // Trend: Last 7 Days Timeline (0-24h)
+            // Trend: Last 7 Days Timeline (0-24h) - INCLUDE Relax (User request)
             const timelineData = [];
             const timelineColors = [];
             const dayLabels = [];
@@ -874,14 +879,10 @@
                 const d = new Date(now);
                 d.setDate(d.getDate() - i);
                 const dayStr = d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }); // e.g. 12/13
-                dayLabels.unshift(dayStr); // Keep order: Oldest -> Newest (Top to Bottom? Or Bottom Up? ChartJS Bar default is Bottom-Up)
-                // Actually for timeline, usually Top is Today. Let's stick to ChartJS default order first.
+                dayLabels.unshift(dayStr);
             }
 
             // 2. Map sessions to timeline bars
-            // We need to iterate days to match Y-axis buckets
-            // ChartJS 'bar' with indexAxis:'y' uses labels associated with 'y'.
-
             sessions.forEach(s => {
                 const sDate = new Date(s.startTime);
                 const dayStr = sDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
@@ -958,10 +959,10 @@
                     scales: {
                         x: {
                             min: 0,
-                            max: 4, // Default 4h window
+                            max: 24, // WILL BE OVERRIDDEN by slider logic immediately after
                             grid: { color: '#334155' },
                             ticks: {
-                                stepSize: 1, // STRICT 1 HOUR
+                                stepSize: 1,
                                 callback: function (value) {
                                     return value + ':00';
                                 },
@@ -976,9 +977,9 @@
                 }
             });
 
-            // Distribution: By Tag (All time)
+            // Distribution: By Tag (All time) - Exclude Relax (User request)
             const tagStats = {};
-            sessions.forEach(s => {
+            focusSessions.forEach(s => {
                 const t = getTag(s.tagId);
                 tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
             });

@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- sql.js for SQLite in browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* 自定义过渡动画 */
         body {
@@ -59,6 +60,9 @@
         </a>
         <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
             <i class="fas fa-redo-alt mr-1"></i> Reset
+        </button>
+        <button id="statsBtn" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition ml-2">
+            <i class="fas fa-chart-line mr-1"></i> Stats
         </button>
     </header>
 
@@ -143,10 +147,10 @@
                             </button>
                         </div>
                     </label>
-                    <input type="range" id="roundsInput" min="5" max="15" step="1" value="8"
+                    <input type="range" id="roundsInput" min="1" max="15" step="1" value="8"
                         class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
                     <div class="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>5</span>
+                        <span>1</span>
                         <span>15</span>
                     </div>
                 </div>
@@ -268,6 +272,120 @@
 
     </main>
 
+    <!-- Stats Overlay -->
+    <div id="statsOverlay" class="fixed inset-0 bg-slate-900 z-20 hidden overflow-y-auto">
+        <div class="max-w-4xl mx-auto px-4 py-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Training History</h2>
+                <button onclick="closeStats()" class="bg-slate-800 p-2 rounded-full hover:bg-slate-700 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-800 rounded-xl p-4 text-center">
+                    <div class="text-3xl font-bold text-rose-400" id="statTotalWorkouts">0</div>
+                    <div class="text-slate-400 text-sm mt-1">Total Workouts</div>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4 text-center">
+                    <div class="text-3xl font-bold text-orange-400" id="statTotalCalories">0</div>
+                    <div class="text-slate-400 text-sm mt-1">Total Calories</div>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4 text-center">
+                    <div class="text-3xl font-bold text-emerald-400" id="statTotalTime">0</div>
+                    <div class="text-slate-400 text-sm mt-1">Total Time (min)</div>
+                </div>
+                <div class="bg-slate-800 rounded-xl p-4 text-center">
+                    <div class="text-3xl font-bold text-blue-400" id="statAvgCalories">0</div>
+                    <div class="text-slate-400 text-sm mt-1">Avg Calories</div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="bg-slate-800 rounded-xl p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Trend (Last 30 Days)</h2>
+                    <div class="bg-slate-700/50 p-1 rounded-lg flex text-xs">
+                        <button onclick="renderChart('calories')" id="chartMetricCal"
+                            class="px-3 py-1 rounded-md bg-slate-600 text-white shadow transition">Calories</button>
+                        <button onclick="renderChart('duration')" id="chartMetricTime"
+                            class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition">Duration</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto pb-4">
+                    <div class="h-64 min-w-[600px]" id="chartContainer">
+                        <canvas id="caloriesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History List -->
+            <div class="bg-slate-800 rounded-xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">History</h2>
+                    <button onclick="exportDatabase()" class="text-xs text-slate-400 hover:text-white">
+                        <i class="fas fa-download mr-1"></i> Export Data
+                    </button>
+                </div>
+                <div id="historyList" class="space-y-3">
+                    <div class="text-center text-slate-500 py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl"></i>
+                        <p class="mt-2">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl m-4">
+            <h3 class="text-xl font-bold mb-4">Edit Workout</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Date & Time</label>
+                    <input type="datetime-local" id="edit-date"
+                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Rounds</label>
+                        <input type="number" id="edit-rounds"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Calories</label>
+                        <input type="number" id="edit-cals"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Work (s)</label>
+                        <input type="number" id="edit-work"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Rest (s)</label>
+                        <input type="number" id="edit-rest"
+                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Weight (kg)</label>
+                    <input type="number" id="edit-weight" step="0.1"
+                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="saveEdit()"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // === 状态管理 ===
         const state = {
@@ -324,7 +442,9 @@
             startBtn: document.getElementById('startBtn'),
             toggleBtn: document.getElementById('toggleBtn'),
             resetBtn: document.getElementById('resetBtn'),
-            homeBtn: document.getElementById('homeBtn')
+            homeBtn: document.getElementById('homeBtn'),
+            statsBtn: document.getElementById('statsBtn'),
+            statsOverlay: document.getElementById('statsOverlay')
         };
 
         // === 圆环设置 ===
@@ -639,6 +759,321 @@
         els.resetBtn.addEventListener('click', resetWorkout);
         els.homeBtn.addEventListener('click', resetWorkout);
         els.toggleBtn.addEventListener('click', togglePause);
+        els.statsBtn.addEventListener('click', openStats);
+
+        // === STATS LOGIC ===
+        let chart = null;
+        let currentChartMetric = 'calories';
+
+        function openStats() {
+            els.statsOverlay.classList.remove('hidden');
+            renderAllStats();
+        }
+
+        function closeStats() {
+            els.statsOverlay.classList.add('hidden');
+        }
+
+        async function renderAllStats() {
+            if (!state.db && window.parent === window) await initDatabase();
+
+            await renderSummary();
+            await renderChart(currentChartMetric);
+            await renderHistory();
+        }
+
+        async function executeQueryResult(sql) {
+            // Using postMessage if in iframe
+            if (window.parent !== window) {
+                return new Promise((resolve, reject) => {
+                    const requestId = 'req_' + Date.now() + '_' + Math.random();
+                    const handler = (event) => {
+                        if (event.data.requestId === requestId) {
+                            window.removeEventListener('message', handler);
+                            if (event.data.status === 'success') {
+                                resolve(event.data.result);
+                            } else {
+                                console.warn('Query failed:', event.data.message);
+                                resolve([]);
+                            }
+                        }
+                    };
+                    window.addEventListener('message', handler);
+                    window.parent.postMessage({
+                        type: 'REQUEST_DB_DATA',
+                        requestId: requestId,
+                        sql: sql
+                    }, '*');
+                });
+            } else {
+                if (!state.db) return [];
+                return state.db.exec(sql);
+            }
+        }
+
+        async function renderSummary() {
+            const result = await executeQueryResult(`
+                SELECT 
+                    COUNT(*) as count,
+                    COALESCE(SUM(calories), 0) as totalCal,
+                    COALESCE(SUM(total_work_time), 0) as totalTime,
+                    COALESCE(AVG(calories), 0) as avgCal
+                FROM workouts
+            `);
+
+            if (result && result.length > 0) {
+                const [count, totalCal, totalTime, avgCal] = result[0].values[0];
+                document.getElementById('statTotalWorkouts').textContent = count;
+                document.getElementById('statTotalCalories').textContent = totalCal;
+                document.getElementById('statTotalTime').textContent = Math.round(totalTime / 60);
+                document.getElementById('statAvgCalories').textContent = Math.round(avgCal);
+            }
+        }
+
+        async function renderChart(metric = 'calories') {
+            currentChartMetric = metric;
+
+            // UI Toggle State
+            const btnCal = document.getElementById('chartMetricCal');
+            const btnTime = document.getElementById('chartMetricTime');
+            if (metric === 'calories') {
+                btnCal.classList.add('bg-slate-600', 'text-white', 'shadow');
+                btnCal.classList.remove('text-slate-400');
+                btnTime.classList.remove('bg-slate-600', 'text-white', 'shadow');
+                btnTime.classList.add('text-slate-400');
+            } else {
+                btnTime.classList.add('bg-slate-600', 'text-white', 'shadow');
+                btnTime.classList.remove('text-slate-400');
+                btnCal.classList.remove('bg-slate-600', 'text-white', 'shadow');
+                btnCal.classList.add('text-slate-400');
+            }
+
+            let sql = '';
+            let label = '';
+            let color = '';
+            let bgColor = '';
+
+            if (metric === 'calories') {
+                sql = `
+                    SELECT date(date) as day, SUM(calories) as val
+                    FROM workouts
+                    WHERE date >= date('now', '-30 days')
+                    GROUP BY date(date)
+                    ORDER BY day
+                `;
+                label = 'Calories';
+                color = 'rgb(251, 146, 60)'; // Orange
+                bgColor = 'rgba(251, 146, 60, 0.6)';
+            } else {
+                // Duration in minutes
+                sql = `
+                    SELECT date(date) as day, SUM(total_work_time) / 60.0 as val
+                    FROM workouts
+                    WHERE date >= date('now', '-30 days')
+                    GROUP BY date(date)
+                    ORDER BY day
+                `;
+                label = 'Duration (min)';
+                color = 'rgb(16, 185, 129)'; // Emerald
+                bgColor = 'rgba(16, 185, 129, 0.6)';
+            }
+
+            const result = await executeQueryResult(sql);
+
+            const labels = [];
+            const data = [];
+
+            if (result && result.length > 0) {
+                result[0].values.forEach(row => {
+                    labels.push(row[0].slice(5)); // MM-DD
+                    data.push(row[1]); // Value
+                });
+            }
+
+            const container = document.getElementById('chartContainer');
+            const minWidth = 600;
+            const requiredWidth = Math.max(minWidth, labels.length * 40);
+            container.style.width = `${requiredWidth}px`;
+
+            const ctx = document.getElementById('caloriesChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: bgColor,
+                        borderColor: color,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        maxBarThickness: 30
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        async function renderHistory() {
+            let query = `
+                SELECT id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time
+                FROM workouts
+                ORDER BY date DESC
+                LIMIT 50
+            `;
+
+            let result = await executeQueryResult(query);
+
+            if (!result || result.length === 0 || result[0].values.length === 0) {
+                document.getElementById('historyList').innerHTML = `
+                    <div class="text-center text-slate-500 py-8">
+                        <p>No workout records</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = result[0].values.map(row => {
+                const [id, date, rounds, workTime, restTime, totalWorkTime, calories, weight, totalTime] = row;
+                const d = new Date(date);
+                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const workMins = Math.floor(totalWorkTime / 60);
+                const workSecs = totalWorkTime % 60;
+
+                return `
+                    <div class="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg group hover:bg-slate-700 transition">
+                        <div>
+                            <div class="font-medium">${dateStr}</div>
+                            <div class="text-sm text-slate-400">
+                                ${rounds} Rounds · ${workTime}s/${restTime}s · Work ${workMins}m${workSecs}s
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="text-xl font-bold text-orange-400">${calories}</div>
+                                <div class="text-xs text-slate-500">kcal</div>
+                            </div>
+                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="openEditModal(${id}, '${date}', ${rounds}, ${workTime}, ${restTime}, ${calories}, ${weight})" class="p-2 text-blue-400 hover:bg-blue-500/20 rounded">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteWorkout(${id})" class="p-2 text-red-400 hover:bg-red-500/20 rounded">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('historyList').innerHTML = html;
+        }
+
+        // --- CRUD for Stats ---
+        const editModal = document.getElementById('editModal');
+        let currentEditId = null;
+
+        window.openEditModal = function (id, date, rounds, work, rest, cals, weight) {
+            currentEditId = id;
+            document.getElementById('edit-rounds').value = rounds;
+            document.getElementById('edit-work').value = work;
+            document.getElementById('edit-rest').value = rest;
+            document.getElementById('edit-cals').value = cals;
+            document.getElementById('edit-weight').value = weight || '';
+            try {
+                const d = new Date(date);
+                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                document.getElementById('edit-date').value = d.toISOString().slice(0, 16);
+            } catch (e) { }
+            editModal.classList.remove('hidden');
+        };
+
+        window.closeEditModal = function () {
+            editModal.classList.add('hidden');
+            currentEditId = null;
+        };
+
+        window.saveEdit = function () {
+            if (!currentEditId) return;
+            const rounds = parseInt(document.getElementById('edit-rounds').value);
+            const work = parseInt(document.getElementById('edit-work').value);
+            const rest = parseInt(document.getElementById('edit-rest').value);
+            const cals = parseInt(document.getElementById('edit-cals').value);
+            const weight = parseFloat(document.getElementById('edit-weight').value);
+            const dateStr = document.getElementById('edit-date').value;
+
+            const msg = {
+                type: 'UPDATE_WORKOUT',
+                requestId: 'req_upd_' + Date.now(),
+                data: {
+                    id: currentEditId,
+                    date: dateStr,
+                    rounds, work_time: work, rest_time: rest,
+                    calories: cals, weight
+                }
+            };
+
+            window.parent.postMessage(msg, '*');
+            closeEditModal();
+        };
+
+        window.deleteWorkout = function (id) {
+            if (confirm('Are you sure you want to delete this workout?')) {
+                window.parent.postMessage({
+                    type: 'DELETE_WORKOUT',
+                    requestId: 'req_del_' + Date.now(),
+                    id: id
+                }, '*');
+            }
+        };
+
+        window.closeStats = closeStats;
+        window.exportDatabase = async function () {
+            if (!state.db) return;
+            try {
+                const binaryArray = state.db.export();
+                const blob = new Blob([binaryArray], { type: 'application/x-sqlite3' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hiit_workouts_${new Date().toISOString().slice(0, 10)}.sqlite`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Export error:', err);
+            }
+        };
+
+        // Listen for updates from parent to refresh stats
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'DB_UPDATED') {
+                if (!els.statsOverlay.classList.contains('hidden')) {
+                    renderAllStats();
+                }
+            }
+        });
 
         // === SQLite 数据库操作 ===
         const DB_NAME = 'hiit_workouts_db';
