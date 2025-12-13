@@ -365,11 +365,17 @@
             }
         }
 
+        let targetEndTime = null;
+
         function startTimer() {
             if (currentState === 'stopped') {
                 startTime = new Date();
                 timeLeftSeconds = durationMinutes * 60; // Reset just in case
             }
+
+            // Calculate target end time based on current remaining seconds
+            // This works for both fresh start and resume
+            targetEndTime = Date.now() + (timeLeftSeconds * 1000);
 
             currentState = 'running';
             els.mainBtn.innerHTML = '<i class="fas fa-pause"></i>';
@@ -381,15 +387,26 @@
             els.resetBtn.onclick = resetTimer; // Enable click
             els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
+            // Use timestamp diffing for accuracy
+            // Poll faster (200ms) to ensure UI updates roughly on time, but rely on Date.now() for value
+            if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                if (timeLeftSeconds > 0) {
-                    timeLeftSeconds--;
+                const now = Date.now();
+                const diff = Math.ceil((targetEndTime - now) / 1000);
+
+                if (diff > 0) {
+                    if (timeLeftSeconds !== diff) {
+                        timeLeftSeconds = diff;
+                        updateDigitalDisplay();
+                        updatePixelDisplay();
+                    }
+                } else {
+                    timeLeftSeconds = 0;
                     updateDigitalDisplay();
                     updatePixelDisplay();
-                } else {
                     completeSession();
                 }
-            }, 1000);
+            }, 200);
         }
 
         function pauseTimer() {
@@ -635,7 +652,7 @@
                     if (type === '2') {
                         block.style.backgroundColor = '#4ade80'; // Green stem
                     } else {
-                        block.style.backgroundColor = currentTag.color; // Tag color body
+                        block.style.backgroundColor = '#f43f5e'; // Rose-500 (Redder Tomato)
                     }
                     block.classList.add('shadow-[0_0_5px_rgba(0,0,0,0.5)]');
                     // Add a slight "lit" effect override opacity/brightness if needed
@@ -828,40 +845,114 @@
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
             const ctxDist = document.getElementById('distChart').getContext('2d');
 
-            // Trend: Last 7 days
-            const labels = [];
-            const data = [];
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
-                labels.push(date.getDate() + '日'); // Simplified
+            // Trend: Last 7 Days Timeline (0-24h)
+            const timelineData = [];
+            const timelineColors = [];
+            const dayLabels = [];
 
-                const dayMins = sessions
-                    .filter(s => s.startTime.startsWith(dateStr))
-                    .reduce((sum, s) => sum + s.duration, 0);
-                data.push(dayMins);
+            // 1. Generate last 7 days labels (Y-axis categories)
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - i);
+                const dayStr = d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }); // e.g. 12/13
+                dayLabels.unshift(dayStr); // Keep order: Oldest -> Newest (Top to Bottom? Or Bottom Up? ChartJS Bar default is Bottom-Up)
+                // Actually for timeline, usually Top is Today. Let's stick to ChartJS default order first.
             }
+
+            // 2. Map sessions to timeline bars
+            // We need to iterate days to match Y-axis buckets
+            // ChartJS 'bar' with indexAxis:'y' uses labels associated with 'y'.
+
+            sessions.forEach(s => {
+                const sDate = new Date(s.startTime);
+                const dayStr = sDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+
+                // Only include if this day is in our last 7 days
+                const dayIndex = dayLabels.indexOf(dayStr);
+                if (dayIndex !== -1) {
+                    const startDisp = sDate.getHours() + sDate.getMinutes() / 60;
+                    const endDisp = startDisp + (s.duration / 60);
+
+                    const tag = getTag(s.tagId);
+
+                    timelineData.push({
+                        x: [startDisp, endDisp],
+                        y: dayStr, // Matches Y-axis label
+                        tag: tag.name, // For tooltip
+                        rawStart: sDate // For tooltip formatting
+                    });
+                    timelineColors.push(tag.color); // Color by tag
+                }
+            });
 
             if (trendChart) trendChart.destroy();
             trendChart = new Chart(ctxTrend, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: dayLabels,
                     datasets: [{
-                        label: '专注时长 (分钟)',
-                        data: data,
-                        backgroundColor: '#f43f5e',
+                        label: '专注记录',
+                        data: timelineData,
+                        backgroundColor: timelineColors,
+                        borderWidth: 0,
+                        barPercentage: 0.6, // Thinner bars for elegance
                         borderRadius: 4
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // Horizontal
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function (context) {
+                                    // Move Tag and Duration to Title
+                                    const raw = context[0].raw;
+                                    const durationHours = raw.x[1] - raw.x[0];
+                                    const totalMins = Math.round(durationHours * 60);
+
+                                    let durationStr = '';
+                                    if (totalMins < 60) {
+                                        durationStr = `${totalMins}分钟`;
+                                    } else {
+                                        const h = Math.floor(totalMins / 60);
+                                        const m = totalMins % 60;
+                                        durationStr = m > 0 ? `${h}小时${m}分钟` : `${h}小时`;
+                                    }
+                                    return `${raw.y} · ${raw.tag} · ${durationStr}`;
+                                },
+                                label: function (context) {
+                                    // Only show Time Range in body
+                                    const raw = context.raw;
+                                    const st = raw.rawStart;
+                                    const itemDuration = raw.x[1] - raw.x[0];
+                                    const ed = new Date(st.getTime() + itemDuration * 3600000);
+
+                                    const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    return `${formatTime(st)} - ${formatTime(ed)}`;
+                                }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: '#334155' } },
-                        x: { grid: { display: false } }
+                        x: {
+                            min: 0,
+                            max: 24,
+                            grid: { color: '#334155' },
+                            ticks: {
+                                stepSize: 4, // Tick every 4 hours
+                                callback: function (value) {
+                                    return value + ':00';
+                                },
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#cbd5e1' }
+                        }
                     }
                 }
             });
