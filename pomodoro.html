@@ -146,6 +146,13 @@
                     <i class="fas fa-rotate-right"></i>
                 </button>
 
+                <!-- Skip (Hidden by default) -->
+                <button id="skipBtn" onclick="skipRelax()"
+                    class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition"
+                    title="跳过">
+                    <i class="fas fa-forward"></i>
+                </button>
+
             </div>
         </div>
 
@@ -331,7 +338,8 @@
             tagList: document.getElementById('tagList'),
             currentTagName: document.getElementById('currentTagName'),
             currentTagDot: document.getElementById('currentTagDot'),
-            progressText: document.getElementById('progressText')
+            progressText: document.getElementById('progressText'),
+            skipBtn: document.getElementById('skipBtn')
         };
 
         // === Init ===
@@ -404,7 +412,10 @@
             els.resetBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             els.resetBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500', 'hover:bg-red-600');
             els.resetBtn.onclick = resetTimer; // Enable click
+            els.resetBtn.onclick = resetTimer; // Enable click
             els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
+
+            checkSkipButton();
 
             // Use timestamp diffing for accuracy
             // Poll faster (200ms) to ensure UI updates roughly on time, but rely on Date.now() for value
@@ -434,6 +445,8 @@
             els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
             els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
             els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+            els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+            checkSkipButton();
         }
 
         function resetTimer() {
@@ -447,6 +460,9 @@
             els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
             els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
             els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+            els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+            els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+            checkSkipButton();
         }
 
         function completeSession() {
@@ -482,17 +498,56 @@
             const end = new Date();
             const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
 
-            window.parent.postMessage({
-                type: 'SAVE_POMODORO',
-                requestId: 'save_pom_' + Date.now(),
-                data: {
-                    startTime: start.toISOString(),
-                    endTime: end.toISOString(),
-                    duration: durationMinutes,
-                    tagId: currentTag.id,
-                    status: 'completed'
-                }
-            }, '*');
+            // Check if cross day
+            if (start.toDateString() !== end.toDateString()) {
+                // Split into two
+                // 1. Start to Midnight
+                const midnight = new Date(start);
+                midnight.setHours(24, 0, 0, 0); // Next midnight
+
+                const dur1 = Math.round((midnight - start) / 60000);
+                const dur2 = durationMinutes - dur1;
+
+                // Save Part 1 (Yesterday)
+                window.parent.postMessage({
+                    type: 'SAVE_POMODORO',
+                    requestId: 'save_pom_1_' + Date.now(),
+                    data: {
+                        startTime: start.toISOString(),
+                        endTime: midnight.toISOString(),
+                        duration: dur1,
+                        tagId: currentTag.id,
+                        status: 'completed'
+                    }
+                }, '*');
+
+                // Save Part 2 (Today)
+                window.parent.postMessage({
+                    type: 'SAVE_POMODORO',
+                    requestId: 'save_pom_2_' + Date.now(),
+                    data: {
+                        startTime: midnight.toISOString(),
+                        endTime: end.toISOString(),
+                        duration: dur2,
+                        tagId: currentTag.id,
+                        status: 'completed'
+                    }
+                }, '*');
+
+            } else {
+                // Normal Save
+                window.parent.postMessage({
+                    type: 'SAVE_POMODORO',
+                    requestId: 'save_pom_' + Date.now(),
+                    data: {
+                        startTime: start.toISOString(),
+                        endTime: end.toISOString(),
+                        duration: durationMinutes,
+                        tagId: currentTag.id,
+                        status: 'completed'
+                    }
+                }, '*');
+            }
 
             closeSaveModal();
             handleAutoFlow();
@@ -541,6 +596,50 @@
                     // Optional: Notify user of long break
                 }
             }
+        }
+
+        // === Skip Logic ===
+        function checkSkipButton() {
+            // Check if current is Relax
+            const isRelax = currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest';
+
+            // Show skip if:
+            // 1. Tag is Relax
+            // 2. Timer is NOT stopped (running or paused) OR if stopped but we want to skip from start? 
+            // Usually skip is valid even if stopped, if we are in 'Relax' mode waiting to start.
+            // But let's say, if we are in 'Relax' mode, we can always skip back to work.
+
+            if (isRelax) {
+                els.skipBtn.classList.remove('hidden');
+            } else {
+                els.skipBtn.classList.add('hidden');
+            }
+        }
+
+        function skipRelax() {
+            // Confirm we are in relax
+            const isRelax = currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest';
+            if (!isRelax) return;
+
+            // Stop timer if running
+            if (currentState === 'running') {
+                clearInterval(timerInterval);
+                currentState = 'stopped';
+
+                // Reset Main Button UI
+                els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
+                els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
+                els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+
+                // Reset Reset Button UI
+                els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+            }
+
+            // Execute AutoFlow to switch to Work
+            handleAutoFlow();
         }
 
         function closeSaveModal() {
@@ -703,6 +802,7 @@
                 }
             }
             els.tagMenu.classList.add('hidden');
+            checkSkipButton();
         }
 
         function loadTags() {
