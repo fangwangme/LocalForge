@@ -188,6 +188,9 @@
                 <button id="btn-input" style="flex: 1;" title="批量处理目录">📂 目录</button>
             </div>
             <button id="btn-output" style="width: 100%; display: none;" title="批量模式需要选择输出目录">💾 选择输出目录</button>
+            <div id="output-info" style="font-size: 11px; color: #888; margin-top: 5px; word-break: break-all;">
+                默认保存位置：Downloads
+            </div>
         </div>
         <ul id="file-list">
             <li style="text-align:center; color:#666; padding:20px;">选择单文件或目录开始</li>
@@ -230,6 +233,22 @@
         </div>
 
         <div class="control-group">
+            <h4>⚙️ 输出设置</h4>
+            <div style="margin-bottom:10px;">
+                <label style="display:inline-block; margin-right:15px;">格式:</label>
+                <select id="sel-format"
+                    style="background:#555; color:white; border:none; padding:4px; border-radius:4px;">
+                    <option value="image/jpeg">JPEG (体积小)</option>
+                    <option value="image/png">PNG (无损)</option>
+                </select>
+            </div>
+            <div id="quality-wrapper">
+                <label>质量: <span id="quality-val">95%</span></label>
+                <input type="range" id="rng-quality" min="10" max="100" value="95" step="5">
+            </div>
+        </div>
+
+        <div class="control-group">
             <h4>操作</h4>
             <button id="btn-save" class="primary" style="width:100%; height:40px; font-weight:bold;">保存并下一张 (S)</button>
             <button id="btn-download" style="width:100%; margin-top:5px; display:none;">⬇️ 下载到本地</button>
@@ -245,6 +264,10 @@
         </div>
     </div>
 
+    <!-- 兼容性回退：隐藏的文件输入框 -->
+    <input type="file" id="fallback-file" style="display: none;" accept="image/png, image/jpeg, image/webp">
+    <input type="file" id="fallback-dir" style="display: none;" webkitdirectory directory multiple>
+
     <script>
         // === 状态管理 ===
         const state = {
@@ -256,6 +279,8 @@
             currentFileName: '', // 当前文件名
             isSingleFileMode: false, // 单文件模式
             mode: 'pad', // 'pad' or 'crop'
+            outputFormat: 'image/jpeg',
+            outputQuality: 0.95,
             cropRect: { x: 0, y: 0, w: 0, h: 0 }, // 裁剪模式下的选框
             // 去水印双选框
             watermarkOuter: null, // { x, y, w, h } - 归一化坐标 (0-1)
@@ -282,87 +307,228 @@
             persistChk: document.getElementById('chk-persist-mask'),
             saveBtn: document.getElementById('btn-save'),
             toast: document.getElementById('toast'),
-            watermarkStatus: document.getElementById('watermark-status')
+            watermarkStatus: document.getElementById('watermark-status'),
+            fallbackFile: document.getElementById('fallback-file'),
+            saveBtn: document.getElementById('btn-save'),
+            toast: document.getElementById('toast'),
+            watermarkStatus: document.getElementById('watermark-status'),
+            fallbackFile: document.getElementById('fallback-file'),
+            fallbackDir: document.getElementById('fallback-dir'),
+            selFormat: document.getElementById('sel-format'),
+            rngQuality: document.getElementById('rng-quality'),
+            qualityVal: document.getElementById('quality-val'),
+            rngQuality: document.getElementById('rng-quality'),
+            qualityVal: document.getElementById('quality-val'),
+            qualityWrapper: document.getElementById('quality-wrapper'),
+            outputInfo: document.getElementById('output-info')
         };
 
-        // === 1. 文件系统操作 ===
+        // === 0. 输出设置 ===
+        els.selFormat.onchange = (e) => {
+            state.outputFormat = e.target.value;
+            // PNG 无损，不需要质量滑块
+            if (state.outputFormat === 'image/png') {
+                els.qualityWrapper.style.opacity = '0.5';
+                els.qualityWrapper.style.pointerEvents = 'none';
+            } else {
+                els.qualityWrapper.style.opacity = '1';
+                els.qualityWrapper.style.pointerEvents = 'auto';
+            }
+        };
 
-        // 单文件模式
+        els.rngQuality.oninput = (e) => {
+            const val = parseInt(e.target.value);
+            els.qualityVal.textContent = val + '%';
+            state.outputQuality = val / 100;
+        };
+
+        // === 1. 文件系统操作与兼容性处理 ===
+
+        // 单文件模式点击
         els.singleBtn.onclick = async () => {
-            try {
-                const [fileHandle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: '图片文件',
-                        accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }
-                    }],
-                    multiple: false
-                });
-                await loadSingleFile(fileHandle);
-            } catch (err) { console.error(err); }
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: '图片文件',
+                            accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }
+                        }],
+                        multiple: false
+                    });
+                    await loadSingleFile(fileHandle);
+                } catch (err) {
+                    // SecurityError means we are in a context that blocks the API (e.g. iframe)
+                    if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+                        els.fallbackFile.click();
+                    } else if (err.name !== 'AbortError') {
+                        console.error(err);
+                    }
+                }
+            } else {
+                // 回退模式
+                els.fallbackFile.click();
+            }
         };
 
-        // 批量模式
+        // 目录模式点击
         els.inputBtn.onclick = async () => {
-            try {
-                state.inputHandle = await window.showDirectoryPicker();
-                state.isSingleFileMode = false;
-                els.outputBtn.style.display = 'block';
-                els.downloadBtn.style.display = 'none';
-                els.saveBtn.textContent = '保存并下一张 (S)';
-                await loadFileList();
-            } catch (err) { console.error(err); }
+            if ('showDirectoryPicker' in window) {
+                try {
+                    state.inputHandle = await window.showDirectoryPicker();
+                    setupBatchModeUI();
+                    await loadFileList();
+                } catch (err) {
+                    // SecurityError means we are in a context that blocks the API
+                    if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+                        els.fallbackDir.click();
+                    } else if (err.name !== 'AbortError') {
+                        console.error(err);
+                    }
+                }
+            } else {
+                // 回退模式
+                els.fallbackDir.click();
+            }
         };
 
         els.outputBtn.onclick = async () => {
+            // 输出目录必须使用 API (fallback 模式下不支持指定目录)
             try {
-                state.outputHandle = await window.showDirectoryPicker();
+                const handle = await window.showDirectoryPicker();
+                state.outputHandle = handle;
+                els.outputInfo.textContent = `输出目录: ${handle.name}`;
+                els.outputInfo.style.color = '#4a90e2';
                 showToast("输出目录已设定");
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+                    // 权限被拒绝或被 iframe 策略阻止
+                    const msg = "⚠️ 系统提示：无法选择自定义文件夹\n\n" +
+                        "原因：当前运行环境（如 VS Code 预览窗口）因安全策略禁止了此功能。\n\n" +
+                        "👉 解决方法：请在 Chrome 或 Edge 浏览器中直接打开此 .html 文件，即可解除限制。\n\n" +
+                        "（当前文件将自动保存到您的默认【下载】文件夹）";
+                    alert(msg);
+
+                    // 隐藏按钮以避免再次报错
+                    els.outputBtn.style.display = 'none';
+                    els.outputInfo.textContent = '保存位置：浏览器默认 Downloads (环境限制)';
+                    state.outputHandle = null; // 确保清除
+                } else if (err.name !== 'AbortError') {
+                    console.error(err);
+                }
+            }
         };
 
-        // 加载单个文件
-        async function loadSingleFile(fileHandle) {
+        // 监听回退输入框变化
+        els.fallbackFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) loadSingleFile(file);
+            e.target.value = ''; // 重置以便重复选择
+        };
+
+        els.fallbackDir.onchange = (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                // 将 FileList 转为数组存储
+                state.inputHandle = Array.from(e.target.files);
+                setupBatchModeUI();
+                loadFileList(); // 加载列表
+            }
+            e.target.value = '';
+        };
+
+        function setupBatchModeUI() {
+            state.isSingleFileMode = false;
+
+            // 检查是否支持 DirectoryPicker 以决定是否显示选择输出目录按钮
+            const supportDirPicker = 'showDirectoryPicker' in window;
+
+            if (supportDirPicker) {
+                els.outputBtn.style.display = 'block';
+                if (state.outputHandle) {
+                    els.outputInfo.textContent = `输出目录: ${state.outputHandle.name}`;
+                } else {
+                    els.outputInfo.textContent = '默认保存位置：Downloads (可点击上方按钮修改)';
+                }
+            } else {
+                els.outputBtn.style.display = 'none';
+                els.outputInfo.textContent = '保存位置：浏览器默认 Downloads (系统限制无法修改)';
+            }
+
+            els.downloadBtn.style.display = 'none';
+            els.saveBtn.textContent = '保存并下一张 (S)';
+        }
+
+        // 加载单个文件 (支持 Handle 或 File)
+        async function loadSingleFile(fileOrHandle) {
             state.isSingleFileMode = true;
-            state.files = [{ name: fileHandle.name, handle: fileHandle }];
+            state.files = [{
+                name: fileOrHandle.name,
+                handle: fileOrHandle // 可能是 File 对象或 FileSystemFileHandle
+            }];
             state.currentIndex = 0;
-            state.currentFileName = fileHandle.name;
+            state.currentFileName = fileOrHandle.name;
 
             // 更新 UI
-            els.outputBtn.style.display = 'none';
             els.downloadBtn.style.display = 'block';
             els.saveBtn.textContent = '保存 (S)';
+            els.outputInfo.textContent = '单文件模式：保存到 Downloads';
 
             els.fileList.innerHTML = '';
             const li = document.createElement('li');
-            li.textContent = fileHandle.name;
+            li.textContent = fileOrHandle.name;
             li.classList.add('active');
             els.fileList.appendChild(li);
             els.fileCount.textContent = '单文件模式';
 
-            // 读取并显示文件
-            const file = await fileHandle.getFile();
-            const bmp = await createImageBitmap(file);
-            state.currentImage = bmp;
+            // 读取
+            await loadFileContent(fileOrHandle);
 
             // 重置选框
             if (!els.persistChk.checked) {
-                state.watermarkOuter = null;
-                state.watermarkInner = null;
-                state.watermarkStep = 'outer';
+                resetWatermark();
             }
             updateWatermarkStatus();
             initCropRect();
             render();
         }
 
+        // 统一读取文件内容
+        async function loadFileContent(fileOrHandle) {
+            let file;
+            if (fileOrHandle.getFile) {
+                // API Handle
+                file = await fileOrHandle.getFile();
+            } else {
+                // Standard File object
+                file = fileOrHandle;
+            }
+            const bmp = await createImageBitmap(file);
+            state.currentImage = bmp;
+        }
+
+        function resetWatermark() {
+            state.watermarkOuter = null;
+            state.watermarkInner = null;
+            state.watermarkStep = 'outer';
+        }
+
         async function loadFileList() {
             state.files = [];
             els.fileList.innerHTML = '';
 
-            for await (const entry of state.inputHandle.values()) {
-                if (entry.kind === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(entry.name)) {
-                    state.files.push({ name: entry.name, handle: entry });
+            const isApiMode = state.inputHandle && !Array.isArray(state.inputHandle);
+
+            if (isApiMode) {
+                // API 模式: 遍历 DirectoryHandle
+                for await (const entry of state.inputHandle.values()) {
+                    if (entry.kind === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(entry.name)) {
+                        state.files.push({ name: entry.name, handle: entry });
+                    }
                 }
+            } else {
+                // 回退模式: state.inputHandle 是 File 数组
+                state.files = state.inputHandle
+                    .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f.name))
+                    .map(f => ({ name: f.name, handle: f }));
             }
 
             // 排序
@@ -389,22 +555,18 @@
             state.currentIndex = index;
             items[index].classList.add('active');
             items[index].scrollIntoView({ block: 'nearest' });
+            state.currentFileName = state.files[index].name; // Update current name
 
             // 读取文件
-            const file = await state.files[index].handle.getFile();
-            const bmp = await createImageBitmap(file);
+            await loadFileContent(state.files[index].handle);
 
-            state.currentImage = bmp;
-
-            // 遮罩处理：如果不保留，则清空
+            // 遮罩处理
             if (!els.persistChk.checked) {
-                state.watermarkOuter = null;
-                state.watermarkInner = null;
-                state.watermarkStep = 'outer';
+                resetWatermark();
             }
             updateWatermarkStatus();
 
-            // 初始化裁剪框 (默认居中)
+            // 初始化裁剪框
             initCropRect();
 
             render();
@@ -789,8 +951,11 @@
             if (!offCanvas) return;
 
             try {
-                const blob = await new Promise(r => offCanvas.toBlob(r, 'image/jpeg', 0.95));
-                const filename = state.currentFileName.replace(/\.[^.]+$/, '_processed.jpg');
+                const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
+
+                // 根据格式修改扩展名
+                const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
+                const filename = state.currentFileName.replace(/\.[^.]+$/, `_processed${ext}`);
 
                 // 创建下载链接
                 const url = URL.createObjectURL(blob);
@@ -818,17 +983,36 @@
             }
 
             if (!state.currentImage) return;
+
+            // 如果没有输出目录Handle，则使用下载模式
             if (!state.outputHandle) {
-                alert("请先选择输出目录！");
+                await downloadToLocal();
+                // 批量模式下自动切到下一张
+                if (!state.isSingleFileMode) {
+                    if (state.currentIndex < state.files.length - 1) {
+                        loadFile(state.currentIndex + 1);
+                    } else {
+                        showToast("所有图片处理完毕！");
+                    }
+                }
                 return;
             }
+
+            // 这里不需要再强行拦截 outputHandle，因为已经允许为空了
 
             const offCanvas = generateProcessedImage();
             if (!offCanvas) return;
 
             try {
-                const blob = await new Promise(r => offCanvas.toBlob(r, 'image/jpeg', 0.95));
-                const filename = state.files[state.currentIndex].name;
+                const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
+
+                // 根据格式修改扩展名
+                const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
+                // 批量保存通常保持原文件名，但可能需要改后缀
+                let filename = state.files[state.currentIndex].name;
+                if (!filename.endsWith(ext)) {
+                    filename = filename.replace(/\.[^.]+$/, ext);
+                }
 
                 const newFileHandle = await state.outputHandle.getFileHandle(filename, { create: true });
                 const writable = await newFileHandle.createWritable();
