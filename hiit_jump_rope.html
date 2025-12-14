@@ -87,7 +87,7 @@
                                 data-target="workInput" data-delta="-5">
                                 <i class="fas fa-minus text-xs"></i>
                             </button>
-                            <span id="workDisplay" class="w-14 text-center">45s</span>
+                            <span id="workDisplay" class="w-14 text-center">60s</span>
                             <button type="button"
                                 class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
                                 data-target="workInput" data-delta="5">
@@ -95,7 +95,7 @@
                             </button>
                         </div>
                     </label>
-                    <input type="range" id="workInput" min="30" max="90" step="5" value="45"
+                    <input type="range" id="workInput" min="30" max="90" step="5" value="60"
                         class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-rose-500">
                     <div class="flex justify-between text-xs text-slate-500 mt-1">
                         <span>30s</span>
@@ -113,7 +113,7 @@
                                 data-target="restInput" data-delta="-5">
                                 <i class="fas fa-minus text-xs"></i>
                             </button>
-                            <span id="restDisplay" class="w-14 text-center">30s</span>
+                            <span id="restDisplay" class="w-14 text-center">45s</span>
                             <button type="button"
                                 class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
                                 data-target="restInput" data-delta="5">
@@ -121,7 +121,7 @@
                             </button>
                         </div>
                     </label>
-                    <input type="range" id="restInput" min="30" max="60" step="5" value="30"
+                    <input type="range" id="restInput" min="30" max="60" step="5" value="45"
                         class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                     <div class="flex justify-between text-xs text-slate-500 mt-1">
                         <span>30s</span>
@@ -139,7 +139,7 @@
                                 data-target="roundsInput" data-delta="-1">
                                 <i class="fas fa-minus text-xs"></i>
                             </button>
-                            <span id="roundsDisplay" class="w-14 text-center">8</span>
+                            <span id="roundsDisplay" class="w-14 text-center">7</span>
                             <button type="button"
                                 class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
                                 data-target="roundsInput" data-delta="1">
@@ -147,7 +147,7 @@
                             </button>
                         </div>
                     </label>
-                    <input type="range" id="roundsInput" min="1" max="15" step="1" value="8"
+                    <input type="range" id="roundsInput" min="1" max="15" step="1" value="7"
                         class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
                     <div class="flex justify-between text-xs text-slate-500 mt-1">
                         <span>1</span>
@@ -265,8 +265,9 @@
             </div>
 
             <button id="homeBtn"
-                class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition">
-                Go Again
+                class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition"
+                onclick="window.location.href='index.html'">
+                Close
             </button>
         </div>
 
@@ -393,9 +394,9 @@
         const state = {
             phase: 'setup', // setup, getReady, work, rest, paused, finished
 
-            workTime: 45,
-            restTime: 30,
-            totalRounds: 8,
+            workTime: 60,
+            restTime: 45,
+            totalRounds: 7,
             currentRound: 1,
             timeLeft: 0,
             intervalId: null,
@@ -832,7 +833,7 @@
             }
         }
 
-        async function renderChart(metric = 'calories') {
+        window.renderChart = async function (metric = 'calories') {
             currentChartMetric = metric;
 
             // UI Toggle State
@@ -1065,18 +1066,147 @@
             }
         };
 
-        // Listen for updates from SharedWorker
-        db.on('db_updated', () => {
+        // === IDB Loading for Standalone Operation ===
+        const IDB_NAME = 'LocalForgeDB';
+        const IDB_STORE = 'snapshots';
+        const IDB_KEY = 'main_db';
+
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(IDB_NAME, 1);
+                request.onupgradeneeded = (event) => {
+                    const idb = event.target.result;
+                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
+                        idb.createObjectStore(IDB_STORE);
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        async function loadSnapshotFromIDB() {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const request = store.get(IDB_KEY);
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (err) {
+                console.error('[HIIT] IDB Load Error:', err);
+                return null;
+            }
+        }
+
+        // Listen for updates from SharedWorker - save to file and IDB
+        db.on('db_updated', async () => {
+            console.log('[HIIT] DB Updated, saving...');
+
+            // Refresh stats UI if visible
             if (!els.statsOverlay.classList.contains('hidden')) {
                 renderAllStats();
             }
+
+            try {
+                const data = await db.export();
+                const idb = await openIndexedDB();
+
+                // Read existing record to get file handle
+                const readTx = idb.transaction(IDB_STORE, 'readonly');
+                const readStore = readTx.objectStore(IDB_STORE);
+                const existingReq = readStore.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    existingReq.onsuccess = () => resolve(existingReq.result);
+                    existingReq.onerror = () => resolve(null);
+                });
+
+                // Try to save to file if handle exists
+                if (existing?.handle) {
+                    try {
+                        const opts = { mode: 'readwrite' };
+                        const perm = await existing.handle.queryPermission(opts);
+                        if (perm === 'granted') {
+                            const writable = await existing.handle.createWritable();
+                            await writable.write(data);
+                            await writable.close();
+                            console.log('[HIIT] ✅ Saved to file:', existing.handle.name);
+                        } else {
+                            console.log('[HIIT] File permission not granted, IDB only');
+                        }
+                    } catch (fileErr) {
+                        console.warn('[HIIT] File save failed:', fileErr.message);
+                    }
+                }
+
+                // Always save to IDB
+                const record = {
+                    data: data,
+                    updated_at: Date.now(),
+                    handle: existing?.handle || null,
+                    filename: existing?.filename || 'auto_backup'
+                };
+
+                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
+                const writeStore = writeTx.objectStore(IDB_STORE);
+                writeStore.put(record, IDB_KEY);
+                await new Promise((resolve, reject) => {
+                    writeTx.oncomplete = resolve;
+                    writeTx.onerror = reject;
+                });
+                console.log('[HIIT] Saved to IDB');
+            } catch (err) {
+                console.error('[HIIT] Save Error:', err);
+            }
         });
 
-        // Startup Hooks
+        // Startup: Load from IDB or wait for db_opened
+        console.log('[HIIT] Setting up startup, db.isOpen =', db.isOpen);
+
+        let initCalled = false;
+
+        db.on('db_opened', () => {
+            if (initCalled) return;
+            initCalled = true;
+            console.log('[HIIT] db_opened event received, calling initDatabase()...');
+            initDatabase();
+        });
+
         if (db.isOpen) {
+            initCalled = true;
+            console.log('[HIIT] DB already open, calling initDatabase() immediately...');
             initDatabase();
         } else {
-            db.on('db_opened', initDatabase);
+            console.log('[HIIT] DB not open, waiting for worker ready...');
+
+            // Wait for worker ready, then load from IDB
+            const tryLoadFromIDB = async () => {
+                if (initCalled) return;
+                console.log('[HIIT] Worker ready, trying to load from IDB...');
+                try {
+                    const snapshot = await loadSnapshotFromIDB();
+                    if (initCalled) return;
+                    if (snapshot && snapshot.data) {
+                        console.log('[HIIT] Found IDB snapshot, initializing DB...');
+                        await db.init(snapshot.data);
+                        // db_opened event will be fired by the worker
+                    } else {
+                        console.error('[HIIT] No database found in IDB!');
+                        alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                    }
+                } catch (err) {
+                    console.error('[HIIT] Failed to load from IDB:', err);
+                    alert('数据库加载失败！\n\nFailed to load database!');
+                }
+            };
+
+            if (db.isReady) {
+                tryLoadFromIDB();
+            } else {
+                db.on('ready', tryLoadFromIDB);
+            }
         }
 
 
@@ -1134,8 +1264,11 @@
         calculateTotalTime();
 
         // Database Startup
-        // Also re-init if DB file changes (opened new one)
+        // Register listener first, then check if already open (handles race condition)
         db.on('db_opened', initDatabase);
+        if (db.isOpen) {
+            initDatabase();
+        }
 
         // Expose functions to window for onclick
         Object.assign(window, {

@@ -9,7 +9,7 @@ cd "$PROJECT_DIR"
 echo "=================================================="
 echo " Starting LocalForge Server..."
 echo " Project Path: $PROJECT_DIR"
-echo " URL: http://localhost:8000"
+echo " URL: http://localhost:8092"
 echo " Press Ctrl+C to stop"
 echo "=================================================="
 

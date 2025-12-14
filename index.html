@@ -304,7 +304,7 @@
 
                             // === State ===
                             let dbHandle = null; // FileSystemFileHandle
-                            let isAutoSave = false;
+                            let isAutoSave = true; // Always auto-save to disk
 
                             // === Helper Functions (Exposed to Window) ===
                             window.toggleSidebar = () => {
@@ -352,16 +352,21 @@
 
                             // Listen for DB events
                             db.on('ready', () => {
+                                console.log('[Host] db.on(ready) fired');
                                 updateDbStatus('引擎就绪', 'amber');
                                 // Try load from IDB
                                 loadSnapshotFromIDB().then(snapshot => {
                                     if (snapshot && snapshot.data) {
                                         if (snapshot.handle) dbHandle = snapshot.handle;
                                         db.init(snapshot.data).then(() => {
-                                            updateDbStatus(dbHandle ? `已恢复: ${snapshot.filename || dbHandle.name}` : `已恢复: ${snapshot.filename || '缓存数据'}`, 'emerald');
+                                            console.log('[Host] Database loaded from IDB snapshot');
+                                            // Prefer dbHandle.name over snapshot.filename
+                                            const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : '缓存数据');
+                                            updateDbStatus(`已恢复: ${displayName}`, 'emerald');
                                         });
                                     } else {
                                         db.init().then(() => {
+                                            console.log('[Host] No snapshot found, created empty database');
                                             updateDbStatus('新数据库 (内存)', 'amber');
                                         });
                                     }
@@ -372,8 +377,42 @@
                                 console.log('[Host] Database opened/connected');
                             });
 
-                            db.on('db_updated', () => {
-                                if (isAutoSave) window.triggerAutoSave();
+                            // Auto-save on every update
+                            db.on('db_updated', async () => {
+                                console.log('[Host] DB Updated, saving...');
+                                if (dbHandle) {
+                                    try {
+                                        const data = await db.export();
+                                        console.log('[Host] Exporting data:', data.length, 'bytes');
+
+                                        const opts = { mode: 'readwrite' };
+                                        const perm = await dbHandle.queryPermission(opts);
+                                        console.log('[Host] File permission:', perm);
+
+                                        if (perm !== 'granted') {
+                                            const newPerm = await dbHandle.requestPermission(opts);
+                                            console.log('[Host] Requested permission:', newPerm);
+                                            if (newPerm !== 'granted') return;
+                                        }
+
+                                        const writable = await dbHandle.createWritable();
+                                        await writable.write(data);
+                                        await writable.close();
+
+                                        console.log('[Host] ✅ Saved to file:', dbHandle.name);
+                                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
+
+                                        // Also save to IDB
+                                        saveSnapshotToIDB(data, dbHandle, dbHandle.name);
+                                    } catch (err) {
+                                        console.error('[Host] Save failed:', err);
+                                    }
+                                } else {
+                                    // Only IDB save if no file handle
+                                    const data = await db.export();
+                                    saveSnapshotToIDB(data, null, 'auto_backup');
+                                    console.log('[Host] Saved to IDB only (no file handle)');
+                                }
                             });
 
 
@@ -386,8 +425,9 @@
                             };
 
                             window.clearCacheAndReload = () => {
-                                if (confirm('Looks like something is stuck. This will clear the local cache and reload the page. Your actual database file is safe. Proceed?')) {
-                                    indexedDB.deleteDatabase(IDB_NAME);
+                                if (confirm('This will clear saved file handles and reload the page. Your actual database file is safe. Proceed?')) {
+                                    // Clear file handle storage
+                                    indexedDB.deleteDatabase('LocalForgeDB');
                                     setTimeout(() => window.location.reload(), 500);
                                 }
                             };
@@ -429,11 +469,12 @@
                             };
 
                             window.saveDatabaseToDisk = async (event, isAuto = false) => {
+                                console.log('[Host] saveDatabaseToDisk called, isAuto:', isAuto, 'dbHandle:', dbHandle);
                                 try {
                                     const data = await db.export(); // Uint8Array
+                                    console.log('[Host] db.export() returned:', data?.length, 'bytes');
 
                                     if (dbHandle) {
-                                        // Permission Check
                                         const opts = { mode: 'readwrite' };
                                         if ((await dbHandle.queryPermission(opts)) !== 'granted') {
                                             if (isAuto) {
@@ -449,8 +490,8 @@
 
                                         updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
                                         saveSnapshotToIDB(data, dbHandle, dbHandle.name);
+                                        console.log('[Host] Database saved to file and IDB');
 
-                                        // Feedback
                                         if (event && event.currentTarget) {
                                             const icon = event.currentTarget.querySelector('i');
                                             if (icon) {
@@ -460,26 +501,22 @@
                                             }
                                         }
                                     } else if (!isAuto) {
+                                        // Prompt user to pick file location
                                         const handle = await window.showSaveFilePicker({
                                             types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }],
-                                            suggestedName: `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`
+                                            suggestedName: `html_tools_db.sqlite`
                                         });
                                         dbHandle = handle;
                                         const writable = await handle.createWritable();
                                         await writable.write(data);
                                         await writable.close();
-
                                         saveSnapshotToIDB(data, dbHandle, handle.name);
                                         updateDbStatus(`已保存: ${handle.name}`, 'emerald');
+                                        console.log('[Host] Database saved to new file and IDB');
                                     } else {
-                                        // Legacy download fallback
-                                        if (isAuto) return;
-                                        const blob = new Blob([data], { type: 'application/x-sqlite3' });
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = `localforge_backup_${Date.now()}.sqlite`;
-                                        a.click();
+                                        // Auto-save to IDB only if no file handle
+                                        saveSnapshotToIDB(data, null, 'auto_backup');
+                                        console.log('[Host] Auto-saved to IDB (no file handle)');
                                     }
                                 } catch (err) {
                                     console.error('Save failed:', err);

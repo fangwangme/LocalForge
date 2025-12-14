@@ -1,82 +1,18 @@
 // shared-db-worker.js
-// using cdnjs as robust fallback (User preferred CDN over local files)
+// Pure in-memory SQLite - persistence handled by index.html via File System Access API
 importScripts('https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.min.js');
-
-const DB_STORE_NAME = 'localforge_store';
-const DB_KEY_NAME = 'sqlite_db_dump';
-const IDB_NAME = 'LocalForgeIDB';
 
 // Global state
 let SQL = null;
 let db = null;
 let ports = [];
 
-// IndexedDB helpers
-function openIDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(IDB_NAME, 1);
-        request.onupgradeneeded = (e) => {
-            const idb = e.target.result;
-            if (!idb.objectStoreNames.contains(DB_STORE_NAME)) {
-                idb.createObjectStore(DB_STORE_NAME);
-            }
-        };
-        request.onsuccess = (e) => resolve(e.target.result);
-        request.onerror = (e) => reject(e.target.error);
-    });
-}
-
-async function loadFromIDB() {
-    try {
-        const idb = await openIDB();
-        const tx = idb.transaction(DB_STORE_NAME, 'readonly');
-        const store = tx.objectStore(DB_STORE_NAME);
-        const request = store.get(DB_KEY_NAME);
-        return new Promise((resolve, reject) => {
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    } catch (err) {
-        console.error('[SharedWorker] loadFromIDB error:', err);
-        return null;
-    }
-}
-
-async function saveToIDB(data) {
-    try {
-        const idb = await openIDB();
-        const tx = idb.transaction(DB_STORE_NAME, 'readwrite');
-        const store = tx.objectStore(DB_STORE_NAME);
-        store.put(data, DB_KEY_NAME);
-        return new Promise((resolve, reject) => {
-            tx.oncomplete = resolve;
-            tx.onerror = reject;
-        });
-    } catch (err) {
-        console.error('[SharedWorker] saveToIDB error:', err);
-    }
-}
-
 initSqlJs({
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`
 }).then(async module => {
     SQL = module;
-
-    // Try auto-load from IDB
-    const savedData = await loadFromIDB();
-    if (savedData) {
-        try {
-            db = new SQL.Database(new Uint8Array(savedData));
-            console.log('[SharedWorker] Auto-loaded database from IndexedDB');
-        } catch (e) {
-            console.error('[SharedWorker] Failed to open saved DB:', e);
-            db = null;
-        }
-    }
-
+    console.log('[SharedWorker] SQL.js ready (no IDB cache)');
     broadcast({ type: 'WORKER_READY' });
-    if (db) broadcast({ type: 'DB_OPENED', recovered: true });
-
 }).catch(err => {
     console.error('[SharedWorker] Failed to load sql.js:', err);
     broadcast({ type: 'WORKER_ERROR', message: 'Failed to load SQL engine' });
@@ -92,7 +28,7 @@ self.onconnect = function (e) {
     if (SQL) {
         port.postMessage({ type: 'WORKER_READY' });
         if (db) {
-            port.postMessage({ type: 'DB_OPENED', recovered: true });
+            port.postMessage({ type: 'DB_OPENED', recovered: false });
         }
     }
 
@@ -111,12 +47,9 @@ self.onconnect = function (e) {
                 case 'OPEN_DB':
                     if (msg.data) {
                         db = new SQL.Database(new Uint8Array(msg.data));
-                        await saveToIDB(msg.data); // Initial save
                         console.log('[SharedWorker] Database opened from file data.');
                     } else if (!db) {
-                        // Only create new if we didn't load one yet
                         db = new SQL.Database();
-                        await saveToIDB(db.export());
                         console.log('[SharedWorker] New empty database created.');
                     }
                     port.postMessage({
@@ -135,11 +68,7 @@ self.onconnect = function (e) {
                         result = db.exec(msg.sql, msg.params);
                     } else {
                         db.run(msg.sql, msg.params);
-                        // Save on write
-                        // Debounce? For safety, just save for now. 
-                        // Note: exporting whole DB is expensive for large DBs. 
-                        // But for this app, it's safer.
-                        saveToIDB(db.export()).catch(e => console.error(e));
+                        // No IDB save - index.html handles persistence via File System Access API
                     }
 
                     port.postMessage({

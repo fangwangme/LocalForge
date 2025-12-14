@@ -456,24 +456,24 @@
             // Notify Toggle & Permission Sync
             const notifyToggle = document.getElementById('notifyToggle');
 
-            // 1. Sync on load
             if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    notifyToggle.checked = true;
-                    notifyToggle.parentElement.classList.remove('opacity-50');
-                }
-
-                // 2. Handle User Click
+                // Handle User Click - request permission when checked
                 notifyToggle.addEventListener('change', (e) => {
                     if (notifyToggle.checked) {
-                        Notification.requestPermission().then(perm => {
-                            if (perm === 'granted') {
-                                notifyToggle.parentElement.classList.remove('opacity-50');
-                            } else {
-                                notifyToggle.checked = false;
-                                alert('请在浏览器设置中允许通知权限。');
-                            }
-                        });
+                        if (Notification.permission === 'granted') {
+                            notifyToggle.parentElement.classList.remove('opacity-50');
+                        } else {
+                            Notification.requestPermission().then(perm => {
+                                if (perm === 'granted') {
+                                    notifyToggle.parentElement.classList.remove('opacity-50');
+                                } else {
+                                    notifyToggle.checked = false;
+                                    alert('请在浏览器设置中允许通知权限。');
+                                }
+                            });
+                        }
+                    } else {
+                        notifyToggle.parentElement.classList.add('opacity-50');
                     }
                 });
             } else {
@@ -623,13 +623,27 @@
 
             // System Notification
             const notifyToggle = document.getElementById('notifyToggle');
-            if (notifyToggle && notifyToggle.checked && Notification.permission === 'granted') {
-                try {
-                    new Notification('专注完成！', {
-                        body: `恭喜！你刚刚完成了 ${durationMinutes} 分钟的专注。`,
-                        icon: 'favicon.png'
-                    });
-                } catch (e) { console.error('Notify Error:', e); }
+            console.log('[Pomodoro] Notification check:', {
+                checked: notifyToggle?.checked,
+                permission: typeof Notification !== 'undefined' ? Notification.permission : 'N/A'
+            });
+
+            if (notifyToggle && notifyToggle.checked) {
+                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                    try {
+                        const n = new Notification('专注完成！', {
+                            body: `恭喜！你刚刚完成了 ${durationMinutes} 分钟的专注。`,
+                            icon: 'favicon.png',
+                            tag: 'pomodoro-complete'
+                        });
+                        console.log('[Pomodoro] Notification sent:', n);
+                    } catch (e) {
+                        console.error('[Pomodoro] Notify Error:', e);
+                    }
+                } else {
+                    console.log('[Pomodoro] Notification permission not granted, requesting...');
+                    Notification.requestPermission();
+                }
             }
 
 
@@ -1116,22 +1130,31 @@
 
             try {
                 // 1. Get Tags
+                console.log('[Pomodoro] Querying tags...');
                 const tagsResult = await db.query("SELECT id, name, color, is_default FROM pomodoro_tags");
+                console.log('[Pomodoro] Tags result:', tagsResult);
                 if (tagsResult && tagsResult.length > 0) {
                     const formattedTags = tagsResult[0].values.map(v => ({ values: v }));
+                    console.log('[Pomodoro] Formatted tags:', formattedTags);
                     renderTags(formattedTags);
+                } else {
+                    console.log('[Pomodoro] No tags found in database');
                 }
 
                 // 2. Get Sessions
+                console.log('[Pomodoro] Querying sessions from', startOfWeek);
                 const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, description FROM pomodoro_sessions WHERE start_time >= ? ORDER BY start_time DESC", [startOfWeek]);
+                console.log('[Pomodoro] Sessions result:', sessionsResult);
 
                 if (sessionsResult && sessionsResult.length > 0) {
                     const raw = sessionsResult[0].values;
                     sessions = raw.map(r => ({
                         id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], description: r[6] || ''
                     }));
+                    console.log('[Pomodoro] Parsed sessions:', sessions.length);
                 } else {
                     sessions = [];
+                    console.log('[Pomodoro] No sessions found');
                 }
 
                 if (!els.statsOverlay.classList.contains('translate-y-full')) {
@@ -1143,10 +1166,11 @@
             }
         }
 
-        // Listen for updates
+        // Listen for updates (reload data + save to IDB)
         db.on('db_updated', () => {
             console.log('[Pomodoro] DB Updated, reloading...');
             requestData();
+            // Note: saveSnapshotToIDB is registered separately below
         });
 
 
@@ -1625,7 +1649,9 @@
         }
 
         async function initTables() {
+            console.log('[Pomodoro] initTables() called');
             try {
+                console.log('[Pomodoro] Creating pomodoro_tags table...');
                 await db.execute(`
                     CREATE TABLE IF NOT EXISTS pomodoro_tags (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1636,12 +1662,18 @@
                 `);
 
                 // Tags Check
+                console.log('[Pomodoro] Checking if tags exist...');
                 const countRes = await db.query("SELECT COUNT(*) FROM pomodoro_tags");
+                console.log('[Pomodoro] Tag count result:', countRes);
                 if (countRes && countRes[0].values[0][0] === 0) {
+                    console.log('[Pomodoro] No tags found, inserting defaults...');
                     await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Work', '#3b82f6', 1)");
                     await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Study', '#a855f7', 0)");
                     await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Workout', '#e11d48', 0)");
                     await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Relax', '#10b981', 0)");
+                    console.log('[Pomodoro] Default tags inserted');
+                } else {
+                    console.log('[Pomodoro] Tags already exist, count:', countRes[0].values[0][0]);
                 }
 
                 await db.execute(`
@@ -1657,24 +1689,182 @@
                     )
                 `);
 
-                // Migration (Safe attempt)
-                try {
-                    await db.execute("ALTER TABLE pomodoro_sessions ADD COLUMN description TEXT;");
-                } catch (e) { }
-
             } catch (err) {
                 console.error('Init Tables Failed:', err);
-                // If failed due to DB not open, we might want to retry?
-                // But relying on db_opened hook should acceptably prevent this.
             }
         }
 
+        // === IDB Loading for Standalone Operation ===
+        const IDB_NAME = 'LocalForgeDB';
+        const IDB_STORE = 'snapshots';
+        const IDB_KEY = 'main_db';
 
-        // Startup Hooks
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(IDB_NAME, 1);
+                request.onupgradeneeded = (event) => {
+                    const idb = event.target.result;
+                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
+                        idb.createObjectStore(IDB_STORE);
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        async function loadSnapshotFromIDB() {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const request = store.get(IDB_KEY);
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (err) {
+                console.error('[Pomodoro] IDB Load Error:', err);
+                return null;
+            }
+        }
+
+        async function saveSnapshotToIDB() {
+            try {
+                const data = await db.export();
+                const idb = await openIndexedDB();
+
+                // Read existing record to preserve file handle
+                const readTx = idb.transaction(IDB_STORE, 'readonly');
+                const readStore = readTx.objectStore(IDB_STORE);
+                const existingReq = readStore.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    existingReq.onsuccess = () => resolve(existingReq.result);
+                    existingReq.onerror = () => resolve(null);
+                });
+
+                // Build new record, preserving handle and filename from existing
+                const record = {
+                    data: data,
+                    updated_at: Date.now(),
+                    handle: existing?.handle || null,
+                    filename: existing?.filename || 'auto_backup'
+                };
+
+                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
+                const writeStore = writeTx.objectStore(IDB_STORE);
+                writeStore.put(record, IDB_KEY);
+                await new Promise((resolve, reject) => {
+                    writeTx.oncomplete = resolve;
+                    writeTx.onerror = reject;
+                });
+                console.log('[Pomodoro] Saved to IDB (handle preserved:', !!record.handle, ')');
+            } catch (err) {
+                console.error('[Pomodoro] IDB Save Error:', err);
+            }
+        }
+
+        // Auto-save to IDB AND file on every update
+        db.on('db_updated', async () => {
+            console.log('[Pomodoro] DB Updated, saving...');
+
+            try {
+                const data = await db.export();
+                const idb = await openIndexedDB();
+
+                // Read existing record to get file handle
+                const readTx = idb.transaction(IDB_STORE, 'readonly');
+                const readStore = readTx.objectStore(IDB_STORE);
+                const existingReq = readStore.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    existingReq.onsuccess = () => resolve(existingReq.result);
+                    existingReq.onerror = () => resolve(null);
+                });
+
+                // Try to save to file if handle exists
+                if (existing?.handle) {
+                    try {
+                        const opts = { mode: 'readwrite' };
+                        const perm = await existing.handle.queryPermission(opts);
+                        if (perm === 'granted') {
+                            const writable = await existing.handle.createWritable();
+                            await writable.write(data);
+                            await writable.close();
+                            console.log('[Pomodoro] ✅ Saved to file:', existing.handle.name);
+                        } else {
+                            console.log('[Pomodoro] File permission not granted, IDB only');
+                        }
+                    } catch (fileErr) {
+                        console.warn('[Pomodoro] File save failed:', fileErr.message);
+                    }
+                }
+
+                // Always save to IDB
+                const record = {
+                    data: data,
+                    updated_at: Date.now(),
+                    handle: existing?.handle || null,
+                    filename: existing?.filename || 'auto_backup'
+                };
+
+                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
+                const writeStore = writeTx.objectStore(IDB_STORE);
+                writeStore.put(record, IDB_KEY);
+                await new Promise((resolve, reject) => {
+                    writeTx.oncomplete = resolve;
+                    writeTx.onerror = reject;
+                });
+                console.log('[Pomodoro] Saved to IDB');
+            } catch (err) {
+                console.error('[Pomodoro] Save Error:', err);
+            }
+        });
+
+        // Startup: Load from IDB or wait for db_opened
+        console.log('[Pomodoro] Setting up startup, db.isOpen =', db.isOpen);
+
+        let initCalled = false;
+
+        db.on('db_opened', () => {
+            if (initCalled) return;
+            initCalled = true;
+            console.log('[Pomodoro] db_opened event received, calling init()...');
+            init();
+        });
+
         if (db.isOpen) {
+            initCalled = true;
+            console.log('[Pomodoro] DB already open, calling init() immediately...');
             init();
         } else {
-            db.on('db_opened', init);
+            console.log('[Pomodoro] DB not open, waiting for worker ready...');
+
+            // Wait for worker ready, then load from IDB
+            const tryLoadFromIDB = async () => {
+                if (initCalled) return;
+                console.log('[Pomodoro] Worker ready, trying to load from IDB...');
+                try {
+                    const snapshot = await loadSnapshotFromIDB();
+                    if (initCalled) return;
+                    if (snapshot && snapshot.data) {
+                        console.log('[Pomodoro] Found IDB snapshot, initializing DB...');
+                        await db.init(snapshot.data);
+                        // db_opened event will be fired by the worker
+                    } else {
+                        console.error('[Pomodoro] No database found in IDB!');
+                        alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                    }
+                } catch (err) {
+                    console.error('[Pomodoro] Failed to load from IDB:', err);
+                    alert('数据库加载失败！\n\nFailed to load database!');
+                }
+            };
+
+            if (db.isReady) {
+                tryLoadFromIDB();
+            } else {
+                db.on('ready', tryLoadFromIDB);
+            }
         }
 
 
@@ -1705,6 +1895,10 @@
         window.saveTag = saveTag;
         window.deleteTag = deleteTag;
         window.setDuration = setDuration;
+        window.setDistMode = setDistMode;
+        window.renderHistoryList = renderHistoryList;
+        window.moveSlider = moveSlider;
+        window.skipRelax = skipRelax;
 
         // === Immediate UI Init ===
         console.log('[Pomodoro] Executing immediate UI init...');
