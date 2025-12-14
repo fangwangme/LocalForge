@@ -4,7 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalForge</title>
+    <title>LocalForge Dashboard</title>
+    <script>
+        // Suppress Tailwind production warning
+        const originalWarn = console.warn;
+        console.warn = function (...args) {
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
+                return;
+            }
+            originalWarn.apply(console, args);
+        };
+    </script>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -80,31 +90,31 @@
                         class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
                         媒体工具</div>
                     <li>
-                        <button onclick="openTool('image_editor.html');" id="nav-editor"
+                        <a href="image_editor.html"
                             class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
                             <i class="fas fa-image w-6 text-center shrink-0 group-hover:text-purple-400 transition"></i>
                             <span class="nav-text ml-3">图片编辑器</span>
-                        </button>
+                        </a>
                     </li>
                     <li>
-                        <button onclick="openTool('image_resize.html');" id="nav-resize"
+                        <a href="image_resize.html"
                             class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
                             <i
                                 class="fas fa-compress-alt w-6 text-center shrink-0 group-hover:text-pink-400 transition"></i>
                             <span class="nav-text ml-3">图片压缩</span>
-                        </button>
+                        </a>
                     </li>
 
                     <div
                         class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
                         健身运动</div>
                     <li>
-                        <button onclick="openTool('hiit_jump_rope.html');" id="nav-timer"
+                        <a href="hiit_jump_rope.html"
                             class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
                             <i
                                 class="fas fa-stopwatch w-6 text-center shrink-0 group-hover:text-rose-400 transition"></i>
                             <span class="nav-text ml-3">HIIT 计时器</span>
-                        </button>
+                        </a>
                     </li>
                     <li>
 
@@ -113,18 +123,18 @@
                             class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
                             效率工具</div>
                     <li>
-                        <button onclick="openTool('pomodoro.html');" id="nav-pomodoro"
+                        <a href="pomodoro.html"
                             class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
                             <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-red-400 transition"></i>
                             <span class="nav-text ml-3">番茄钟</span>
-                        </button>
+                        </a>
                     </li>
                 </ul>
             </nav>
 
             <!-- Bottom Settings -->
             <div class="p-2 border-t border-slate-800">
-                <button onclick="openSettings()"
+                <button onclick="window.openSettings()"
                     class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap">
                     <i class="fas fa-cog w-6 text-center shrink-0"></i>
                     <span class="nav-text ml-3">设置 & 数据库</span>
@@ -132,72 +142,97 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Main Content (Dashboard Only) -->
         <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative">
             <!-- Header (Simplified) -->
             <header
                 class="h-16 bg-slate-900 border-b border-slate-800 flex justify-between items-center px-6 shrink-0 z-10">
                 <h2 id="page-title" class="text-lg font-medium text-white">主页概览</h2>
-                <!-- Optional: Right side controls if needed -->
             </header>
 
             <!-- Content Area -->
             <div class="flex-1 relative overflow-hidden bg-slate-900">
                 <!-- Dashboard View -->
                 <div id="dashboard-view" class="absolute inset-0 overflow-y-auto p-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                        <!-- Cards -->
-                        <div onclick="openTool('image_editor.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
-                            </div>
-                            <div
-                                class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
-                                <i class="fas fa-image"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-white mb-2">图片编辑器</h3>
-                            <p class="text-slate-400 text-sm leading-relaxed">16:9 裁剪、去水印、滤镜调整。</p>
-                        </div>
+                    <div class="max-w-5xl mx-auto space-y-10">
 
-                        <div onclick="openTool('image_resize.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
-                                <i class="fas fa-compress-alt"></i>
+                        <!-- Section: 媒体工具 -->
+                        <section>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">媒体工具</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <!-- Image Editor -->
+                                <a href="image_editor.html"
+                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-white mb-1">图片编辑器</h3>
+                                    <p class="text-slate-400 text-xs leading-relaxed">16:9 裁剪、去水印。</p>
+                                </a>
+
+                                <!-- Image Resize -->
+                                <a href="image_resize.html"
+                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+                                        <i class="fas fa-compress-alt"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-white mb-1">图片压缩</h3>
+                                    <p class="text-slate-400 text-xs leading-relaxed">智能压缩图片体积。</p>
+                                </a>
                             </div>
-                            <h3 class="text-lg font-bold text-white mb-2">图片压缩</h3>
-                            <p class="text-slate-400 text-sm leading-relaxed">智能压缩图片体积。</p>
-                        </div>
+                        </section>
 
-                        <div onclick="openTool('hiit_jump_rope.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-rose-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
-                                <i class="fas fa-stopwatch"></i>
+                        <!-- Section: 健身运动 -->
+                        <section>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">健身运动</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <!-- HIIT Timer -->
+                                <a href="hiit_jump_rope.html"
+                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-rose-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+                                        <i class="fas fa-stopwatch"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-white mb-1">HIIT 计时器</h3>
+                                    <p class="text-slate-400 text-xs leading-relaxed">自定义间歇训练计时。</p>
+                                </a>
                             </div>
-                            <h3 class="text-lg font-bold text-white mb-2">HIIT 计时器</h3>
-                            <p class="text-slate-400 text-sm leading-relaxed">自定义间歇训练计时。</p>
-                        </div>
+                        </section>
 
-
-
-                        <div onclick="openTool('pomodoro.html')"
-                            class="group p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-red-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition">
-                                <i class="fas fa-clock"></i>
+                        <!-- Section: 效率工具 -->
+                        <section>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">效率工具</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <!-- Pomodoro -->
+                                <a href="pomodoro.html"
+                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-red-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-white mb-1">番茄钟</h3>
+                                    <p class="text-slate-400 text-xs leading-relaxed">专注计时，历史记录。</p>
+                                </a>
                             </div>
-                            <h3 class="text-lg font-bold text-white mb-2">番茄钟</h3>
-                            <p class="text-slate-400 text-sm leading-relaxed">专注计时，历史记录。</p>
-                        </div>
+                        </section>
+
                     </div>
                 </div>
 
-                <!-- Iframe Container -->
-                <div id="app-frame-container" class="absolute inset-0 hidden bg-slate-900">
-                    <iframe id="app-frame" class="w-full h-full border-none"></iframe>
-                </div>
             </div>
         </main>
 
@@ -251,558 +286,257 @@
 
                     <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
                         注意：默认建议文件名为 <code>html_tools_db.sqlite</code>。<br>
-                        "新建" 将引导您创建一个新的本地数据库文件。
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                        <script type="module">
+                            import { db } from './js/db-client.js';
 
-    <script>
-        // === UI Logic ===
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
-        const settingsModal = document.getElementById('settings-modal');
-        const navItems = document.querySelectorAll('.nav-item');
-        const dashboardView = document.getElementById('dashboard-view');
-        const iframeContainer = document.getElementById('app-frame-container');
-        const iframe = document.getElementById('app-frame');
-        const pageTitle = document.getElementById('page-title');
-        const dbFileInput = document.getElementById('db-file-input');
+                            // === State ===
+                            let dbHandle = null; // FileSystemFileHandle
+                            let isAutoSave = false;
 
-        let isSidebarCollapsed = false;
+                            // === Helper Functions (Exposed to Window) ===
+                            window.toggleSidebar = () => {
+                                const sidebar = document.getElementById('sidebar');
+                                const toggleIcon = document.getElementById('sidebar-toggle-icon');
+                                if (sidebar.classList.contains('sidebar-expanded')) {
+                                    sidebar.classList.remove('sidebar-expanded');
+                                    sidebar.classList.add('sidebar-collapsed');
+                                    toggleIcon.classList.remove('fa-chevron-left');
+                                    toggleIcon.classList.add('fa-chevron-right');
+                                } else {
+                                    sidebar.classList.remove('sidebar-collapsed');
+                                    sidebar.classList.add('sidebar-expanded');
+                                    toggleIcon.classList.remove('fa-chevron-right');
+                                    toggleIcon.classList.add('fa-chevron-left');
+                                }
+                            };
 
-        function toggleSidebar() {
-            isSidebarCollapsed = !isSidebarCollapsed;
-            if (isSidebarCollapsed) {
-                sidebar.classList.remove('sidebar-expanded');
-                sidebar.classList.add('sidebar-collapsed');
-                sidebarToggleIcon.classList.remove('fa-chevron-left');
-                sidebarToggleIcon.classList.add('fa-chevron-right');
-            } else {
-                sidebar.classList.remove('sidebar-collapsed');
-                sidebar.classList.add('sidebar-expanded');
-                sidebarToggleIcon.classList.remove('fa-chevron-right');
-                sidebarToggleIcon.classList.add('fa-chevron-left');
-            }
-        }
+                            window.showDashboard = () => {
+                                // Just focus, maybe nothing else needed as we are single page now
+                                // Or maybe reset scroll?
+                            };
 
-        function openSettings() {
-            settingsModal.classList.remove('hidden');
-        }
+                            window.openSettings = () => {
+                                document.getElementById('settings-modal').classList.remove('hidden');
+                            };
 
-        function closeSettings() {
-            settingsModal.classList.add('hidden');
-        }
+                            window.closeSettings = () => {
+                                document.getElementById('settings-modal').classList.add('hidden');
+                            };
 
-        function setActiveNav(id) {
-            navItems.forEach(el => {
-                if (el.id === id) {
-                    el.classList.add('bg-slate-800', 'text-white');
-                    el.classList.remove('text-slate-400');
-                } else if (!el.id.includes('settings')) { // Don't dim settings button
-                    el.classList.remove('bg-slate-800', 'text-white');
-                    el.classList.add('text-slate-400');
-                }
-            });
-        }
+                            function updateDbStatus(text, color) {
+                                const statusText = document.getElementById('modal-db-status-text');
+                                const statusDot = document.querySelector('#modal-db-status div');
+                                const statusContainer = document.getElementById('modal-db-status');
 
-        function showDashboard() {
-            dashboardView.classList.remove('hidden');
-            iframeContainer.classList.add('hidden');
-            iframe.src = '';
-            setActiveNav('nav-home');
-            pageTitle.innerText = '主页概览';
-        }
-
-        function openTool(url) {
-            dashboardView.classList.add('hidden');
-            iframeContainer.classList.remove('hidden');
-            iframe.src = url;
-
-            let title = '工具';
-            let navId = '';
-
-            if (url.includes('editor')) { title = '图片编辑器'; navId = 'nav-editor'; }
-            else if (url.includes('resize')) { title = '图片压缩'; navId = 'nav-resize'; }
-            else if (url.includes('jump')) { title = 'HIIT 计时器'; navId = 'nav-timer'; }
-            else if (url.includes('pomodoro')) { title = '番茄钟'; navId = 'nav-pomodoro'; }
-
-            pageTitle.innerText = title;
-            setActiveNav(navId);
-        }
-
-        // === Database Logic ===
-        let dbHandle = null;
-        let db = null;
-        let SQL = null;
-
-        async function initSql() {
-            if (!SQL) {
-                SQL = await window.initSqlJs({
-                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
-                });
-            }
-        }
-
-        async function createNewDatabase() {
-            await initSql();
-            db = new SQL.Database();
-            initAllTables();
-            updateDbStatus('新建数据库 (未保存)', 'amber');
-            console.log('New database created');
-        }
-
-        async function handleCreateNewDatabase() {
-            if (db) {
-                if (!confirm('确定要新建吗？如果当前有未保存的数据，将会丢失。新数据文件将覆盖当前会话。')) return;
-            }
-
-            dbHandle = null; // Clear key handle to force "Save As" behavior
-            await createNewDatabase(); // Init clean in-memory
-            // Trigger save after create
-            await saveDatabaseToDisk();
-        }
-
-        // === IndexedDB Persistence Logic ===
-        const IDB_NAME = 'LocalForgeDB';
-        const IDB_STORE = 'snapshots';
-        const IDB_KEY = 'main_db';
-
-        function openIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(IDB_NAME, 1);
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(IDB_STORE)) {
-                        db.createObjectStore(IDB_STORE);
-                    }
-                };
-                request.onsuccess = (event) => resolve(event.target.result);
-                request.onerror = (event) => reject(event.target.error);
-            });
-        }
-
-        async function saveSnapshotToIDB(data, handle = null, filename = null) {
-            try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readwrite');
-                const store = tx.objectStore(IDB_STORE);
-
-                const record = {
-                    data: data,
-                    updated_at: Date.now()
-                };
-                if (handle) record.handle = handle;
-                if (filename) record.filename = filename;
-
-                // Merge with existing to keep handle if not provided
-                // But wait, 'put' overwrites value. We should read first if we want to merge?
-                // Actually, simpler: The caller should pass the handle if available.
-                // Global dbHandle is available.
-                if (dbHandle && !handle) record.handle = dbHandle;
-
-                store.put(record, IDB_KEY);
-                return new Promise((resolve, reject) => {
-                    tx.oncomplete = resolve;
-                    tx.onerror = reject;
-                });
-            } catch (err) {
-                console.error('IDB Save Error:', err);
-            }
-        }
-
-        async function loadSnapshotFromIDB() {
-            try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const request = store.get(IDB_KEY);
-                return new Promise((resolve, reject) => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            } catch (err) {
-                console.error('IDB Load Error:', err);
-                return null;
-            }
-        }
-
-        // Handle File Input Change (Legacy Import)
-        dbFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const uInt8Array = new Uint8Array(arrayBuffer);
-
-                await initSql();
-                db = new SQL.Database(uInt8Array);
-                initAllTables();
-
-                // Save imported to IDB (No handle in legacy)
-                await saveSnapshotToIDB(uInt8Array, null, file.name);
-
-                updateDbStatus(`已加载: ${file.name} (IDB Sync)`, 'emerald');
-                dbHandle = null;
-                closeSettings();
-
-                if (iframe.contentWindow) {
-                    iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                }
-            } catch (err) {
-                console.error('Legacy open error:', err);
-                alert('加载失败: ' + err.message);
-            }
-            dbFileInput.value = '';
-        });
-
-        async function openDatabase() {
-            // Check support
-            if (typeof window.showOpenFilePicker === 'function') {
-                try {
-                    [dbHandle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'SQLite Database',
-                            accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
-                        }]
-                    });
-
-                    const file = await dbHandle.getFile();
-                    const arrayBuffer = await file.arrayBuffer();
-                    const uInt8Array = new Uint8Array(arrayBuffer);
-
-                    await initSql();
-                    db = new SQL.Database(uInt8Array);
-                    initAllTables(); // Ensure tables exist
-
-                    updateDbStatus(`已加载: ${file.name}`, 'emerald');
-                    closeSettings();
-
-                    // Refresh iframe if open
-                    if (iframe.contentWindow) {
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    }
-
-                } catch (err) {
-                    console.error('Open database error:', err);
-                    if (err.name !== 'AbortError') {
-                        alert('打开数据库失败: ' + err.message);
-                    }
-                }
-            } else {
-                // Fallback
-                dbFileInput.click();
-            }
-        }
-
-        async function saveDatabaseToDisk(event, isAutoSave = false) {
-            if (!db) return;
-            try {
-                const data = db.export();
-
-                // ALWAYS save to IDB snapshot for persistence across reloads (Legacy/Backup)
-                await saveSnapshotToIDB(data);
-
-                if (typeof window.showSaveFilePicker === 'function') {
-                    // Modern API
-                    if (dbHandle) {
-                        // Check/Request Permission
-                        const opts = { mode: 'readwrite' };
-                        if ((await dbHandle.queryPermission(opts)) !== 'granted') {
-                            if (isAutoSave) {
-                                // Cannot prompt during auto-save, skip disk write
-                                updateDbStatus('自动保存暂停 (需手动保存验证)', 'amber');
-                                return;
+                                if (statusText) {
+                                    statusText.innerText = text;
+                                    statusContainer.className = `flex items-center gap-3 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
+                                    statusDot.className = `w-3 h-3 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
+                                }
                             }
-                            // Manual save: request permission
-                            if ((await dbHandle.requestPermission(opts)) !== 'granted') {
-                                alert('请授予写入权限以保存文件。');
-                                return;
-                            }
-                        }
 
-                        const writable = await dbHandle.createWritable();
-                        await writable.write(data);
-                        await writable.close();
+                            // === Database Logic Using db-client ===
 
-                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
+                            // Listen for DB events
+                            db.on('ready', () => {
+                                updateDbStatus('引擎就绪', 'amber');
+                                // Try load from IDB
+                                loadSnapshotFromIDB().then(snapshot => {
+                                    if (snapshot && snapshot.data) {
+                                        if (snapshot.handle) dbHandle = snapshot.handle;
+                                        db.init(snapshot.data).then(() => {
+                                            updateDbStatus(dbHandle ? `已恢复: ${snapshot.filename || dbHandle.name}` : `已恢复: ${snapshot.filename || '缓存数据'}`, 'emerald');
+                                        });
+                                    } else {
+                                        db.init().then(() => {
+                                            updateDbStatus('新数据库 (内存)', 'amber');
+                                        });
+                                    }
+                                });
+                            });
 
-                        // Feedback in button
-                        if (event && event.currentTarget) {
-                            const btn = event.currentTarget;
-                            const icon = btn.querySelector('i');
-                            const tempClass = icon.className;
-                            icon.className = 'fas fa-check text-white';
-                            setTimeout(() => icon.className = tempClass, 1500);
-                        }
-                    } else {
-                        // If auto-save and no handle, skip prompt to avoid annoyance
-                        if (isAutoSave) return;
+                            db.on('db_opened', () => {
+                                console.log('[Host] Database opened/connected');
+                            });
 
-                        const handle = await window.showSaveFilePicker({
-                            types: [{
-                                description: 'SQLite Database',
-                                accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
-                            }],
-                            suggestedName: `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`
-                        });
-                        dbHandle = handle;
-                        const writable = await handle.createWritable();
-                        await writable.write(data);
-                        await writable.close();
+                            db.on('db_updated', () => {
+                                if (isAutoSave) window.triggerAutoSave();
+                            });
 
-                        // Save new handle to IDB
-                        await saveSnapshotToIDB(data, dbHandle, handle.name);
 
-                        updateDbStatus(`已保存: ${handle.name}`, 'emerald');
-                    }
-                } else {
-                    // Legacy Fallback (Download)
-                    // If auto-save, DO NOT download automatically as it spams the user.
-                    if (isAutoSave) return;
+                            window.handleCreateNewDatabase = async () => {
+                                if (confirm('确定要新建吗？如果当前有未保存的数据，将会丢失。')) {
+                                    await db.init(); // Re-init with empty
+                                    dbHandle = null;
+                                    updateDbStatus('新建数据库 (未保存)', 'amber');
+                                }
+                            };
 
-                    const blob = new Blob([data], { type: 'application/x-sqlite3' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    updateDbStatus('已导出 (Legacy)', 'emerald');
-                }
+                            window.triggerAutoSave = () => {
+                                window.saveDatabaseToDisk(null, true);
+                            };
 
-            } catch (err) {
-                console.error('Save database error:', err);
-                if (err.name !== 'AbortError') {
-                    alert('保存数据库失败: ' + err.message);
-                }
-            }
-        }
+                            window.openDatabase = async () => {
+                                if (typeof window.showOpenFilePicker === 'function') {
+                                    try {
+                                        const [handle] = await window.showOpenFilePicker({
+                                            types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
+                                        });
+                                        const file = await handle.getFile();
+                                        const arrayBuffer = await file.arrayBuffer();
 
-        // Init on startup
-        window.addEventListener('DOMContentLoaded', async () => {
-            await initSql();
+                                        await db.init(arrayBuffer);
 
-            const snapshot = await loadSnapshotFromIDB();
-            if (snapshot && snapshot.data) {
-                try {
-                    // 1. Initial Load from IDB (Fastest)
-                    db = new SQL.Database(snapshot.data);
+                                        dbHandle = handle;
+                                        updateDbStatus(`已加载: ${file.name}`, 'emerald');
 
-                    if (snapshot.handle) {
-                        dbHandle = snapshot.handle;
+                                        // IDB Cache
+                                        const u8 = new Uint8Array(arrayBuffer);
+                                        saveSnapshotToIDB(u8, handle, file.name);
 
-                        // 2. Try to Sync with File (Source of Truth)
-                        try {
-                            // Check read permission
-                            const perm = await dbHandle.queryPermission({ mode: 'read' });
-                            if (perm === 'granted') {
-                                const file = await dbHandle.getFile();
+                                        // window.closeSettings();
+                                        setTimeout(window.closeSettings, 2000); // Close after delay
+
+                                    } catch (err) {
+                                        if (err.name !== 'AbortError') {
+                                            console.error(err);
+                                            alert('打开文件失败: ' + err.message);
+                                        }
+                                    }
+                                } else {
+                                    document.getElementById('db-file-input').click();
+                                }
+                            };
+
+                            window.saveDatabaseToDisk = async (event, isAuto = false) => {
+                                try {
+                                    const data = await db.export(); // Uint8Array
+
+                                    if (dbHandle) {
+                                        // Permission Check
+                                        const opts = { mode: 'readwrite' };
+                                        if ((await dbHandle.queryPermission(opts)) !== 'granted') {
+                                            if (isAuto) {
+                                                updateDbStatus('自动保存暂停 (需手动保存验证)', 'amber');
+                                                return;
+                                            }
+                                            if ((await dbHandle.requestPermission(opts)) !== 'granted') return;
+                                        }
+
+                                        const writable = await dbHandle.createWritable();
+                                        await writable.write(data);
+                                        await writable.close();
+
+                                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
+                                        saveSnapshotToIDB(data, dbHandle, dbHandle.name);
+
+                                        // Feedback
+                                        if (event && event.currentTarget) {
+                                            const icon = event.currentTarget.querySelector('i');
+                                            if (icon) {
+                                                const tempClass = icon.className;
+                                                icon.className = 'fas fa-check text-white';
+                                                setTimeout(() => icon.className = tempClass, 1500);
+                                            }
+                                        }
+                                    } else if (!isAuto) {
+                                        const handle = await window.showSaveFilePicker({
+                                            types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }],
+                                            suggestedName: `html_tools_db_${new Date().toISOString().slice(0, 10)}.sqlite`
+                                        });
+                                        dbHandle = handle;
+                                        const writable = await handle.createWritable();
+                                        await writable.write(data);
+                                        await writable.close();
+
+                                        saveSnapshotToIDB(data, dbHandle, handle.name);
+                                        updateDbStatus(`已保存: ${handle.name}`, 'emerald');
+                                    } else {
+                                        // Legacy download fallback
+                                        if (isAuto) return;
+                                        const blob = new Blob([data], { type: 'application/x-sqlite3' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `localforge_backup_${Date.now()}.sqlite`;
+                                        a.click();
+                                    }
+                                } catch (err) {
+                                    console.error('Save failed:', err);
+                                }
+                            };
+
+                            // Handle Legacy Input
+                            document.getElementById('db-file-input').addEventListener('change', async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
                                 const buf = await file.arrayBuffer();
-                                const u8 = new Uint8Array(buf);
-                                db = new SQL.Database(u8); // Reload with fresh file data
-                                updateDbStatus(`已同步: ${file.name}`, 'emerald');
+                                await db.init(buf);
+                                dbHandle = null;
+                                saveSnapshotToIDB(new Uint8Array(buf), null, file.name);
+                                updateDbStatus(`已加载: ${file.name} (Legacy)`, 'emerald');
+                                // window.closeSettings();
+                                setTimeout(window.closeSettings, 2000);
+                            });
 
-                                // Update IDB cache to match file
-                                await saveSnapshotToIDB(u8, dbHandle, file.name);
-                            } else {
-                                const name = snapshot.filename || 'database.sqlite';
-                                updateDbStatus(`缓存已加载: ${name} (需点击保存以同步文件)`, 'amber');
+                            // === IDB Persistence (Keep same logic) ===
+                            const IDB_NAME = 'LocalForgeDB';
+                            const IDB_STORE = 'snapshots';
+                            const IDB_KEY = 'main_db';
+
+                            function openIndexedDB() {
+                                return new Promise((resolve, reject) => {
+                                    const request = indexedDB.open(IDB_NAME, 1);
+                                    request.onupgradeneeded = (event) => {
+                                        const db = event.target.result;
+                                        if (!db.objectStoreNames.contains(IDB_STORE)) {
+                                            db.createObjectStore(IDB_STORE);
+                                        }
+                                    };
+                                    request.onsuccess = (event) => resolve(event.target.result);
+                                    request.onerror = (event) => reject(event.target.error);
+                                });
                             }
-                        } catch (e) {
-                            console.warn('File sync failed:', e);
-                            const name = snapshot.filename || 'database.sqlite';
-                            updateDbStatus(`已恢复: ${name} (文件同步失败)`, 'amber');
-                        }
-                    } else {
-                        const name = snapshot.filename || 'Session Data';
-                        updateDbStatus(`已恢复: ${name} (IDB)`, 'emerald');
-                    }
 
-                    initAllTables();
+                            async function saveSnapshotToIDB(data, handle = null, filename = null) {
+                                try {
+                                    const idb = await openIndexedDB();
+                                    const tx = idb.transaction(IDB_STORE, 'readwrite');
+                                    const store = tx.objectStore(IDB_STORE);
+                                    const record = { data: data, updated_at: Date.now() };
+                                    if (handle) record.handle = handle;
+                                    if (filename) record.filename = filename;
+                                    if (dbHandle && !handle) record.handle = dbHandle;
+                                    store.put(record, IDB_KEY);
+                                    return new Promise((resolve, reject) => {
+                                        tx.oncomplete = resolve;
+                                        tx.onerror = reject;
+                                    });
+                                } catch (err) { console.error('IDB Save Error:', err); }
+                            }
 
-                    // Notify iframe that DB is ready
-                    if (iframe.contentWindow) {
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    }
+                            async function loadSnapshotFromIDB() {
+                                try {
+                                    const idb = await openIndexedDB();
+                                    const tx = idb.transaction(IDB_STORE, 'readonly');
+                                    const store = tx.objectStore(IDB_STORE);
+                                    const request = store.get(IDB_KEY);
+                                    return new Promise((resolve, reject) => {
+                                        request.onsuccess = () => resolve(request.result);
+                                        request.onerror = () => reject(request.error);
+                                    });
+                                } catch (err) { console.error('IDB Load Error:', err); return null; }
+                            }
 
-                } catch (err) {
-                    console.error('Restore error:', err);
-                    updateDbStatus('恢复失败', 'text-red-500');
-                }
-            } else {
-                // First time load or empty
-            }
-        });
-
-        async function openDatabase() {
-            // Check support
-            if (typeof window.showOpenFilePicker === 'function') {
-                try {
-                    [dbHandle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'SQLite Database',
-                            accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
-                        }]
-                    });
-
-                    const file = await dbHandle.getFile();
-                    const arrayBuffer = await file.arrayBuffer();
-                    const uInt8Array = new Uint8Array(arrayBuffer);
-
-                    await initSql();
-                    db = new SQL.Database(uInt8Array);
-                    initAllTables();
-
-                    // Save new state (Link Handle)
-                    await saveSnapshotToIDB(uInt8Array, dbHandle, file.name);
-
-                    updateDbStatus(`已加载: ${file.name}`, 'emerald');
-                    closeSettings();
-
-                    // Refresh iframe if open
-                    if (iframe.contentWindow) {
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    }
-
-                } catch (err) {
-                    console.error('Open database error:', err);
-                    if (err.name !== 'AbortError') {
-                        alert('打开数据库失败: ' + err.message);
-                    }
-                }
-            } else {
-                // Fallback
-                dbFileInput.click();
-            }
-        }
-
-        // Init all tables for all tools
-        function initAllTables() {
-            if (!db) return;
-            // Removed specific table init. Tables are now lazy-initialized by tools.
-        }
-
-
-
-        function updateDbStatus(text, color) {
-            const statusText = document.getElementById('modal-db-status-text');
-            const statusDot = document.querySelector('#modal-db-status div');
-            const statusContainer = document.getElementById('modal-db-status');
-
-            if (statusText) {
-                statusText.innerText = text;
-                statusContainer.className = `flex items-center gap-3 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
-                statusDot.className = `w-3 h-3 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
-            }
-        }
-
-        // === PostMessage Logic ===
-        window.addEventListener('message', async (event) => {
-            const msg = event.data;
-            if (!msg || !msg.type) return;
-
-            console.log('[Host] Received message:', msg.type, msg);
-
-            if (msg.type === 'REQUEST_DB_DATA') {
-                const targetFrame = document.getElementById('app-frame');
-                if (!targetFrame || !targetFrame.contentWindow) {
-                    console.error('[Host] Target iframe not found!');
-                    return;
-                }
-                const target = targetFrame.contentWindow;
-
-                if (db) {
-                    try {
-                        console.log('[Host] Executing SQL:', msg.sql);
-                        const result = db.exec(msg.sql);
-                        console.log('[Host] Query Result Rows:', result.length > 0 ? result[0].values.length : 0);
-
-                        target.postMessage({
-                            type: 'DB_QUERY_RESULT',
-                            requestId: msg.requestId,
-                            result: result,
-                            status: 'success'
-                        }, '*');
-                    } catch (e) {
-                        console.error('[Host] Query Error:', e);
-                        target.postMessage({
-                            type: 'DB_QUERY_RESULT',
-                            requestId: msg.requestId,
-                            status: 'error',
-                            message: e.message
-                        }, '*');
-                    }
-                } else {
-                    console.error('[Host] Database NOT loaded yet!');
-                    target.postMessage({
-                        type: 'DB_QUERY_RESULT',
-                        requestId: msg.requestId,
-                        status: 'error',
-                        message: 'Database not loaded'
-                    }, '*');
-                }
-            } else if (msg.type === 'EXECUTE_SQL') {
-                if (!db) await createNewDatabase();
-                try {
-                    db.run(msg.sql, msg.params);
-                    await saveDatabaseToDisk(null, true);
-                    // Notify success (optional, but good for migrations)
-                    if (msg.requestId) {
-                        iframe.contentWindow.postMessage({ type: 'EXECUTE_SUCCESS', requestId: msg.requestId }, '*');
-                        // Also notify generic update
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    }
-                } catch (err) {
-                    console.error('[Host] Replace SQL Error:', err);
-                    if (msg.requestId) {
-                        iframe.contentWindow.postMessage({ type: 'EXECUTE_ERROR', requestId: msg.requestId, message: err.message }, '*');
-                    }
-                }
-            } else if (msg.type === 'REQ_NOTIFY_PERM') {
-                console.log('[Host] Received REQ_NOTIFY_PERM via User Action.');
-                Notification.requestPermission().then(perm => {
-                    console.log('[Host] Permission result:', perm);
-                    activePermission = perm; // Update our local tracker
-                    iframe.contentWindow.postMessage({ type: 'NOTIFY_PERM_RESULT', status: perm }, '*');
-                });
-            } else if (msg.type === 'CHECK_NOTIFY_PERM') {
-                // Return active status (trusting our tracker over the potentially stale property)
-                iframe.contentWindow.postMessage({ type: 'NOTIFY_PERM_RESULT', status: activePermission }, '*');
-            } else if (msg.type === 'SHOW_NOTIFY') {
-                console.log('[Host] Received SHOW_NOTIFY. Active Permission:', activePermission, 'Browser Property:', Notification.permission);
-
-                // Strictly check if we have permission. 
-                // We do NOT request permission here anymore, as it's bad UX to prompt at the end of a timer.
-                if (activePermission === 'granted' || Notification.permission === 'granted') {
-                    try {
-                        const n = new Notification(msg.title, {
-                            body: msg.body,
-                            icon: msg.icon || 'favicon.png'
-                        });
-                        n.onclick = () => window.focus();
-                        console.log('[Host] Notification dispatched successfully.');
-                    } catch (e) {
-                        console.error('[Host] Notification creation failed:', e);
-                    }
-                } else {
-                    console.warn('[Host] Cannot show notification. Permission not granted (Active:', activePermission, ')');
-                }
-            }
-        });
-
-        let activePermission = Notification.permission;
-
-        window.addEventListener('load', async () => {
-            await initSql();
-            if (!db) { createNewDatabase(); }
-            showDashboard();
-        });
-    </script>
+                            // Init Autosave Toggle
+                            const autoSaveToggle = document.getElementById('autoSaveToggle');
+                            if (autoSaveToggle) {
+                                autoSaveToggle.addEventListener('change', (e) => {
+                                    isAutoSave = e.target.checked;
+                                    if (isAutoSave) window.triggerAutoSave();
+                                });
+                            }
+                        </script>
 </body>
 
 </html>

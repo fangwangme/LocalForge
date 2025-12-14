@@ -386,10 +386,13 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { db } from './js/db-client.js';
+
         // === 状态管理 ===
         const state = {
             phase: 'setup', // setup, getReady, work, rest, paused, finished
+
             workTime: 45,
             restTime: 30,
             totalRounds: 8,
@@ -775,7 +778,23 @@
         }
 
         async function renderAllStats() {
-            if (!state.db && window.parent === window) await initDatabase();
+            if (!db.isOpen) {
+                // console.warn('Database not open');
+                // Optional: Show prompt to user
+                if (!document.getElementById('db-warning-toast')) {
+                    const toast = document.createElement('div');
+                    toast.id = 'db-warning-toast';
+                    toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full shadow-lg z-50 animate-bounce';
+                    toast.innerText = '请先在主页打开数据库 / Please open database in Dashboard';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                }
+                return;
+            }
+
+            // Ensure tables are init (idempotent)
+            // But we should rely on initDatabase being called on 'db_opened'. 
+            // If we are here, db is open.
 
             await renderSummary();
             await renderChart(currentChartMetric);
@@ -783,33 +802,16 @@
         }
 
         async function executeQueryResult(sql) {
-            // Using postMessage if in iframe
-            if (window.parent !== window) {
-                return new Promise((resolve, reject) => {
-                    const requestId = 'req_' + Date.now() + '_' + Math.random();
-                    const handler = (event) => {
-                        if (event.data.requestId === requestId) {
-                            window.removeEventListener('message', handler);
-                            if (event.data.status === 'success') {
-                                resolve(event.data.result);
-                            } else {
-                                console.warn('Query failed:', event.data.message);
-                                resolve([]);
-                            }
-                        }
-                    };
-                    window.addEventListener('message', handler);
-                    window.parent.postMessage({
-                        type: 'REQUEST_DB_DATA',
-                        requestId: requestId,
-                        sql: sql
-                    }, '*');
-                });
-            } else {
-                if (!state.db) return [];
-                return state.db.exec(sql);
+            if (!db.isOpen) return [];
+            try {
+                const res = await db.query(sql);
+                return res || [];
+            } catch (err) {
+                console.error('Query Failed:', err);
+                return [];
             }
         }
+
 
         async function renderSummary() {
             const result = await executeQueryResult(`
@@ -1013,7 +1015,7 @@
             currentEditId = null;
         };
 
-        window.saveEdit = function () {
+        window.saveEdit = async function () {
             if (!currentEditId) return;
             const rounds = parseInt(document.getElementById('edit-rounds').value);
             const work = parseInt(document.getElementById('edit-work').value);
@@ -1025,52 +1027,30 @@
             const sql = `UPDATE workouts SET date = ?, rounds = ?, work_time = ?, rest_time = ?, calories = ?, weight = ? WHERE id = ?`;
             const params = [dateStr, rounds, work, rest, cals, weight, currentEditId];
 
-            if (window.parent !== window) {
-                // Iframe Mode
-                window.parent.postMessage({
-                    type: 'EXECUTE_SQL',
-                    requestId: 'req_upd_' + Date.now(),
-                    sql: sql,
-                    params: params
-                }, '*');
+            try {
+                await db.execute(sql, params);
                 closeEditModal();
-                // We reload after a short delay or wait for DB_UPDATED
-            } else {
-                // Standalone Mode
-                if (state.db) {
-                    state.db.run(sql, params);
-                    saveDbToIndexedDB(state.db.export());
-                    renderAllStats();
-                    closeEditModal();
-                }
+            } catch (err) {
+                console.error('Save Edit Failed:', err);
+                alert('Save Failed: ' + err.message);
             }
         };
 
-        window.deleteWorkout = function (id) {
+        window.deleteWorkout = async function (id) {
             if (confirm('Are you sure you want to delete this workout?')) {
                 const sql = 'DELETE FROM workouts WHERE id = ?';
-                if (window.parent !== window) {
-                    window.parent.postMessage({
-                        type: 'EXECUTE_SQL',
-                        requestId: 'req_del_' + Date.now(),
-                        sql: sql,
-                        params: [id]
-                    }, '*');
-                } else {
-                    if (state.db) {
-                        state.db.run(sql, [id]);
-                        saveDbToIndexedDB(state.db.export());
-                        renderAllStats();
-                    }
+                try {
+                    await db.execute(sql, [id]);
+                } catch (err) {
+                    console.error('Delete Failed:', err);
                 }
             }
         };
 
         window.closeStats = closeStats;
         window.exportDatabase = async function () {
-            if (!state.db) return;
             try {
-                const binaryArray = state.db.export();
+                const binaryArray = await db.export();
                 const blob = new Blob([binaryArray], { type: 'application/x-sqlite3' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1085,85 +1065,26 @@
             }
         };
 
-        // Listen for updates from parent to refresh stats
-        window.addEventListener('message', (event) => {
-            if (event.data.type === 'DB_UPDATED' || event.data.type === 'EXECUTE_SUCCESS') {
-                if (!els.statsOverlay.classList.contains('hidden')) {
-                    renderAllStats();
-                }
+        // Listen for updates from SharedWorker
+        db.on('db_updated', () => {
+            if (!els.statsOverlay.classList.contains('hidden')) {
+                renderAllStats();
             }
         });
 
-        // === SQLite 数据库操作 ===
-        const DB_NAME = 'hiit_workouts_db';
+        // Startup Hooks
+        if (db.isOpen) {
+            initDatabase();
+        } else {
+            db.on('db_opened', initDatabase);
+        }
+
+
 
         async function initDatabase() {
             try {
-                // If in Iframe, ask parent to ensure table exists
-                if (window.parent !== window) {
-                    const executeSql = (sql) => {
-                        return new Promise((resolve, reject) => {
-                            const requestId = 'req_' + Date.now() + '_' + Math.random();
-                            const handler = (event) => {
-                                if (event.data.requestId === requestId) {
-                                    window.removeEventListener('message', handler);
-                                    if (event.data.type === 'EXECUTE_SUCCESS') resolve();
-                                    else reject(new Error(event.data.message || 'Unknown error'));
-                                }
-                            };
-                            window.addEventListener('message', handler);
-                            window.parent.postMessage({ type: 'EXECUTE_SQL', requestId, sql }, '*');
-                        });
-                    };
-
-                    try {
-                        // 1. Ensure Table Exists
-                        await executeSql(`
-                            CREATE TABLE IF NOT EXISTS workouts (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                date TEXT NOT NULL,
-                                rounds INTEGER,
-                                work_time INTEGER,
-                                rest_time INTEGER,
-                                total_work_time INTEGER,
-                                calories INTEGER,
-                                weight REAL,
-                                total_time INTEGER,
-                                start_time TEXT,
-                                end_time TEXT
-                            );
-                        `);
-
-                        // 2. Safe Migration (Check columns first)
-                        const res = await executeQueryResult("PRAGMA table_info(workouts)");
-                        const cols = (res && res.length > 0 && res[0].values) ? res[0].values.map(c => c[1]) : [];
-
-                        if (!cols.includes('total_time')) await executeSql("ALTER TABLE workouts ADD COLUMN total_time INTEGER;");
-                        if (!cols.includes('start_time')) await executeSql("ALTER TABLE workouts ADD COLUMN start_time TEXT;");
-                        if (!cols.includes('end_time')) await executeSql("ALTER TABLE workouts ADD COLUMN end_time TEXT;");
-
-                    } catch (err) {
-                        console.error('Database initialization/migration failed:', err);
-                    }
-
-                    return;
-                }
-
-                // Standalone Mode
-                const SQL = await initSqlJs({
-                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
-                });
-
-                // 尝试从 IndexedDB 加载已有数据库
-                const savedDb = await loadDbFromIndexedDB();
-                if (savedDb) {
-                    state.db = new SQL.Database(savedDb);
-                } else {
-                    state.db = new SQL.Database();
-                }
-
-                // 创建表（如果不存在）
-                state.db.run(`
+                // 1. Ensure Table Exists
+                await db.execute(`
                     CREATE TABLE IF NOT EXISTS workouts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         date TEXT NOT NULL,
@@ -1179,104 +1100,123 @@
                     )
                 `);
 
-                // 尝试添加新列（如果表已存在但缺少列） -- No try catch block needed for run, but good practice
-                try {
-                    state.db.run("ALTER TABLE workouts ADD COLUMN total_time INTEGER;");
-                    state.db.run("ALTER TABLE workouts ADD COLUMN start_time TEXT;");
-                    state.db.run("ALTER TABLE workouts ADD COLUMN end_time TEXT;");
-                } catch (e) { }
+                // 2. Safe Migration (Check columns first)
+                // We can just try adding columns, sqlite won't error hard or we catch it.
+                // Or better, check pragma if possible. But `db-client` doesn't expose easy pragma check yet without parsing.
+                // Simple atomic alters:
+                try { await db.execute("ALTER TABLE workouts ADD COLUMN total_time INTEGER;"); } catch (e) { }
+                try { await db.execute("ALTER TABLE workouts ADD COLUMN start_time TEXT;"); } catch (e) { }
+                try { await db.execute("ALTER TABLE workouts ADD COLUMN end_time TEXT;"); } catch (e) { }
 
                 console.log('Database initialized');
+                renderAllStats();
+
             } catch (err) {
-                console.error('Database init error:', err);
+                console.error('Database initialization/migration failed:', err);
             }
         }
 
         async function saveWorkout(data) {
-            // Check if running in App Shell (Iframe)
-            // Check if running in App Shell (Iframe)
-            if (window.parent !== window) {
-                // console.log('Running in App Shell, sending EXECUTE_SQL message...');
-                return new Promise((resolve, reject) => {
-                    const requestId = 'req_' + Date.now();
-                    const handler = (event) => {
-                        if (event.data.requestId === requestId) {
-                            window.removeEventListener('message', handler);
-                            if (event.data.type === 'EXECUTE_SUCCESS') {
-                                resolve();
-                            } else {
-                                reject(new Error(event.data.message));
-                            }
-                        }
-                    };
-                    window.addEventListener('message', handler);
-
-                    window.parent.postMessage({
-                        type: 'EXECUTE_SQL',
-                        requestId: requestId,
-                        sql: `INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                        params: [data.date, data.rounds, data.workTime, data.restTime, data.totalWorkTime, data.calories, data.weight, data.totalTime, data.startTime, data.endTime]
-                    }, '*');
-                });
-            }
-
-            // Standalone Mode Fallback
-            if (!state.db) await initDatabase();
-
             try {
-                // ... Existing fallback logic ...
-                state.db.run(`
+                await db.execute(`
                     INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [data.date, data.rounds, data.workTime, data.restTime, data.totalWorkTime, data.calories, data.weight, data.totalTime, data.startTime, data.endTime]);
 
-                // 保存到 IndexedDB 持久化
-                await saveDbToIndexedDB(state.db.export());
-                console.log('Workout saved locally:', data);
+                console.log('Workout saved');
             } catch (err) {
                 console.error('Save workout error:', err);
-                alert('独立模式保存失败 (IndexedDB可能不稳定): ' + err.message);
+                alert('Save Failed: ' + err.message);
             }
         }
 
-        // IndexedDB 持久化
-        function saveDbToIndexedDB(data) {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onupgradeneeded = (e) => {
-                    e.target.result.createObjectStore('database');
-                };
-                request.onsuccess = (e) => {
-                    const db = e.target.result;
-                    const tx = db.transaction('database', 'readwrite');
-                    tx.objectStore('database').put(data, 'sqlite');
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = () => reject(tx.error);
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        function loadDbFromIndexedDB() {
-            return new Promise((resolve) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onupgradeneeded = (e) => {
-                    e.target.result.createObjectStore('database');
-                };
-                request.onsuccess = (e) => {
-                    const db = e.target.result;
-                    const tx = db.transaction('database', 'readonly');
-                    const getReq = tx.objectStore('database').get('sqlite');
-                    getReq.onsuccess = () => resolve(getReq.result ? new Uint8Array(getReq.result) : null);
-                    getReq.onerror = () => resolve(null);
-                };
-                request.onerror = () => resolve(null);
-            });
-        }
-
-        // 初始化
+        // Initialize
         calculateTotalTime();
-        initDatabase();
+
+        // Database Startup
+        // Also re-init if DB file changes (opened new one)
+        db.on('db_opened', initDatabase);
+
+        // Expose functions to window for onclick
+        Object.assign(window, {
+            toggleTimer: () => {
+                if (state.phase === 'setup' || state.phase === 'finished') {
+                    // Start
+                    state.rounds = parseInt(els.roundsInput.value);
+                    state.workTime = parseInt(els.workInput.value);
+                    state.restTime = parseInt(els.restInput.value);
+                    state.weight = parseFloat(els.weightInput.value) || 70;
+
+                    state.timeLeft = 5; // Get Ready
+                    state.phase = 'getReady';
+                    state.currentRound = 1;
+                    state.totalWorkTime = 0;
+                    state.isPaused = false;
+
+                    state.startTime = new Date().toISOString();
+
+                    els.setupScreen.classList.add('hidden');
+                    els.completeScreen.classList.add('hidden');
+                    els.timerScreen.classList.remove('hidden');
+
+                    updateColors('getReady');
+                    startTimer();
+                } else {
+                    // Toggle Pause
+                    state.isPaused = !state.isPaused;
+                    els.toggleIcon.className = state.isPaused ? 'fas fa-play' : 'fas fa-pause';
+                }
+            },
+            resetTimer: () => {
+                if (confirm('Reset timer?')) {
+                    clearInterval(state.intervalId);
+                    state.phase = 'setup';
+                    els.timerScreen.classList.add('hidden');
+                    els.completeScreen.classList.add('hidden');
+                    els.setupScreen.classList.remove('hidden');
+                    updateColors('setup');
+                }
+            },
+            homeBtnLogic: () => { // If home button exists
+                clearInterval(state.intervalId);
+                state.phase = 'setup';
+                els.timerScreen.classList.add('hidden');
+                els.completeScreen.classList.add('hidden');
+                els.setupScreen.classList.remove('hidden');
+                updateColors('setup');
+            },
+            // Note: finishWorkout is internal but calls saveWorkout
+            openStats: () => {
+                els.statsOverlay.classList.remove('hidden');
+                renderAllStats();
+            },
+            // savedEdit, deleteWorkout exposed earlier? No, I need to ensure they are visible.
+            // But they were attached to window in previous edits?
+            // "window.saveEdit = ..."
+            // Yes, I redefined them as window.saveEdit = async function... earlier.
+            // So they are safe.
+        });
+
+        // Adjust buttons
+        document.querySelectorAll('.adjust-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = btn.dataset.target;
+                const delta = parseInt(btn.dataset.delta);
+                const input = document.getElementById(targetId);
+                let val = parseInt(input.value) + delta;
+                if (targetId === 'workInput' || targetId === 'restInput') val = Math.max(5, val);
+                if (targetId === 'roundsInput') val = Math.max(1, val);
+                input.value = val;
+                calculateTotalTime();
+            });
+        });
+
+        // Inputs change
+        ['workInput', 'restInput', 'roundsInput'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateTotalTime);
+        });
+
+
 
     </script>
 </body>

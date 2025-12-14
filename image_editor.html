@@ -3,268 +3,204 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>16:9 图片处理与去水印工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片处理 - LocalForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #1e1e1e;
-            --panel-color: #2d2d2d;
-            --accent-color: #4a90e2;
-            --text-color: #e0e0e0;
+        /* Custom scrollbar matching other tools */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
         }
 
         body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', sans-serif;
             overflow: hidden;
-        }
-
-        /* 布局 */
-        #sidebar {
-            width: 250px;
-            background: var(--panel-color);
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #444;
-        }
-
-        #main-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-            align-items: center;
-            justify-content: center;
-            background: #111;
-        }
-
-        #toolbar {
-            width: 280px;
-            background: var(--panel-color);
-            padding: 15px;
-            border-left: 1px solid #444;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            overflow-y: auto;
-        }
-
-        /* 文件列表 */
-        #file-list {
-            flex: 1;
-            overflow-y: auto;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #file-list li {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #3d3d3d;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        #file-list li:hover {
-            background: #3d3d3d;
-        }
-
-        #file-list li.active {
-            background: var(--accent-color);
-            color: white;
-        }
-
-        /* Canvas 容器 */
-        #canvas-wrapper {
-            position: relative;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-
-        canvas {
-            display: block;
-            max-width: 100%;
-            max-height: 80vh;
-        }
-
-        /* 交互层 (用于绘制选框和笔刷) */
-        #interaction-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            cursor: crosshair;
-            touch-action: none;
-        }
-
-        /* 按钮与控件 */
-        button {
-            background: #444;
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 13px;
-        }
-
-        button:hover {
-            background: #555;
-        }
-
-        button.primary {
-            background: var(--accent-color);
-        }
-
-        button.primary:hover {
-            background: #357abd;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .control-group {
-            background: #363636;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .control-group h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            margin-bottom: 5px;
-            cursor: pointer;
-        }
-
-        input[type="range"] {
-            flex: 1;
-        }
-
-        .status-bar {
-            padding: 10px;
-            font-size: 12px;
-            color: #888;
-            text-align: center;
-            border-top: 1px solid #444;
-        }
-
-        #toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 20px;
-            border-radius: 20px;
-            display: none;
-            z-index: 1000;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-900 text-slate-200 font-sans h-screen flex flex-col">
 
-    <div id="sidebar">
-        <div style="padding: 15px; border-bottom: 1px solid #444;">
-            <h3 style="margin: 0 0 10px 0;">资源管理器</h3>
-            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                <button id="btn-single" style="flex: 1;" title="处理单个文件">📄 单文件</button>
-                <button id="btn-input" style="flex: 1;" title="批量处理目录">📂 目录</button>
+    <!-- Header -->
+    <header
+        class="h-14 bg-slate-900/80 backdrop-blur-sm border-b border-slate-700 flex items-center justify-between px-4 z-10 shrink-0">
+        <a href="index.html"
+            class="text-lg font-bold tracking-wide hover:opacity-80 transition flex items-center gap-2 text-white">
+            <i class="fas fa-image text-blue-500"></i> 图片处理工具
+        </a>
+        <div class="text-xs text-slate-500">16:9 裁剪 & 去水印</div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- Left Sidebar: File List -->
+        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col shrink-0 z-10">
+            <div class="p-4 border-b border-slate-700">
+                <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">资源管理器</h3>
+                <div class="flex gap-2 mb-2">
+                    <button id="btn-single"
+                        class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📄
+                        单文件</button>
+                    <button id="btn-input"
+                        class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📂
+                        目录</button>
+                </div>
+                <button id="btn-output"
+                    class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-blue-400 hover:text-blue-300 transition border border-slate-600 hover:border-slate-500 hidden mb-1">💾
+                    选择输出目录</button>
+                <div id="output-info" class="text-[10px] text-slate-500 truncate mt-1">默认: Downloads</div>
             </div>
-            <button id="btn-output" style="width: 100%; display: none;" title="批量模式需要选择输出目录">💾 选择输出目录</button>
-            <div id="output-info" style="font-size: 11px; color: #888; margin-top: 5px; word-break: break-all;">
-                默认保存位置：Downloads
+
+            <ul id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <li
+                    class="p-4 text-center text-slate-500 text-xs border border-dashed border-slate-700 rounded select-none">
+                    请选择文件或目录</li>
+            </ul>
+
+            <div class="p-2 border-t border-slate-700 text-center text-[10px] text-slate-500" id="file-count">0 张图片
             </div>
-        </div>
-        <ul id="file-list">
-            <li style="text-align:center; color:#666; padding:20px;">选择单文件或目录开始</li>
-        </ul>
-        <div class="status-bar" id="file-count">0 张图片</div>
+        </aside>
+
+        <!-- Center: Canvas -->
+        <main class="flex-1 bg-slate-900/50 flex flex-col relative overflow-hidden">
+            <div
+                class="flex-1 flex items-center justify-center p-8 overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]">
+                <div id="canvas-wrapper"
+                    class="relative shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#111]">
+                    <canvas id="main-canvas" class="block max-w-full max-h-[80vh]"></canvas>
+                    <canvas id="interaction-layer"
+                        class="absolute top-0 left-0 w-full h-full cursor-crosshair touch-none"></canvas>
+                </div>
+            </div>
+
+            <!-- Toast -->
+            <div id="toast"
+                class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
+                <i class="fas fa-info-circle text-blue-400"></i> <span>提示消息</span>
+            </div>
+        </main>
+
+        <!-- Right Toolbar -->
+        <aside class="w-72 bg-slate-800 border-l border-slate-700 flex flex-col shrink-0 overflow-y-auto z-10">
+            <div class="p-4 space-y-6">
+
+                <!-- Crop Mode -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">模式选择</h4>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-2">
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="radio" name="crop-mode" value="pad" checked class="accent-blue-500 w-4 h-4">
+                            <div>
+                                <div class="text-sm font-medium text-slate-200 group-hover:text-white">填充模式 (Pad)</div>
+                                <div class="text-[10px] text-slate-500">两边填充背景，保持完整画面</div>
+                            </div>
+                        </label>
+                        <div class="h-px bg-slate-700/50 my-1"></div>
+                        <label class="flex items-center gap-3 cursor-pointer group">
+                            <input type="radio" name="crop-mode" value="crop" class="accent-blue-500 w-4 h-4">
+                            <div>
+                                <div class="text-sm font-medium text-slate-200 group-hover:text-white">裁剪模式 (Crop)</div>
+                                <div class="text-[10px] text-slate-500">自由拖动选框截取局部</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Watermark -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (双选框)</h4>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <div class="text-[10px] text-slate-500 mb-3 space-y-1">
+                            <p>1. 画 <span class="text-blue-400 font-bold">蓝色外框</span> (采样背景)</p>
+                            <p>2. 画 <span class="text-rose-400 font-bold">红色内框</span> (覆盖水印)</p>
+                        </div>
+
+                        <div id="watermark-status"
+                            class="px-3 py-2 bg-slate-800 rounded border border-slate-700 text-xs text-center mb-3">
+                            等待绘制外框...
+                        </div>
+
+                        <button id="btn-clear-mask"
+                            class="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs rounded border border-slate-600 transition">
+                            清除选框 (C)
+                        </button>
+
+                        <div class="mt-3 pt-3 border-t border-slate-700/50">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="chk-persist-mask" checked
+                                    class="rounded border-slate-600 bg-slate-700 text-blue-500">
+                                <span class="text-xs font-medium text-slate-300">保留选框位置</span>
+                            </label>
+                            <p class="text-[10px] text-slate-500 mt-1 pl-5">切换图片时自动应用去水印</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">输出设置</h4>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-400">格式</span>
+                            <select id="sel-format"
+                                class="bg-slate-800 border border-slate-600 text-xs text-white rounded px-2 py-1 outline-none focus:border-blue-500">
+                                <option value="image/jpeg">JPEG (体积小)</option>
+                                <option value="image/png">PNG (无损)</option>
+                            </select>
+                        </div>
+                        <div id="quality-wrapper" class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-400">
+                                <span>质量</span>
+                                <span id="quality-val" class="text-blue-400">95%</span>
+                            </div>
+                            <input type="range" id="rng-quality" min="10" max="100" value="95" step="5"
+                                class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-4 border-t border-slate-700 space-y-3">
+                    <button id="btn-save"
+                        class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2">
+                        <span>💾</span> 保存并下一张 (S)
+                    </button>
+                    <button id="btn-download"
+                        class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600 hidden transition">
+                        ⬇️ 下载到本地
+                    </button>
+                    <label class="flex items-center justify-center gap-2 cursor-pointer pt-1">
+                        <input type="checkbox" id="chk-auto-save"
+                            class="rounded border-slate-600 bg-slate-700 text-blue-500">
+                        <span class="text-xs text-slate-400">自动保存</span>
+                    </label>
+                </div>
+
+                <div class="text-[10px] text-slate-600 text-center space-y-1 pb-4">
+                    <p>← / → : 切换图片</p>
+                    <p>S : 保存当前 | C : 清除选框</p>
+                </div>
+
+            </div>
+        </aside>
     </div>
 
-    <div id="main-area">
-        <div id="canvas-wrapper">
-            <canvas id="main-canvas"></canvas>
-            <canvas id="interaction-layer"></canvas>
-        </div>
-        <div id="toast">提示消息</div>
-    </div>
-
-    <div id="toolbar">
-        <div class="control-group">
-            <h4>16:9 处理模式</h4>
-            <label><input type="radio" name="crop-mode" value="pad" checked> 填充 (Pad)</label>
-            <div style="font-size:12px; color:#aaa; margin-left:24px; margin-bottom:5px;">两边填充背景色，保持全图。</div>
-            <label><input type="radio" name="crop-mode" value="crop"> 裁剪 (Crop)</label>
-            <div style="font-size:12px; color:#aaa; margin-left:24px;">拖动选框截取局部。</div>
-        </div>
-
-        <div class="control-group">
-            <h4>💧 去水印 (双选框模式)</h4>
-            <div style="font-size:12px; color:#aaa; margin-bottom:10px;">
-                1. 先画<b style="color:#4a90e2;">外框</b>（采样颜色区域）<br>
-                2. 再画<b style="color:#e24a4a;">内框</b>（水印区域，将被填充）
-            </div>
-            <div id="watermark-status"
-                style="padding:8px; background:#444; border-radius:4px; font-size:13px; margin-bottom:8px;">
-                当前状态：等待绘制外框...
-            </div>
-            <button id="btn-clear-mask" style="width:100%; margin-top:5px;">清除选框重新开始</button>
-            <div style="margin-top:10px; border-top:1px solid #555; padding-top:10px;">
-                <label><input type="checkbox" id="chk-persist-mask" checked> <b>保留选框位置</b></label>
-                <div style="font-size:12px; color:#aaa; margin-left:24px;">勾选后，下一张图片会自动应用相同的去水印区域（适合批量处理）。</div>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h4>⚙️ 输出设置</h4>
-            <div style="margin-bottom:10px;">
-                <label style="display:inline-block; margin-right:15px;">格式:</label>
-                <select id="sel-format"
-                    style="background:#555; color:white; border:none; padding:4px; border-radius:4px;">
-                    <option value="image/jpeg">JPEG (体积小)</option>
-                    <option value="image/png">PNG (无损)</option>
-                </select>
-            </div>
-            <div id="quality-wrapper">
-                <label>质量: <span id="quality-val">95%</span></label>
-                <input type="range" id="rng-quality" min="10" max="100" value="95" step="5">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h4>操作</h4>
-            <button id="btn-save" class="primary" style="width:100%; height:40px; font-weight:bold;">保存并下一张 (S)</button>
-            <button id="btn-download" style="width:100%; margin-top:5px; display:none;">⬇️ 下载到本地</button>
-            <label style="margin-top:10px;"><input type="checkbox" id="chk-auto-save"> 自动保存</label>
-        </div>
-
-        <div style="flex:1;"></div>
-        <div style="font-size:12px; color:#666;">
-            快捷键：<br>
-            ← / → : 切换图片<br>
-            S : 保存当前<br>
-            C : 清除选框
-        </div>
-    </div>
-
-    <!-- 兼容性回退：隐藏的文件输入框 -->
+    <!-- Hidden Inputs -->
     <input type="file" id="fallback-file" style="display: none;" accept="image/png, image/jpeg, image/webp">
     <input type="file" id="fallback-dir" style="display: none;" webkitdirectory directory multiple>
 
@@ -505,6 +441,7 @@
             state.currentImage = bmp;
         }
 
+
         function resetWatermark() {
             state.watermarkOuter = null;
             state.watermarkInner = null;
@@ -538,6 +475,7 @@
             state.files.forEach((f, i) => {
                 const li = document.createElement('li');
                 li.textContent = f.name;
+                li.className = 'p-2 text-xs rounded cursor-pointer hover:bg-slate-700 truncate text-slate-300 transition-colors';
                 li.onclick = () => loadFile(i);
                 els.fileList.appendChild(li);
             });
@@ -551,11 +489,18 @@
 
             // UI 更新
             const items = els.fileList.children;
-            if (state.currentIndex >= 0 && items[state.currentIndex]) items[state.currentIndex].classList.remove('active');
+            if (state.currentIndex >= 0 && items[state.currentIndex]) {
+                const prev = items[state.currentIndex];
+                prev.classList.remove('bg-blue-600', 'text-white');
+                prev.classList.add('text-slate-300');
+            }
             state.currentIndex = index;
-            items[index].classList.add('active');
-            items[index].scrollIntoView({ block: 'nearest' });
-            state.currentFileName = state.files[index].name; // Update current name
+            const current = items[index];
+            current.classList.remove('text-slate-300');
+            current.classList.add('bg-blue-600', 'text-white');
+            current.scrollIntoView({ block: 'nearest' });
+
+            state.currentFileName = state.files[index].name;
 
             // 读取文件
             await loadFileContent(state.files[index].handle);
@@ -733,11 +678,11 @@
         function updateWatermarkStatus() {
             if (!els.watermarkStatus) return;
             if (state.watermarkStep === 'outer') {
-                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#4a90e2;">请绘制外框</span>（采样颜色区域）';
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制外框</span>（采样区域）';
             } else if (state.watermarkStep === 'inner') {
-                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#e24a4a;">请绘制内框</span>（水印区域）';
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-rose-400 font-bold">请绘制内框</span>（水印区域）';
             } else {
-                els.watermarkStatus.innerHTML = '当前状态：<span style="color:#4ae24a;">✓ 去水印已完成</span>';
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-emerald-400 font-bold">✓ 去水印已完成</span>';
             }
         }
 
@@ -1035,9 +980,11 @@
         // === 辅助 ===
 
         function showToast(msg) {
-            els.toast.textContent = msg;
-            els.toast.style.display = 'block';
-            setTimeout(() => els.toast.style.display = 'none', 2000);
+            // Update to use flex/hidden instead of display block
+            els.toast.innerHTML = `<i class="fas fa-info-circle text-blue-400"></i> <span>${msg}</span>`;
+            els.toast.classList.remove('hidden');
+            // Assuming default display is flex due to class="... flex ..." in HTML
+            setTimeout(() => els.toast.classList.add('hidden'), 2000);
         }
 
         document.addEventListener('keydown', (e) => {
