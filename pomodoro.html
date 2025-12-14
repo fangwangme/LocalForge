@@ -535,8 +535,12 @@
             closeCustomDuration();
         }
 
-        function toggleTimer() {
+        async function toggleTimer() {
             if (currentState === 'stopped' || currentState === 'paused') {
+                // Check file permission before starting
+                if (currentState === 'stopped') {
+                    await ensureFilePermission();
+                }
                 startTimer();
             } else {
                 pauseTimer();
@@ -1694,6 +1698,83 @@
             }
         }
 
+        // === File Permission & Sync Functions ===
+        let lastSyncFailed = false;
+        let syncFailAlertShown = false;
+
+        function updateSyncStatus(success, message = '') {
+            if (success) {
+                lastSyncFailed = false;
+                syncFailAlertShown = false;
+            } else {
+                lastSyncFailed = true;
+                // Show alert only once per failure sequence
+                if (message && !syncFailAlertShown) {
+                    syncFailAlertShown = true;
+                    console.warn('[Pomodoro] Sync failed:', message);
+                    // Show a non-blocking toast warning
+                    showSyncWarningToast(message);
+                }
+            }
+        }
+
+        function showSyncWarningToast(message) {
+            // Remove existing toast if any
+            const existingToast = document.getElementById('sync-warning-toast');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'sync-warning-toast';
+            toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
+            toast.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-2 hover:text-amber-200">&times;</button>
+            `;
+            document.body.appendChild(toast);
+            // Auto-remove after 8 seconds
+            setTimeout(() => toast.remove(), 8000);
+        }
+
+        async function ensureFilePermission() {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const request = store.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(null);
+                });
+
+                if (!existing?.handle) {
+                    console.log('[Pomodoro] No file handle found');
+                    return false;
+                }
+
+                const opts = { mode: 'readwrite' };
+                let perm = await existing.handle.queryPermission(opts);
+
+                if (perm !== 'granted') {
+                    console.log('[Pomodoro] Requesting file permission...');
+                    perm = await existing.handle.requestPermission(opts);
+                }
+
+                if (perm === 'granted') {
+                    console.log('[Pomodoro] ✅ File permission granted');
+                    updateSyncStatus(true);
+                    return true;
+                } else {
+                    console.warn('[Pomodoro] File permission denied');
+                    updateSyncStatus(false, '文件权限被拒绝');
+                    return false;
+                }
+            } catch (err) {
+                console.error('[Pomodoro] Permission check failed:', err);
+                return false;
+            }
+        }
+
         // === IDB Loading for Standalone Operation ===
         const IDB_NAME = 'LocalForgeDB';
         const IDB_STORE = 'snapshots';
@@ -1791,12 +1872,17 @@
                             await writable.write(data);
                             await writable.close();
                             console.log('[Pomodoro] ✅ Saved to file:', existing.handle.name);
+                            updateSyncStatus(true);
                         } else {
-                            console.log('[Pomodoro] File permission not granted, IDB only');
+                            console.warn('[Pomodoro] File permission not granted, IDB only');
+                            updateSyncStatus(false, '文件权限已丢失，请点击同步按钮重新授权');
                         }
                     } catch (fileErr) {
                         console.warn('[Pomodoro] File save failed:', fileErr.message);
+                        updateSyncStatus(false, '文件保存失败: ' + fileErr.message);
                     }
+                } else {
+                    updateSyncStatus(false, '未找到文件句柄');
                 }
 
                 // Always save to IDB
