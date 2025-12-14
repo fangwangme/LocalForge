@@ -266,7 +266,7 @@
 
             <button id="homeBtn"
                 class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition"
-                onclick="window.location.href='index.html'">
+                onclick="openStats()">
                 Close
             </button>
         </div>
@@ -770,6 +770,8 @@
         let currentChartMetric = 'calories';
 
         function openStats() {
+            // Hide completion screen if visible
+            if (els.completionScreen) els.completionScreen.classList.add('hidden');
             els.statsOverlay.classList.remove('hidden');
             renderAllStats();
         }
