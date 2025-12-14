@@ -744,14 +744,19 @@
         }
 
         let targetEndTime = null;
+        let segmentStartTime = null; // Track when current segment started
 
         function startTimer() {
             const isNewSession = currentState === 'stopped';
+            const isResumingFromPause = currentState === 'paused';
 
             if (isNewSession) {
                 startTime = new Date();
                 timeLeftSeconds = durationMinutes * 60;
             }
+
+            // Track segment start time (for both new session and resume)
+            segmentStartTime = new Date();
 
             // Calculate target end time based on current remaining seconds
             targetEndTime = Date.now() + (timeLeftSeconds * 1000);
@@ -768,8 +773,8 @@
 
             checkSkipButton();
 
-            // Create session record in DB for new sessions
-            if (isNewSession) {
+            // Create session record in DB for new sessions or when resuming from pause
+            if (isNewSession || isResumingFromPause) {
                 createSessionRecord();
             }
 
@@ -798,25 +803,50 @@
             }, 200);
         }
 
-        function pauseTimer() {
+        async function pauseTimer() {
             currentState = 'paused';
             clearInterval(timerInterval);
             if (saveStateInterval) clearInterval(saveStateInterval);
-            updateSessionProgress(); // Update progress when pausing
+
+            // Complete current segment with 'completed' status
+            if (currentSessionId && segmentStartTime) {
+                const now = new Date();
+                const elapsed = Math.round((now - segmentStartTime) / 60000);
+                if (elapsed > 0) {
+                    try {
+                        await db.execute(
+                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
+                            [now.toISOString(), elapsed, 'completed', '(分段)', currentSessionId]
+                        );
+                    } catch (e) {
+                        console.error('[Pomodoro] Failed to complete segment:', e);
+                    }
+                }
+                currentSessionId = null;
+            }
+
             els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
             els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
             els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
             checkSkipButton();
         }
 
-        function resetTimer() {
-            pauseTimer();
+        async function resetTimer() {
+            // Stop intervals without completing segment
             currentState = 'stopped';
+            clearInterval(timerInterval);
+            if (saveStateInterval) clearInterval(saveStateInterval);
+
             timeLeftSeconds = durationMinutes * 60;
             updateDigitalDisplay();
             renderPixels();
-            abortSession(); // Mark session as aborted in DB
 
+            // Mark session as aborted in DB
+            await abortSession();
+
+            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
+            els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
+            els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
             els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
             els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
@@ -824,10 +854,12 @@
             checkSkipButton();
         }
 
-        function completeSession() {
-            pauseTimer(); // Stop interval
-            currentState = 'stopped'; // Reset state
-            // Note: session record will be completed via confirmSaveSession
+        async function completeSession() {
+            // Stop intervals without completing segment (will be done via save modal)
+            currentState = 'stopped';
+            clearInterval(timerInterval);
+            if (saveStateInterval) clearInterval(saveStateInterval);
+
             playCompletionSound();
 
             // System Notification
