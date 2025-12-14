@@ -328,6 +328,44 @@
     </div>
     </div>
 
+    <!-- Edit Session Modal -->
+    <div id="editSessionModal"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 class="font-bold text-lg mb-4 text-white">编辑记录</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">开始时间</label>
+                    <input type="datetime-local" id="editStartTime"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">结束时间</label>
+                    <input type="datetime-local" id="editEndTime"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">标签</label>
+                    <select id="editTagSelect"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">备注</label>
+                    <textarea id="editDescription" rows="2"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeEditSessionModal()"
+                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">取消</button>
+                <button onclick="confirmEditSession()"
+                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">保存</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Duration Modal -->
     <div id="customDurationModal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
@@ -371,7 +409,7 @@
         let timerInterval = null;
         let startTime = null;
 
-        let currentTag = { id: 1, name: 'Work', color: '#3b82f6' }; // Default
+        let currentTag = null; // Will be set on load
         let tags = [];
         let sessions = [];
         let currentDistMode = 'today'; // 'today' or 'week'
@@ -584,49 +622,92 @@
                 const dur2 = durationMinutes - dur1;
 
                 // Save Part 1 (Yesterday)
+                // Save Part 1 (Yesterday)
                 window.parent.postMessage({
-                    type: 'SAVE_POMODORO',
+                    type: 'EXECUTE_SQL',
                     requestId: 'save_pom_1_' + Date.now(),
-                    data: {
-                        startTime: start.toISOString(),
-                        endTime: midnight.toISOString(),
-                        duration: dur1,
-                        tagId: currentTag.id,
-                        status: 'completed'
-                    }
+                    sql: `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    params: [
+                        start.toISOString(),
+                        midnight.toISOString(),
+                        dur1,
+                        currentTag.id,
+                        'completed',
+                        document.getElementById('saveDescription').value.trim() + ' (Part 1)',
+                        new Date().toISOString()
+                    ]
                 }, '*');
 
                 // Save Part 2 (Today)
                 window.parent.postMessage({
-                    type: 'SAVE_POMODORO',
+                    type: 'EXECUTE_SQL',
                     requestId: 'save_pom_2_' + Date.now(),
-                    data: {
-                        startTime: midnight.toISOString(),
-                        endTime: end.toISOString(),
-                        duration: dur2,
-                        tagId: currentTag.id,
-                        status: 'completed'
-                    }
+                    sql: `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    params: [
+                        midnight.toISOString(),
+                        end.toISOString(),
+                        dur2,
+                        currentTag.id,
+                        'completed',
+                        document.getElementById('saveDescription').value.trim(),
+                        new Date().toISOString()
+                    ]
                 }, '*');
-
             } else {
-                // Normal Save
+                // Normal Save using EXECUTE_SQL
+                const sql = `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                const params = [
+                    start.toISOString(),
+                    end.toISOString(),
+                    durationMinutes,
+                    currentTag.id,
+                    'completed',
+                    document.getElementById('saveDescription').value.trim(),
+                    new Date().toISOString()
+                ];
+
                 window.parent.postMessage({
-                    type: 'SAVE_POMODORO',
+                    type: 'EXECUTE_SQL',
                     requestId: 'save_pom_' + Date.now(),
-                    data: {
-                        startTime: start.toISOString(),
-                        endTime: end.toISOString(),
-                        duration: durationMinutes,
-                        tagId: currentTag.id,
-                        status: 'completed',
-                        description: document.getElementById('saveDescription').value.trim()
-                    }
+                    sql: sql,
+                    params: params
                 }, '*');
             }
 
             closeSaveModal();
             handleAutoFlow();
+        }
+
+        function saveTag(inputValue) {
+            if (inputValue) {
+                const newTag = { name: inputValue, color: '#64748b' }; // Default color
+                // Optimistic UI update
+                // Send Save Request
+                // Use generic EXECUTE_SQL
+                window.parent.postMessage({
+                    type: 'EXECUTE_SQL',
+                    requestId: 'add_tag_' + Date.now(),
+                    sql: "INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, 0)",
+                    params: [newTag.name, newTag.color]
+                }, '*');
+                tags.push(newTag);
+                renderTags();
+                closeAddTagModal();
+            }
+        }
+
+        function deleteTag(tagId) {
+            // Optimistic UI update (remove from local array and re-render)
+            tags = tags.filter(t => t.id !== tagId);
+            renderTags();
+
+            // Send delete request
+            window.parent.postMessage({
+                type: 'EXECUTE_SQL',
+                requestId: 'delete_tag_' + Date.now(),
+                sql: "DELETE FROM pomodoro_tags WHERE id = ?",
+                params: [tagId]
+            }, '*');
         }
 
         function handleAutoFlow() {
@@ -891,12 +972,39 @@
         }
 
         function renderTags(tagList) {
-            tags = tagList.map(r => ({ id: r.values[0], name: r.values[1], color: r.values[2] }));
-            if (tags.length === 0) return; // Should not happen due to defaults
+            tags = tagList.map(r => ({
+                id: r.values[0],
+                name: r.values[1],
+                color: r.values[2],
+                isDefault: r.values[3] === 1
+            }));
 
-            if (!tags.find(t => t.id === currentTag.id)) {
-                currentTag = tags[0]; // Fallback
-                selectTag(currentTag.id);
+            if (tags.length === 0) {
+                // No tags found? Create defaults.
+                console.log('[Pomodoro] No tags found, creating defaults...');
+                createDefaultTags();
+                return;
+            }
+
+            // Logic to determine selection
+            let selected = null;
+            if (currentTag) {
+                // Try to keep current selection
+                selected = tags.find(t => t.id === currentTag.id);
+            }
+
+            if (!selected) {
+                // Fallback: Default tag or First tag
+                selected = tags.find(t => t.isDefault) || tags[0];
+            }
+
+            // Update currentTag reference
+            currentTag = selected;
+            // Update UI for current tag
+            if (currentTag) {
+                els.currentTagName.innerText = currentTag.name;
+                els.currentTagDot.style.backgroundColor = currentTag.color;
+                checkSkipButton();
             }
 
             els.tagList.innerHTML = tags.map(t => `
@@ -905,9 +1013,29 @@
                         <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
                         <span class="text-sm text-slate-300 group-hover:text-white">${t.name}</span>
                     </div>
-                    ${t.id === currentTag.id ? '<i class="fas fa-check text-xs text-blue-500"></i>' : ''}
+                    ${(currentTag && t.id === currentTag.id) ? '<i class="fas fa-check text-xs text-blue-500"></i>' : ''}
                 </button>
             `).join('');
+        }
+
+        function createDefaultTags() {
+            const defaults = [
+                { name: 'Work', color: '#3b82f6', is_default: 1 },
+                { name: 'Relax', color: '#10b981', is_default: 0 },
+                { name: 'Study', color: '#f59e0b', is_default: 0 }
+            ];
+
+            defaults.forEach(d => {
+                window.parent.postMessage({
+                    type: 'EXECUTE_SQL',
+                    requestId: 'init_def_tag_' + Date.now(),
+                    sql: "INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, ?)",
+                    params: [d.name, d.color, d.is_default]
+                }, '*');
+            });
+
+            // Reload after short delay
+            setTimeout(loadTags, 500);
         }
 
         // Add Tag color picker
@@ -1003,7 +1131,7 @@
                         updateStatsUI();
                     }
                 }
-            } else if (msg.type === 'DB_UPDATED' || msg.type === 'SAVE_SUCCESS') {
+            } else if (msg.type === 'DB_UPDATED' || msg.type === 'EXECUTE_SUCCESS') {
                 console.log('[Pomodoro] DB Updated notification received. Reloading...');
                 requestData(); // Refresh all
             }
@@ -1360,7 +1488,7 @@
 
                 return `
                     <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
-                        <div class="flex items-center gap-4 w-full">
+                        <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold shrink-0">
                                 ${s.duration}
                             </div>
@@ -1373,9 +1501,14 @@
                                 <div class="text-xs text-slate-500">${dateStr}</div>
                             </div>
                         </div>
-                        <button onclick="deleteSession(${s.id})" class="text-slate-600 hover:text-rose-500 transition opacity-0 group-hover:opacity-100 p-2 shrink-0">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                            <button onclick="editSession(${s.id})" class="text-slate-500 hover:text-blue-500 p-2" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteSession(${s.id})" class="text-slate-500 hover:text-rose-500 p-2" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1384,9 +1517,10 @@
         function deleteSession(id) {
             if (confirm('确定删除这条记录吗？')) {
                 window.parent.postMessage({
-                    type: 'DELETE_POMODORO',
+                    type: 'EXECUTE_SQL',
                     requestId: 'del_pom_' + Date.now(),
-                    id: id
+                    sql: 'DELETE FROM pomodoro_sessions WHERE id = ?',
+                    params: [id]
                 }, '*');
             }
         }
@@ -1415,7 +1549,116 @@
 
 
 
+        let currentEditSessionId = null;
+
+        function editSession(id) {
+            const session = sessions.find(s => s.id === id);
+            if (!session) return;
+
+            currentEditSessionId = id;
+
+            // Format times for datetimelocal (YYYY-MM-DDTHH:mm)
+            const formatForInput = (isoStr) => {
+                const d = new Date(isoStr);
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+
+            document.getElementById('editStartTime').value = formatForInput(session.startTime);
+            document.getElementById('editEndTime').value = formatForInput(session.endTime);
+            document.getElementById('editDescription').value = session.description || '';
+
+            // Populate tags
+            const select = document.getElementById('editTagSelect');
+            select.innerHTML = tags.map(t => `<option value="${t.id}" ${t.id === session.tagId ? 'selected' : ''}>${t.name}</option>`).join('');
+
+            document.getElementById('editSessionModal').classList.remove('hidden');
+        }
+
+        function closeEditSessionModal() {
+            document.getElementById('editSessionModal').classList.add('hidden');
+            currentEditSessionId = null;
+        }
+
+        function confirmEditSession() {
+            if (!currentEditSessionId) return;
+
+            const stVal = document.getElementById('editStartTime').value;
+            const etVal = document.getElementById('editEndTime').value;
+            const tagId = parseInt(document.getElementById('editTagSelect').value);
+            const desc = document.getElementById('editDescription').value.trim();
+
+            if (!stVal || !etVal) {
+                alert('请填写完整的时间');
+                return;
+            }
+
+            const start = new Date(stVal);
+            const end = new Date(etVal);
+
+            if (end <= start) {
+                alert('结束时间必须晚于开始时间');
+                return;
+            }
+
+            const durationMins = Math.round((end - start) / 60000);
+
+            // Send Update
+            window.parent.postMessage({
+                type: 'EXECUTE_SQL',
+                requestId: 'update_pom_' + Date.now(),
+                sql: `UPDATE pomodoro_sessions SET start_time = ?, end_time = ?, duration_minutes = ?, tag_id = ?, description = ? WHERE id = ?`,
+                params: [start.toISOString(), end.toISOString(), durationMins, tagId, desc, currentEditSessionId]
+            }, '*');
+
+            closeEditSessionModal();
+        }
+
+        // Initialize Tables on startup
+        function initTables() {
+            // Send Create Table for Tags
+            window.parent.postMessage({
+                type: 'EXECUTE_SQL',
+                requestId: 'init_tags',
+                sql: `
+                    CREATE TABLE IF NOT EXISTS pomodoro_tags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        color TEXT NOT NULL,
+                        is_default INTEGER DEFAULT 0
+                    )
+                `
+            }, '*');
+
+            // Send Create Table for Sessions
+            window.parent.postMessage({
+                type: 'EXECUTE_SQL',
+                requestId: 'init_sessions',
+                sql: `
+                    CREATE TABLE IF NOT EXISTS pomodoro_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        start_time TEXT NOT NULL,
+                        end_time TEXT NOT NULL,
+                        duration_minutes INTEGER NOT NULL,
+                        tag_id INTEGER,
+                        status TEXT,
+                        description TEXT,
+                        created_at TEXT NOT NULL
+                    )
+                `
+            }, '*');
+
+            // Send Migration (Try add column)
+            // Note: In decentralized mode, we just fire this off. Index.html generic handler will log error if column exists, which is fine.
+            window.parent.postMessage({
+                type: 'EXECUTE_SQL',
+                requestId: 'mig_desc',
+                sql: "ALTER TABLE pomodoro_sessions ADD COLUMN description TEXT;"
+            }, '*');
+        }
+
         // Run init
+        initTables();
         init();
 
     </script>

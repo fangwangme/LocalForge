@@ -684,64 +684,10 @@
         // Init all tables for all tools
         function initAllTables() {
             if (!db) return;
-            initHiitTables();
-            initPomodoroTables();
+            // Removed specific table init. Tables are now lazy-initialized by tools.
         }
 
-        function initHiitTables() {
-            // HIIT Tool Table: workouts
-            // Naming convention: Use 'workouts' for compatibility, but consider 'hiit_workouts' for future
-            // Keeping 'workouts' as requested to maintain current tool compatibility
-            db.run(`
-                CREATE TABLE IF NOT EXISTS workouts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date TEXT NOT NULL,
-                    rounds INTEGER,
-                    work_time INTEGER,
-                    rest_time INTEGER,
-                    total_work_time INTEGER,
-                    calories INTEGER,
-                    weight REAL,
-                    total_time INTEGER,
-                    start_time TEXT,
-                    end_time TEXT
-                )
-            `);
-            try {
-                db.run("ALTER TABLE workouts ADD COLUMN total_time INTEGER;");
-                db.run("ALTER TABLE workouts ADD COLUMN start_time TEXT;");
-                db.run("ALTER TABLE workouts ADD COLUMN end_time TEXT;");
-            } catch (e) { }
-        }
 
-        function initPomodoroTables() {
-            db.run(`
-                CREATE TABLE IF NOT EXISTS pomodoro_tags (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    color TEXT NOT NULL,
-                    is_default INTEGER DEFAULT 0
-                )
-            `);
-
-
-
-            db.run(`
-                CREATE TABLE IF NOT EXISTS pomodoro_sessions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    start_time TEXT NOT NULL,
-                    end_time TEXT NOT NULL,
-                    duration_minutes INTEGER NOT NULL,
-                    tag_id INTEGER,
-                    status TEXT,
-                    description TEXT,
-                    created_at TEXT NOT NULL
-                )
-            `);
-            try {
-                db.run("ALTER TABLE pomodoro_sessions ADD COLUMN description TEXT;");
-            } catch (e) { }
-        }
 
         function updateDbStatus(text, color) {
             const statusText = document.getElementById('modal-db-status-text');
@@ -800,75 +746,16 @@
                         message: 'Database not loaded'
                     }, '*');
                 }
-            } else if (msg.type === 'SAVE_WORKOUT') {
-                if (!db) { await createNewDatabase(); }
-                try {
-                    db.run(`INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                        [msg.data.date, msg.data.rounds, msg.data.workTime, msg.data.restTime, msg.data.totalWorkTime, msg.data.calories, msg.data.weight, msg.data.totalTime, msg.data.startTime, msg.data.endTime]);
-
-                    await saveDatabaseToDisk(null, true);
-
-                    iframe.contentWindow.postMessage({ type: 'SAVE_SUCCESS', requestId: msg.requestId }, '*');
-                } catch (err) {
-                    iframe.contentWindow.postMessage({ type: 'SAVE_ERROR', requestId: msg.requestId, message: err.message }, '*');
-                }
-            } else if (msg.type === 'DELETE_WORKOUT') {
-                if (db) {
-                    try {
-                        db.run('DELETE FROM workouts WHERE id = ?', [msg.id]);
-                        await saveDatabaseToDisk(null, true);
-                        // Notify success/refresh
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    } catch (err) {
-                        console.error('Delete error:', err);
-                        alert('删除失败: ' + err.message);
-                    }
-                }
-            } else if (msg.type === 'UPDATE_WORKOUT') {
-                if (db) {
-                    try {
-                        const d = msg.data;
-                        // Recalculate total_work_time
-                        const totalWork = d.rounds * d.work_time;
-                        db.run(`UPDATE workouts SET date = ?, rounds = ?, work_time = ?, rest_time = ?, total_work_time = ?, calories = ?, weight = ? WHERE id = ?`,
-                            [d.date, d.rounds, d.work_time, d.rest_time, totalWork, d.calories, d.weight, d.id]);
-
-                        await saveDatabaseToDisk(null, true);
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    } catch (err) {
-                        console.error('Update error:', err);
-                        alert('更新失败: ' + err.message);
-                    }
-                }
-            } else if (msg.type === 'SAVE_POMODORO') {
+            } else if (msg.type === 'EXECUTE_SQL') {
                 if (!db) await createNewDatabase();
                 try {
-                    db.run(`INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [msg.data.startTime, msg.data.endTime, msg.data.duration, msg.data.tagId, msg.data.status, msg.data.description || '', new Date().toISOString()]);
+                    // console.log('[Host] Executing Update/Insert:', msg.sql);
+                    db.run(msg.sql, msg.params || []);
                     await saveDatabaseToDisk(null, true);
-                    iframe.contentWindow.postMessage({ type: 'SAVE_SUCCESS', requestId: msg.requestId }, '*');
+                    iframe.contentWindow.postMessage({ type: 'EXECUTE_SUCCESS', requestId: msg.requestId }, '*');
                 } catch (err) {
-                    iframe.contentWindow.postMessage({ type: 'SAVE_ERROR', requestId: msg.requestId, message: err.message }, '*');
-                }
-            } else if (msg.type === 'DELETE_POMODORO') {
-                if (db) {
-                    try {
-                        db.run('DELETE FROM pomodoro_sessions WHERE id = ?', [msg.id]);
-                        await saveDatabaseToDisk(null, true);
-                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                    } catch (err) {
-                        console.error('Delete Pomodoro error:', err);
-                    }
-                }
-            } else if (msg.type === 'SAVE_TAG') {
-                if (!db) await createNewDatabase();
-                try {
-                    db.run(`INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, 0)`,
-                        [msg.data.name, msg.data.color]);
-                    await saveDatabaseToDisk(null, true);
-                    iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
-                } catch (err) {
-                    console.error('Save Tag error:', err);
+                    console.error('[Host] Execute SQL Error:', err);
+                    iframe.contentWindow.postMessage({ type: 'EXECUTE_ERROR', requestId: msg.requestId, message: err.message }, '*');
                 }
             }
         });
