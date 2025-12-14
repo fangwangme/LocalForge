@@ -157,6 +157,13 @@
                 </button>
 
             </div>
+
+            <!-- Notification Toggle -->
+            <div class="mt-8 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
+                <input type="checkbox" id="notifyToggle"
+                    class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
+                <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">任务结束通知</label>
+            </div>
         </div>
 
         <!-- Stats View (Modal/Overlay) -->
@@ -441,6 +448,41 @@
             window.addEventListener('message', handleMessage);
             // Request data
             requestData();
+
+            // Notify Toggle & Permission Sync
+            const notifyToggle = document.getElementById('notifyToggle');
+
+            // 1. Sync on load
+            window.parent.postMessage({ type: 'CHECK_NOTIFY_PERM' }, '*');
+
+            // 2. Handle User Click
+            notifyToggle.addEventListener('change', (e) => {
+                if (notifyToggle.checked) {
+                    // User wants to enable. Request permission.
+                    window.parent.postMessage({ type: 'REQ_NOTIFY_PERM' }, '*');
+                }
+            });
+
+            // 3. Listen for Permission Results
+            const permHandler = (e) => {
+                if (e.data.type === 'NOTIFY_PERM_RESULT') {
+                    const status = e.data.status;
+                    console.log('[Pomodoro] Permission Status:', status);
+                    if (status === 'granted') {
+                        notifyToggle.checked = true;
+                        notifyToggle.parentElement.classList.remove('opacity-50');
+                    } else {
+                        // If denied or default (and we expected it to be on), turn it off
+                        if (notifyToggle.checked && status !== 'granted') {
+                            // Only uncheck if we were trying to enable it and failed
+                            // Actually, keep it simple: sync UI to reality
+                            notifyToggle.checked = false;
+                            alert('需要开启通知权限才能使用此功能。请允许浏览器通知。');
+                        }
+                    }
+                }
+            };
+            window.addEventListener('message', permHandler);
         }
 
         // === Timer Logic ===
@@ -581,6 +623,17 @@
             pauseTimer(); // Stop interval
             currentState = 'stopped'; // Reset state
             playCompletionSound();
+
+            // System Notification
+            const notifyToggle = document.getElementById('notifyToggle');
+            if (notifyToggle && notifyToggle.checked) {
+                window.parent.postMessage({
+                    type: 'SHOW_NOTIFY',
+                    title: '专注完成！',
+                    body: `恭喜！你刚刚完成了 ${durationMinutes} 分钟的专注。`,
+                    icon: 'favicon.png'
+                }, '*');
+            }
 
             // Show Modal
             document.getElementById('saveDuration').innerText = durationMinutes;
@@ -758,7 +811,7 @@
         // === Skip Logic ===
         function checkSkipButton() {
             // Check if current is Relax
-            const isRelax = currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest';
+            const isRelax = currentTag && (currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest');
 
             // Show skip if:
             // 1. Tag is Relax
@@ -1088,19 +1141,29 @@
         }
 
         function requestData() {
-            console.log('[Pomodoro] Requesting data...');
-            // Get tags
+            // Calculate Start of Week (Monday)
+            const now = new Date();
+            const day = now.getDay() || 7; // Get current day number, converting Sun(0) to 7
+            if (day !== 1 || now.getHours() !== 0 || now.getMinutes() !== 0 || now.getSeconds() !== 0 || now.getMilliseconds() !== 0) {
+                now.setHours(0, 0, 0, 0);
+                now.setDate(now.getDate() - (day - 1));
+            }
+            const startOfWeek = now.toISOString();
+
+            console.log('[Pomodoro] Requesting data from:', startOfWeek);
+
             window.parent.postMessage({
                 type: 'REQUEST_DB_DATA',
                 requestId: 'get_tags_load_' + Date.now(),
                 sql: "SELECT id, name, color, is_default FROM pomodoro_tags"
             }, '*');
 
-            // Get Sessions
+            // Get Sessions (Only this week)
             window.parent.postMessage({
                 type: 'REQUEST_DB_DATA',
                 requestId: 'get_sessions_' + Date.now(),
-                sql: "SELECT id, start_time, end_time, duration_minutes, tag_id, status, description FROM pomodoro_sessions ORDER BY start_time DESC"
+                sql: "SELECT id, start_time, end_time, duration_minutes, tag_id, status, description FROM pomodoro_sessions WHERE start_time >= ? ORDER BY start_time DESC",
+                params: [startOfWeek]
             }, '*');
         }
 

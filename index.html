@@ -749,16 +749,53 @@
             } else if (msg.type === 'EXECUTE_SQL') {
                 if (!db) await createNewDatabase();
                 try {
-                    // console.log('[Host] Executing Update/Insert:', msg.sql);
-                    db.run(msg.sql, msg.params || []);
+                    db.run(msg.sql, msg.params);
                     await saveDatabaseToDisk(null, true);
-                    iframe.contentWindow.postMessage({ type: 'EXECUTE_SUCCESS', requestId: msg.requestId }, '*');
+                    // Notify success (optional, but good for migrations)
+                    if (msg.requestId) {
+                        iframe.contentWindow.postMessage({ type: 'EXECUTE_SUCCESS', requestId: msg.requestId }, '*');
+                        // Also notify generic update
+                        iframe.contentWindow.postMessage({ type: 'DB_UPDATED' }, '*');
+                    }
                 } catch (err) {
-                    console.error('[Host] Execute SQL Error:', err);
-                    iframe.contentWindow.postMessage({ type: 'EXECUTE_ERROR', requestId: msg.requestId, message: err.message }, '*');
+                    console.error('[Host] Replace SQL Error:', err);
+                    if (msg.requestId) {
+                        iframe.contentWindow.postMessage({ type: 'EXECUTE_ERROR', requestId: msg.requestId, message: err.message }, '*');
+                    }
+                }
+            } else if (msg.type === 'REQ_NOTIFY_PERM') {
+                console.log('[Host] Received REQ_NOTIFY_PERM via User Action.');
+                Notification.requestPermission().then(perm => {
+                    console.log('[Host] Permission result:', perm);
+                    activePermission = perm; // Update our local tracker
+                    iframe.contentWindow.postMessage({ type: 'NOTIFY_PERM_RESULT', status: perm }, '*');
+                });
+            } else if (msg.type === 'CHECK_NOTIFY_PERM') {
+                // Return active status (trusting our tracker over the potentially stale property)
+                iframe.contentWindow.postMessage({ type: 'NOTIFY_PERM_RESULT', status: activePermission }, '*');
+            } else if (msg.type === 'SHOW_NOTIFY') {
+                console.log('[Host] Received SHOW_NOTIFY. Active Permission:', activePermission, 'Browser Property:', Notification.permission);
+
+                // Strictly check if we have permission. 
+                // We do NOT request permission here anymore, as it's bad UX to prompt at the end of a timer.
+                if (activePermission === 'granted' || Notification.permission === 'granted') {
+                    try {
+                        const n = new Notification(msg.title, {
+                            body: msg.body,
+                            icon: msg.icon || 'favicon.png'
+                        });
+                        n.onclick = () => window.focus();
+                        console.log('[Host] Notification dispatched successfully.');
+                    } catch (e) {
+                        console.error('[Host] Notification creation failed:', e);
+                    }
+                } else {
+                    console.warn('[Host] Cannot show notification. Permission not granted (Active:', activePermission, ')');
                 }
             }
         });
+
+        let activePermission = Notification.permission;
 
         window.addEventListener('load', async () => {
             await initSql();
