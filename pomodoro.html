@@ -447,8 +447,8 @@
             // 1. DB Init
             await initTables();
 
-            document.getElementById('historyFilter').value = 'today'; // Default to Today
-            renderPixels();
+            // document.getElementById('historyFilter').value = 'today'; // Moved to immediate init
+            // setDuration(25); // Moved to immediate init
 
             // 2. Data Init
             await requestData();
@@ -1705,6 +1705,11 @@
         window.saveTag = saveTag;
         window.deleteTag = deleteTag;
         window.setDuration = setDuration;
+
+        // === Immediate UI Init ===
+        console.log('[Pomodoro] Executing immediate UI init...');
+        setDuration(25);
+        document.getElementById('historyFilter').value = 'today';
 
     </script>
 </body>

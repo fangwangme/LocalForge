@@ -15,7 +15,7 @@ class DbClient {
             console.warn('[LocalForge] Running on file:// protocol. SharedWorker and IndexedDB may not work correctly. Please use a local server (e.g. python3 -m http.server) for best experience.');
         }
 
-        this.worker = new SharedWorker('js/shared-db-worker.js');
+        this.worker = new SharedWorker(`js/shared-db-worker.js?v=${Date.now()}`);
 
         this.worker.port.onmessage = (e) => {
             const msg = e.data;

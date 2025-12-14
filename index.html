@@ -284,6 +284,19 @@
                         <i class="fas fa-plus-circle"></i> <span>新建本地数据库文件</span>
                     </button>
 
+                    <div class="border-t border-slate-700/50 my-4 pt-4">
+                        <button onclick="clearCacheAndReload()"
+                            class="w-full flex items-center justify-center gap-2 p-3 bg-red-900/20 border border-red-800/50 rounded-lg hover:bg-red-900/40 hover:border-red-600 hover:text-red-300 transition text-red-500/80 text-sm">
+                            <i class="fas fa-trash-alt"></i> <span>清除缓存并修复 (Fix Issues)</span>
+                        </button>
+                    </div>
+
+                    <div class="text-center mt-2">
+                        <button onclick="document.getElementById('db-file-input').click()"
+                            class="text-xs text-slate-600 hover:text-slate-400 underline">无法打开? 使用旧版选择器 / Legacy
+                            Picker</button>
+                    </div>
+
                     <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
                         注意：默认建议文件名为 <code>html_tools_db.sqlite</code>。<br>
                         <script type="module">
@@ -369,6 +382,13 @@
                                     await db.init(); // Re-init with empty
                                     dbHandle = null;
                                     updateDbStatus('新建数据库 (未保存)', 'amber');
+                                }
+                            };
+
+                            window.clearCacheAndReload = () => {
+                                if (confirm('Looks like something is stuck. This will clear the local cache and reload the page. Your actual database file is safe. Proceed?')) {
+                                    indexedDB.deleteDatabase(IDB_NAME);
+                                    setTimeout(() => window.location.reload(), 500);
                                 }
                             };
 

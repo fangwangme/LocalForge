@@ -1,6 +1,6 @@
 // shared-db-worker.js
-// using staticfile.org CDN which is reliable in China
-importScripts('https://cdn.staticfile.org/sql.js/1.10.2/sql-wasm.min.js');
+// using cdnjs as robust fallback (User preferred CDN over local files)
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.min.js');
 
 const DB_STORE_NAME = 'localforge_store';
 const DB_KEY_NAME = 'sqlite_db_dump';
@@ -58,7 +58,7 @@ async function saveToIDB(data) {
 }
 
 initSqlJs({
-    locateFile: file => `https://cdn.staticfile.org/sql.js/1.10.2/${file}`
+    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`
 }).then(async module => {
     SQL = module;
 
