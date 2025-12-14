@@ -734,9 +734,13 @@
                     duration_minutes INTEGER NOT NULL,
                     tag_id INTEGER,
                     status TEXT,
+                    description TEXT,
                     created_at TEXT NOT NULL
                 )
             `);
+            try {
+                db.run("ALTER TABLE pomodoro_sessions ADD COLUMN description TEXT;");
+            } catch (e) { }
         }
 
         function updateDbStatus(text, color) {
@@ -839,8 +843,8 @@
             } else if (msg.type === 'SAVE_POMODORO') {
                 if (!db) await createNewDatabase();
                 try {
-                    db.run(`INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-                        [msg.data.startTime, msg.data.endTime, msg.data.duration, msg.data.tagId, msg.data.status, new Date().toISOString()]);
+                    db.run(`INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [msg.data.startTime, msg.data.endTime, msg.data.duration, msg.data.tagId, msg.data.status, msg.data.description || '', new Date().toISOString()]);
                     await saveDatabaseToDisk(null, true);
                     iframe.contentWindow.postMessage({ type: 'SAVE_SUCCESS', requestId: msg.requestId }, '*');
                 } catch (err) {

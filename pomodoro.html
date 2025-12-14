@@ -276,9 +276,14 @@
 
             <div class="bg-slate-900/50 rounded-lg p-4 mb-6">
                 <div class="text-xs text-slate-500 mb-1">标签</div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 mb-3">
                     <span id="saveTagColor" class="w-3 h-3 rounded-full bg-blue-500"></span>
                     <span id="saveTagName" class="text-sm font-medium text-slate-300">Work</span>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1">备注 (可选)</label>
+                    <textarea id="saveDescription" rows="2" placeholder="做了什么？"
+                        class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition resize-none"></textarea>
                 </div>
             </div>
 
@@ -543,6 +548,7 @@
             document.getElementById('saveDuration').innerText = durationMinutes;
             document.getElementById('saveTagColor').style.backgroundColor = currentTag.color;
             document.getElementById('saveTagName').innerText = currentTag.name;
+            document.getElementById('saveDescription').value = ''; // Clear previous input
 
             const modal = els.saveModal;
             modal.classList.remove('hidden');
@@ -613,7 +619,8 @@
                         endTime: end.toISOString(),
                         duration: durationMinutes,
                         tagId: currentTag.id,
-                        status: 'completed'
+                        status: 'completed',
+                        description: document.getElementById('saveDescription').value.trim()
                     }
                 }, '*');
             }
@@ -965,7 +972,7 @@
             window.parent.postMessage({
                 type: 'REQUEST_DB_DATA',
                 requestId: 'get_sessions_' + Date.now(),
-                sql: "SELECT id, start_time, end_time, duration_minutes, tag_id, status FROM pomodoro_sessions ORDER BY start_time DESC"
+                sql: "SELECT id, start_time, end_time, duration_minutes, tag_id, status, description FROM pomodoro_sessions ORDER BY start_time DESC"
             }, '*');
         }
 
@@ -986,7 +993,7 @@
                     if (msg.result && msg.result.length > 0) {
                         const raw = msg.result[0].values;
                         sessions = raw.map(r => ({
-                            id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5]
+                            id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], description: r[6] || ''
                         }));
                     } else {
                         sessions = [];
@@ -1353,19 +1360,20 @@
 
                 return `
                     <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold shrink-0">
                                 ${s.duration}
                             </div>
-                            <div>
+                            <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
                                     <span class="font-medium text-slate-200">${tag.name}</span>
                                 </div>
+                                ${s.description ? `<div class="text-sm text-slate-300 mb-1 break-words">${s.description}</div>` : ''}
                                 <div class="text-xs text-slate-500">${dateStr}</div>
                             </div>
                         </div>
-                        <button onclick="deleteSession(${s.id})" class="text-slate-600 hover:text-rose-500 transition opacity-0 group-hover:opacity-100 p-2">
+                        <button onclick="deleteSession(${s.id})" class="text-slate-600 hover:text-rose-500 transition opacity-0 group-hover:opacity-100 p-2 shrink-0">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
