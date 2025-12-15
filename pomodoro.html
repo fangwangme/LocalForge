@@ -1178,6 +1178,17 @@
             osc3.stop(now + 1.2);
         }
 
+        // === Utils ===
+        function escapeHtml(text) {
+            if (!text) return text;
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         // === UI Rendering ===
         function updateDigitalDisplay() {
             const mins = Math.floor(timeLeftSeconds / 60);
@@ -1840,9 +1851,9 @@
                             <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
-                                    <span class="font-medium text-slate-200">${tag.name}</span>
+                                    <span class="font-medium text-slate-200">${escapeHtml(tag.name)}</span>
                                 </div>
-                                ${s.description ? `<div class="text-sm text-slate-300 mb-1 break-words">${s.description}</div>` : ''}
+                                ${s.description ? `<div class="text-sm text-slate-300 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
                                 <div class="text-xs text-slate-500">${dateStr}</div>
                             </div>
                         </div>
@@ -2020,7 +2031,7 @@
 
                 const tag = tags.find(t => t.id === s.tagId);
                 const tagName = tag ? tag.name : '';
-                const desc = s.description || '';
+                const desc = escapeHtml(s.description || '');
 
                 let label = '';
                 if (desc && tagName && desc !== tagName) {
