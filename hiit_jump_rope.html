@@ -409,6 +409,25 @@
             db: null // SQLite 数据库实例
         };
 
+        // === IDB Constants (moved to top for accessibility) ===
+        const IDB_NAME = 'LocalForgeDB';
+        const IDB_STORE = 'snapshots';
+        const IDB_KEY = 'main_db';
+
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(IDB_NAME, 1);
+                request.onupgradeneeded = (event) => {
+                    const idb = event.target.result;
+                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
+                        idb.createObjectStore(IDB_STORE);
+                    }
+                };
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
         // === DOM 元素 ===
         const els = {
             body: document.body,
@@ -628,7 +647,47 @@
             updateColors(state.phase);
         };
 
-        const initWorkout = () => {
+        // === File Permission Helper ===
+        async function ensureFilePermission() {
+            try {
+                const idb = await openIndexedDB();
+                const tx = idb.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const request = store.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(null);
+                });
+
+                if (!existing?.handle) {
+                    console.log('[HIIT] No file handle found');
+                    return false;
+                }
+
+                const opts = { mode: 'readwrite' };
+                let perm = await existing.handle.queryPermission(opts);
+
+                if (perm !== 'granted') {
+                    console.log('[HIIT] Requesting file permission...');
+                    perm = await existing.handle.requestPermission(opts);
+                }
+
+                if (perm === 'granted') {
+                    console.log('[HIIT] ✅ File permission granted');
+                    return true;
+                } else {
+                    console.warn('[HIIT] File permission denied');
+                    return false;
+                }
+            } catch (err) {
+                console.error('[HIIT] Permission check failed:', err);
+                return false;
+            }
+        }
+
+        const initWorkout = async () => {
+            // Check file permission before starting
+            await ensureFilePermission();
             // 获取输入值
             state.workTime = parseInt(els.workInput.value);
             state.restTime = parseInt(els.restInput.value);
@@ -1026,9 +1085,12 @@
             const cals = parseInt(document.getElementById('edit-cals').value);
             const weight = parseFloat(document.getElementById('edit-weight').value);
             const dateStr = document.getElementById('edit-date').value;
+            
+            // Convert datetime-local format (YYYY-MM-DDTHH:mm) to full ISO format
+            const fullDate = new Date(dateStr).toISOString();
 
             const sql = `UPDATE workouts SET date = ?, rounds = ?, work_time = ?, rest_time = ?, calories = ?, weight = ? WHERE id = ?`;
-            const params = [dateStr, rounds, work, rest, cals, weight, currentEditId];
+            const params = [fullDate, rounds, work, rest, cals, weight, currentEditId];
 
             try {
                 await db.execute(sql, params);
@@ -1069,23 +1131,7 @@
         };
 
         // === IDB Loading for Standalone Operation ===
-        const IDB_NAME = 'LocalForgeDB';
-        const IDB_STORE = 'snapshots';
-        const IDB_KEY = 'main_db';
-
-        function openIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(IDB_NAME, 1);
-                request.onupgradeneeded = (event) => {
-                    const idb = event.target.result;
-                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
-                        idb.createObjectStore(IDB_STORE);
-                    }
-                };
-                request.onsuccess = (event) => resolve(event.target.result);
-                request.onerror = (event) => reject(event.target.error);
-            });
-        }
+        // Note: IDB_NAME, IDB_STORE, IDB_KEY, and openIndexedDB are defined at the top of the script
 
         async function loadSnapshotFromIDB() {
             try {
@@ -1103,9 +1149,9 @@
             }
         }
 
-        // Listen for updates from SharedWorker - save to file and IDB
+        // Listen for updates from SharedWorker - ALL pages save to IDB immediately
         db.on('db_updated', async () => {
-            console.log('[HIIT] DB Updated, saving...');
+            console.log('[HIIT] DB Updated, saving to IDB...');
 
             // Refresh stats UI if visible
             if (!els.statsOverlay.classList.contains('hidden')) {
@@ -1125,25 +1171,7 @@
                     existingReq.onerror = () => resolve(null);
                 });
 
-                // Try to save to file if handle exists
-                if (existing?.handle) {
-                    try {
-                        const opts = { mode: 'readwrite' };
-                        const perm = await existing.handle.queryPermission(opts);
-                        if (perm === 'granted') {
-                            const writable = await existing.handle.createWritable();
-                            await writable.write(data);
-                            await writable.close();
-                            console.log('[HIIT] ✅ Saved to file:', existing.handle.name);
-                        } else {
-                            console.log('[HIIT] File permission not granted, IDB only');
-                        }
-                    } catch (fileErr) {
-                        console.warn('[HIIT] File save failed:', fileErr.message);
-                    }
-                }
-
-                // Always save to IDB
+                // Save to IDB
                 const record = {
                     data: data,
                     updated_at: Date.now(),
@@ -1160,7 +1188,48 @@
                 });
                 console.log('[HIIT] Saved to IDB');
             } catch (err) {
-                console.error('[HIIT] Save Error:', err);
+                console.error('[HIIT] IDB Save Error:', err);
+            }
+        });
+
+        // Handle periodic file sync (only when this page is the writer)
+        db.on('sync_to_file', async () => {
+            console.log('[HIIT] Syncing to file...');
+            try {
+                const data = await db.export();
+                const idb = await openIndexedDB();
+                const readTx = idb.transaction(IDB_STORE, 'readonly');
+                const readStore = readTx.objectStore(IDB_STORE);
+                const existingReq = readStore.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    existingReq.onsuccess = () => resolve(existingReq.result);
+                    existingReq.onerror = () => resolve(null);
+                });
+
+                if (existing?.handle) {
+                    const opts = { mode: 'readwrite' };
+                    const perm = await existing.handle.queryPermission(opts);
+                    if (perm === 'granted') {
+                        const writable = await existing.handle.createWritable();
+                        await writable.write(data);
+                        await writable.close();
+                        console.log('[HIIT] ✅ Synced to file:', existing.handle.name);
+                    } else {
+                        console.warn('[HIIT] File permission not granted');
+                    }
+                }
+            } catch (err) {
+                console.error('[HIIT] File sync error:', err);
+            }
+        });
+
+        // Listen for writer status changes
+        db.on('writer_changed', (data) => {
+            console.log('[HIIT] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
+            if (data?.isWriter) {
+                ensureFilePermission();
+                // Start periodic file sync (every 10 seconds)
+                db.startPeriodicSync(10000);
             }
         });
 
@@ -1174,12 +1243,15 @@
             initCalled = true;
             console.log('[HIIT] db_opened event received, calling initDatabase()...');
             initDatabase();
+            // Try to become the file writer
+            db.claimWriter();
         });
 
         if (db.isOpen) {
             initCalled = true;
             console.log('[HIIT] DB already open, calling initDatabase() immediately...');
             initDatabase();
+            db.claimWriter();
         } else {
             console.log('[HIIT] DB not open, waiting for worker ready...');
 
@@ -1250,14 +1322,26 @@
 
         async function saveWorkout(data) {
             try {
+                console.log('[HIIT] Saving workout with data:', data);
+
                 await db.execute(`
                     INSERT INTO workouts (date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [data.date, data.rounds, data.workTime, data.restTime, data.totalWorkTime, data.calories, data.weight, data.totalTime, data.startTime, data.endTime]);
 
-                console.log('Workout saved');
+                console.log('[HIIT] INSERT executed');
+
+                // Verify the data was saved
+                const verifyResult = await db.query(`SELECT * FROM workouts ORDER BY id DESC LIMIT 1`);
+                console.log('[HIIT] Verify result:', verifyResult);
+
+                // Get total count
+                const countResult = await db.query(`SELECT COUNT(*) as count FROM workouts`);
+                console.log('[HIIT] Total workouts count:', countResult);
+
+                console.log('[HIIT] Workout saved successfully');
             } catch (err) {
-                console.error('Save workout error:', err);
+                console.error('[HIIT] Save workout error:', err);
                 alert('Save Failed: ' + err.message);
             }
         }

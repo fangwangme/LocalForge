@@ -152,10 +152,10 @@
                     <i class="fas fa-play ml-1"></i>
                 </button>
 
-                <!-- Reset (Hidden when stopped) -->
+                <!-- Stop Button (Hidden by default, shown when running) -->
                 <button id="resetBtn" onclick="resetTimer()"
-                    class="h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition opacity-50 cursor-not-allowed pointer-events-none">
-                    <i class="fas fa-rotate-right"></i>
+                    class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition">
+                    <i class="fas fa-stop"></i>
                 </button>
 
                 <!-- Skip (Hidden by default) -->
@@ -504,7 +504,8 @@
         console.log('[Pomodoro] Script starting...');
 
         // === State ===
-        let currentState = 'stopped'; // stopped, running, paused
+        let currentState = 'stopped'; // stopped, running
+        let pendingAbort = false; // true if user clicked stop button (for save modal)
         let durationMinutes = 25;
         let timeLeftSeconds = 25 * 60;
         let timerInterval = null;
@@ -514,9 +515,6 @@
         let tags = [];
         let sessions = [];
         let currentDistMode = 'today'; // 'today' or 'week'
-
-        // === Timer Persistence ===
-        let saveStateInterval = null;
 
         // === DOM Elements ===
         const els = {
@@ -606,58 +604,9 @@
             }
         }
 
-        async function updateSessionProgress() {
-            // Update the current session's end_time and duration
-            if (!currentSessionId || !startTime) return;
+        // updateSessionProgress and abortSession removed - no longer needed
 
-            try {
-                const now = new Date();
-                const elapsed = Math.round((now - startTime) / 60000);
-
-                await db.execute(
-                    `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ? WHERE id = ?`,
-                    [now.toISOString(), elapsed, currentSessionId]
-                );
-            } catch (e) {
-                console.error('[Pomodoro] Failed to update session progress:', e);
-            }
-        }
-
-        async function abortSession() {
-            // Mark current session as aborted
-            if (!currentSessionId) return;
-
-            try {
-                const now = new Date();
-                const elapsed = Math.round((now - startTime) / 60000);
-
-                await db.execute(
-                    `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ? WHERE id = ?`,
-                    [now.toISOString(), elapsed, 'aborted', currentSessionId]
-                );
-                currentSessionId = null;
-            } catch (e) {
-                console.error('[Pomodoro] Failed to abort session:', e);
-            }
-        }
-
-        async function completeSessionRecord(description) {
-            // Mark current session as completed
-            if (!currentSessionId) return;
-
-            try {
-                const now = new Date();
-
-                await db.execute(
-                    `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
-                    [now.toISOString(), durationMinutes, 'completed', description, currentSessionId]
-                );
-                currentSessionId = null;
-            } catch (e) {
-                console.error('[Pomodoro] Failed to complete session:', e);
-            }
-        }
-
+        // completeSessionRecord removed - no longer needed
         async function deleteSessionRecord() {
             // Delete current session (user discarded)
             if (!currentSessionId) return;
@@ -744,40 +693,34 @@
         }
 
         async function toggleTimer() {
-            if (currentState === 'stopped' || currentState === 'paused') {
-                // Check file permission before starting
-                if (currentState === 'stopped') {
-                    await ensureFilePermission();
-                }
+            // Only start if stopped - there's no pause, only stop (reset button)
+            if (currentState === 'stopped') {
+                await ensureFilePermission();
                 startTimer();
-            } else {
-                pauseTimer();
             }
+            // When running, user can only use reset button to stop
         }
 
         let targetEndTime = null;
         let segmentStartTime = null; // Track when current segment started
 
         function startTimer() {
-            const isNewSession = currentState === 'stopped';
-            const isResumingFromPause = currentState === 'paused';
+            // Initialize new session
+            startTime = new Date();
+            timeLeftSeconds = durationMinutes * 60;
 
-            if (isNewSession) {
-                startTime = new Date();
-                timeLeftSeconds = durationMinutes * 60;
-            }
-
-            // Track segment start time (for both new session and resume)
+            // Track segment start time
             segmentStartTime = new Date();
 
             // Calculate target end time based on current remaining seconds
             targetEndTime = Date.now() + (timeLeftSeconds * 1000);
 
             currentState = 'running';
-            els.mainBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            els.mainBtn.classList.add('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
-            els.mainBtn.classList.remove('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
+            // Hide main button while running (user uses reset button to stop)
+            els.mainBtn.classList.add('hidden');
 
+            // Show stop button
+            els.resetBtn.classList.remove('hidden');
             els.resetBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             els.resetBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500', 'hover:bg-red-600');
             els.resetBtn.onclick = resetTimer;
@@ -785,14 +728,10 @@
 
             checkSkipButton();
 
-            // Create session record in DB for new sessions or when resuming from pause
-            if (isNewSession || isResumingFromPause) {
-                createSessionRecord();
-            }
+            // Create session record in DB
+            createSessionRecord();
 
-            // Start periodic progress update (every 10 seconds)
-            if (saveStateInterval) clearInterval(saveStateInterval);
-            saveStateInterval = setInterval(updateSessionProgress, 10000);
+            // Note: Removed 10s periodic progress update - data saved on session completion only
 
             // Use timestamp diffing for accuracy
             if (timerInterval) clearInterval(timerInterval);
@@ -815,66 +754,36 @@
             }, 200);
         }
 
-        async function pauseTimer() {
-            currentState = 'paused';
-            clearInterval(timerInterval);
-            if (saveStateInterval) clearInterval(saveStateInterval);
-
-            console.log('[Pomodoro] pauseTimer called, currentSessionId:', currentSessionId, 'segmentStartTime:', segmentStartTime);
-
-            // Complete current segment with 'completed' status
-            if (currentSessionId && segmentStartTime) {
-                const now = new Date();
-                const elapsedMs = now - segmentStartTime;
-                const elapsed = Math.max(1, Math.round(elapsedMs / 60000)); // At least 1 minute
-
-                console.log('[Pomodoro] Completing segment, elapsed:', elapsed, 'minutes');
-
-                try {
-                    await db.execute(
-                        `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
-                        [now.toISOString(), elapsed, 'completed', '(分段)', currentSessionId]
-                    );
-                } catch (e) {
-                    console.error('[Pomodoro] Failed to complete segment:', e);
-                }
-                currentSessionId = null;
-            }
-
-            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
-            els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
-            els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
-            checkSkipButton();
-        }
+        // pauseTimer removed - no pause functionality
 
         async function resetTimer() {
-            // Stop intervals without completing segment
+            // Stop timer and show save modal with abort status
             currentState = 'stopped';
             clearInterval(timerInterval);
-            if (saveStateInterval) clearInterval(saveStateInterval);
 
-            timeLeftSeconds = durationMinutes * 60;
-            updateDigitalDisplay();
-            renderPixels();
+            pendingAbort = true; // Mark as abort for save modal
 
-            // Mark session as aborted in DB
-            await abortSession();
+            // Show Modal (same as completeSession, but status will be 'aborted')
+            const elapsedMinutes = Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
+            document.getElementById('saveDuration').innerText = elapsedMinutes;
+            document.getElementById('saveTagColor').style.backgroundColor = currentTag.color;
+            document.getElementById('saveTagName').innerText = currentTag.name;
+            document.getElementById('saveDescription').value = '';
 
-            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
-            els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
-            els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
-            els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-            els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-            els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-            els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
-            checkSkipButton();
+            const modal = els.saveModal;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-90');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
         }
 
         async function completeSession() {
             // Stop intervals without completing segment (will be done via save modal)
             currentState = 'stopped';
             clearInterval(timerInterval);
-            if (saveStateInterval) clearInterval(saveStateInterval);
+            pendingAbort = false; // This is a completed session, not aborted
 
             playCompletionSound();
 
@@ -929,14 +838,17 @@
 
         function resetTimerUI() {
             currentState = 'stopped';
+            pendingAbort = false; // Reset abort flag
             timeLeftSeconds = durationMinutes * 60;
             updateDigitalDisplay();
             renderPixels();
 
-            els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-            els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-            els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-            els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+            // Show main button again
+            els.mainBtn.classList.remove('hidden');
+            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
+
+            // Hide reset button when stopped (only show when running as stop button)
+            els.resetBtn.classList.add('hidden');
             checkSkipButton();
         }
 
@@ -944,12 +856,18 @@
         let lastWorkTagId = null;
 
         async function confirmSaveSession() {
-            // Update existing session record to completed status
+            // Update existing session record - status depends on pendingAbort flag
             const desc = document.getElementById('saveDescription').value.trim();
             const end = new Date();
             const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
 
-            console.log('[Pomodoro] confirmSaveSession called, currentSessionId:', currentSessionId);
+            // Determine status and duration based on whether this was aborted
+            const status = pendingAbort ? 'aborted' : 'completed';
+            const actualDuration = pendingAbort
+                ? Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60))
+                : durationMinutes;
+
+            console.log('[Pomodoro] confirmSaveSession called, currentSessionId:', currentSessionId, 'pendingAbort:', pendingAbort, 'status:', status, 'duration:', actualDuration);
 
             try {
                 // Check if we have a current session ID (DB-based approach)
@@ -978,7 +896,7 @@
                         // Normal update
                         await db.execute(
                             `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
-                            [end.toISOString(), durationMinutes, 'completed', desc, currentSessionId]
+                            [end.toISOString(), actualDuration, status, desc, currentSessionId]
                         );
                     }
                     currentSessionId = null;
@@ -1001,7 +919,7 @@
                     } else {
                         await db.execute(
                             `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [start.toISOString(), end.toISOString(), durationMinutes, currentTag.id, 'completed', desc, new Date().toISOString()]
+                            [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, status, desc, new Date().toISOString()]
                         );
                     }
                 }
@@ -1010,6 +928,7 @@
             }
 
             closeSaveModal();
+            resetTimerUI(); // Reset UI and show start button
             handleAutoFlow();
         }
 
@@ -1049,7 +968,7 @@
                 }
                 // Default work duration
                 setDuration(25);
-                resetTimer(); // Updates display
+                resetTimerUI(); // Just reset UI, don't show save modal
 
             } else {
                 // Must be work session
@@ -1069,7 +988,7 @@
                 }
 
                 setDuration(breakMins);
-                resetTimer();
+                resetTimerUI(); // Just reset UI, don't show save modal
 
                 if (breakMins === 15) {
                     // Optional: Notify user of long break
@@ -1082,13 +1001,11 @@
             // Check if current is Relax
             const isRelax = currentTag && (currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest');
 
-            // Show skip if:
+            // Show skip only if:
             // 1. Tag is Relax
-            // 2. Timer is NOT stopped (running or paused) OR if stopped but we want to skip from start? 
-            // Usually skip is valid even if stopped, if we are in 'Relax' mode waiting to start.
-            // But let's say, if we are in 'Relax' mode, we can always skip back to work.
-
-            if (isRelax) {
+            // 2. Timer is STOPPED (not running)
+            // When running, user should use stop button, not skip
+            if (isRelax && currentState === 'stopped') {
                 els.skipBtn.classList.remove('hidden');
             } else {
                 els.skipBtn.classList.add('hidden');
@@ -1105,16 +1022,15 @@
                 clearInterval(timerInterval);
                 currentState = 'stopped';
 
-                // Reset Main Button UI
-                els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
-                els.mainBtn.classList.add('bg-rose-500', 'hover:bg-rose-400', 'shadow-rose-500/30');
-                els.mainBtn.classList.remove('bg-amber-500', 'hover:bg-amber-400', 'shadow-amber-500/30');
+                // Delete the relax session (skipped, not completed or aborted)
+                deleteSessionRecord();
 
-                // Reset Reset Button UI
-                els.resetBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-                els.resetBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                els.resetBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
-                els.resetBtn.innerHTML = '<i class="fas fa-rotate-right"></i>';
+                // Show Main Button
+                els.mainBtn.classList.remove('hidden');
+                els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
+
+                // Hide Reset Button
+                els.resetBtn.classList.add('hidden');
             }
 
             // Execute AutoFlow to switch to Work
@@ -2536,9 +2452,9 @@
             }
         }
 
-        // Auto-save to IDB AND file on every update
+        // Handle database updates - ALL pages save to IDB immediately
         db.on('db_updated', async () => {
-            console.log('[Pomodoro] DB Updated, saving...');
+            console.log('[Pomodoro] DB Updated, saving to IDB...');
 
             try {
                 const data = await db.export();
@@ -2553,30 +2469,7 @@
                     existingReq.onerror = () => resolve(null);
                 });
 
-                // Try to save to file if handle exists
-                if (existing?.handle) {
-                    try {
-                        const opts = { mode: 'readwrite' };
-                        const perm = await existing.handle.queryPermission(opts);
-                        if (perm === 'granted') {
-                            const writable = await existing.handle.createWritable();
-                            await writable.write(data);
-                            await writable.close();
-                            console.log('[Pomodoro] ✅ Saved to file:', existing.handle.name);
-                            updateSyncStatus(true);
-                        } else {
-                            console.warn('[Pomodoro] File permission not granted, IDB only');
-                            updateSyncStatus(false, '文件权限已丢失，请点击同步按钮重新授权');
-                        }
-                    } catch (fileErr) {
-                        console.warn('[Pomodoro] File save failed:', fileErr.message);
-                        updateSyncStatus(false, '文件保存失败: ' + fileErr.message);
-                    }
-                } else {
-                    updateSyncStatus(false, '未找到文件句柄');
-                }
-
-                // Always save to IDB
+                // Save to IDB
                 const record = {
                     data: data,
                     updated_at: Date.now(),
@@ -2593,7 +2486,51 @@
                 });
                 console.log('[Pomodoro] Saved to IDB');
             } catch (err) {
-                console.error('[Pomodoro] Save Error:', err);
+                console.error('[Pomodoro] IDB Save Error:', err);
+            }
+        });
+
+        // Handle periodic file sync (only when this page is the writer)
+        db.on('sync_to_file', async () => {
+            console.log('[Pomodoro] Syncing to file...');
+            try {
+                const data = await db.export();
+                const idb = await openIndexedDB();
+                const readTx = idb.transaction(IDB_STORE, 'readonly');
+                const readStore = readTx.objectStore(IDB_STORE);
+                const existingReq = readStore.get(IDB_KEY);
+                const existing = await new Promise(resolve => {
+                    existingReq.onsuccess = () => resolve(existingReq.result);
+                    existingReq.onerror = () => resolve(null);
+                });
+
+                if (existing?.handle) {
+                    const opts = { mode: 'readwrite' };
+                    const perm = await existing.handle.queryPermission(opts);
+                    if (perm === 'granted') {
+                        const writable = await existing.handle.createWritable();
+                        await writable.write(data);
+                        await writable.close();
+                        console.log('[Pomodoro] ✅ Synced to file:', existing.handle.name);
+                        updateSyncStatus(true);
+                    } else {
+                        console.warn('[Pomodoro] File permission not granted');
+                        updateSyncStatus(false, '文件权限已丢失');
+                    }
+                }
+            } catch (err) {
+                console.error('[Pomodoro] File sync error:', err);
+                updateSyncStatus(false, '文件同步失败');
+            }
+        });
+
+        // Listen for writer status changes
+        db.on('writer_changed', (data) => {
+            console.log('[Pomodoro] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
+            if (data?.isWriter) {
+                ensureFilePermission();
+                // Start periodic file sync (every 10 seconds)
+                db.startPeriodicSync(10000);
             }
         });
 
@@ -2607,12 +2544,14 @@
             initCalled = true;
             console.log('[Pomodoro] db_opened event received, calling init()...');
             init();
+            db.claimWriter();
         });
 
         if (db.isOpen) {
             initCalled = true;
             console.log('[Pomodoro] DB already open, calling init() immediately...');
             init();
+            db.claimWriter();
         } else {
             console.log('[Pomodoro] DB not open, waiting for worker ready...');
 

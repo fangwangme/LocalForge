@@ -375,43 +375,56 @@
 
                             db.on('db_opened', () => {
                                 console.log('[Host] Database opened/connected');
+                                // index.html should be the primary writer
+                                db.claimWriter();
                             });
 
-                            // Auto-save on every update
+                            // Handle database updates - ALL pages save to IDB immediately
                             db.on('db_updated', async () => {
-                                console.log('[Host] DB Updated, saving...');
-                                if (dbHandle) {
-                                    try {
-                                        const data = await db.export();
-                                        console.log('[Host] Exporting data:', data.length, 'bytes');
-
-                                        const opts = { mode: 'readwrite' };
-                                        const perm = await dbHandle.queryPermission(opts);
-                                        console.log('[Host] File permission:', perm);
-
-                                        if (perm !== 'granted') {
-                                            const newPerm = await dbHandle.requestPermission(opts);
-                                            console.log('[Host] Requested permission:', newPerm);
-                                            if (newPerm !== 'granted') return;
-                                        }
-
-                                        const writable = await dbHandle.createWritable();
-                                        await writable.write(data);
-                                        await writable.close();
-
-                                        console.log('[Host] ✅ Saved to file:', dbHandle.name);
-                                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
-
-                                        // Also save to IDB
-                                        saveSnapshotToIDB(data, dbHandle, dbHandle.name);
-                                    } catch (err) {
-                                        console.error('[Host] Save failed:', err);
-                                    }
-                                } else {
-                                    // Only IDB save if no file handle
+                                console.log('[Host] DB Updated, saving to IDB...');
+                                try {
                                     const data = await db.export();
-                                    saveSnapshotToIDB(data, null, 'auto_backup');
-                                    console.log('[Host] Saved to IDB only (no file handle)');
+                                    saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
+                                    console.log('[Host] Saved to IDB');
+                                } catch (err) {
+                                    console.error('[Host] IDB Save Error:', err);
+                                }
+                            });
+
+                            // Handle periodic file sync (only when this page is the writer)
+                            db.on('sync_to_file', async () => {
+                                console.log('[Host] Syncing to file...');
+                                if (!dbHandle) return;
+
+                                try {
+                                    const data = await db.export();
+                                    const opts = { mode: 'readwrite' };
+                                    const perm = await dbHandle.queryPermission(opts);
+
+                                    if (perm !== 'granted') {
+                                        const newPerm = await dbHandle.requestPermission(opts);
+                                        if (newPerm !== 'granted') {
+                                            console.warn('[Host] File permission denied');
+                                            return;
+                                        }
+                                    }
+
+                                    const writable = await dbHandle.createWritable();
+                                    await writable.write(data);
+                                    await writable.close();
+                                    console.log('[Host] ✅ Synced to file:', dbHandle.name);
+                                    updateDbStatus(`已同步: ${dbHandle.name}`, 'emerald');
+                                } catch (err) {
+                                    console.error('[Host] File sync error:', err);
+                                }
+                            });
+
+                            // Listen for writer status changes
+                            db.on('writer_changed', (data) => {
+                                console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
+                                if (data?.isWriter) {
+                                    // Start periodic file sync (every 10 seconds)
+                                    db.startPeriodicSync(10000);
                                 }
                             });
 
