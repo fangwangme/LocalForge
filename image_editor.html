@@ -78,11 +78,16 @@
 
         <!-- Center: Canvas -->
         <main class="flex-1 bg-slate-900/50 flex flex-col relative overflow-hidden">
+            <!-- Filename Display -->
+            <div id="filename-bar"
+                class="h-10 bg-slate-800/90 border-b border-slate-700 flex items-center justify-center px-4 shrink-0">
+                <span id="current-filename" class="text-sm font-medium text-blue-400 truncate max-w-full">未选择文件</span>
+            </div>
             <div
                 class="flex-1 flex items-center justify-center p-8 overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]">
                 <div id="canvas-wrapper"
                     class="relative shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#111]">
-                    <canvas id="main-canvas" class="block max-w-full max-h-[80vh]"></canvas>
+                    <canvas id="main-canvas" class="block max-w-full max-h-[75vh]"></canvas>
                     <canvas id="interaction-layer"
                         class="absolute top-0 left-0 w-full h-full cursor-crosshair touch-none"></canvas>
                 </div>
@@ -90,7 +95,7 @@
 
             <!-- Toast -->
             <div id="toast"
-                class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
+                class="absolute top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
                 <i class="fas fa-info-circle text-blue-400"></i> <span>提示消息</span>
             </div>
         </main>
@@ -123,16 +128,16 @@
 
                 <!-- Watermark -->
                 <div class="space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (双选框)</h4>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (单框模式)</h4>
                     <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
                         <div class="text-[10px] text-slate-500 mb-3 space-y-1">
-                            <p>1. 画 <span class="text-blue-400 font-bold">蓝色外框</span> (采样背景)</p>
-                            <p>2. 画 <span class="text-rose-400 font-bold">红色内框</span> (覆盖水印)</p>
+                            <p>绘制矩形框选中水印区域</p>
+                            <p>系统自动识别水印像素并渐变填充</p>
                         </div>
 
                         <div id="watermark-status"
                             class="px-3 py-2 bg-slate-800 rounded border border-slate-700 text-xs text-center mb-3">
-                            等待绘制外框...
+                            等待绘制选框...
                         </div>
 
                         <button id="btn-clear-mask"
@@ -180,20 +185,19 @@
                         class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2">
                         <span>💾</span> 保存并下一张 (S)
                     </button>
+                    <button id="btn-save-original"
+                        class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded border border-amber-500 transition flex items-center justify-center gap-1">
+                        <i class="fas fa-image"></i> 保存原图 (O)
+                    </button>
                     <button id="btn-download"
                         class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600 hidden transition">
                         ⬇️ 下载到本地
                     </button>
-                    <label class="flex items-center justify-center gap-2 cursor-pointer pt-1">
-                        <input type="checkbox" id="chk-auto-save"
-                            class="rounded border-slate-600 bg-slate-700 text-blue-500">
-                        <span class="text-xs text-slate-400">自动保存</span>
-                    </label>
                 </div>
 
                 <div class="text-[10px] text-slate-600 text-center space-y-1 pb-4">
                     <p>← / → : 切换图片</p>
-                    <p>S : 保存当前 | C : 清除选框</p>
+                    <p>S : 保存 | O : 保存原图 | C : 清除</p>
                 </div>
 
             </div>
@@ -218,10 +222,8 @@
             outputFormat: 'image/jpeg',
             outputQuality: 0.95,
             cropRect: { x: 0, y: 0, w: 0, h: 0 }, // 裁剪模式下的选框
-            // 去水印双选框
-            watermarkOuter: null, // { x, y, w, h } - 归一化坐标 (0-1)
-            watermarkInner: null, // { x, y, w, h } - 归一化坐标 (0-1)
-            watermarkStep: 'outer', // 'outer' | 'inner' | 'done'
+            // 去水印单框模式
+            watermarkRect: null, // { x, y, w, h } - 归一化坐标 (0-1)
             isDrawingRect: false,
             rectStart: { x: 0, y: 0 },
         };
@@ -242,17 +244,12 @@
             clearMaskBtn: document.getElementById('btn-clear-mask'),
             persistChk: document.getElementById('chk-persist-mask'),
             saveBtn: document.getElementById('btn-save'),
-            toast: document.getElementById('toast'),
-            watermarkStatus: document.getElementById('watermark-status'),
-            fallbackFile: document.getElementById('fallback-file'),
-            saveBtn: document.getElementById('btn-save'),
+            saveOriginalBtn: document.getElementById('btn-save-original'),
             toast: document.getElementById('toast'),
             watermarkStatus: document.getElementById('watermark-status'),
             fallbackFile: document.getElementById('fallback-file'),
             fallbackDir: document.getElementById('fallback-dir'),
             selFormat: document.getElementById('sel-format'),
-            rngQuality: document.getElementById('rng-quality'),
-            qualityVal: document.getElementById('quality-val'),
             rngQuality: document.getElementById('rng-quality'),
             qualityVal: document.getElementById('quality-val'),
             qualityWrapper: document.getElementById('quality-wrapper'),
@@ -402,6 +399,7 @@
             }];
             state.currentIndex = 0;
             state.currentFileName = fileOrHandle.name;
+            updateFilenameDisplay();
 
             // 更新 UI
             els.downloadBtn.style.display = 'block';
@@ -443,9 +441,7 @@
 
 
         function resetWatermark() {
-            state.watermarkOuter = null;
-            state.watermarkInner = null;
-            state.watermarkStep = 'outer';
+            state.watermarkRect = null;
         }
 
         async function loadFileList() {
@@ -501,6 +497,7 @@
             current.scrollIntoView({ block: 'nearest' });
 
             state.currentFileName = state.files[index].name;
+            updateFilenameDisplay();
 
             // 读取文件
             await loadFileContent(state.files[index].handle);
@@ -575,64 +572,109 @@
         }
 
         function applyInpainting() {
-            // 新逻辑：用外框采样的颜色完全填充内框区域
-            if (!state.watermarkOuter || !state.watermarkInner) return;
+            // 渐变填充：从水印框周围采样，使用双线性插值渐变填充整个选区
+            if (!state.watermarkRect) return;
 
             const ctx = els.ctxMain;
             const imgW = els.mainCanvas.width;
             const imgH = els.mainCanvas.height;
 
-            // 还原外框坐标（归一化 -> 像素）
-            const outer = {
-                x: state.watermarkOuter.x * imgW,
-                y: state.watermarkOuter.y * imgH,
-                w: state.watermarkOuter.w * imgW,
-                h: state.watermarkOuter.h * imgH
+            // 还原水印框坐标（归一化 -> 像素）
+            const rect = {
+                x: Math.floor(state.watermarkRect.x * imgW),
+                y: Math.floor(state.watermarkRect.y * imgH),
+                w: Math.floor(state.watermarkRect.w * imgW),
+                h: Math.floor(state.watermarkRect.h * imgH)
             };
 
-            // 还原内框坐标
-            const inner = {
-                x: state.watermarkInner.x * imgW,
-                y: state.watermarkInner.y * imgH,
-                w: state.watermarkInner.w * imgW,
-                h: state.watermarkInner.h * imgH
-            };
+            // 边界检查
+            if (rect.w <= 0 || rect.h <= 0) return;
+            if (rect.x < 0 || rect.y < 0 || rect.x + rect.w > imgW || rect.y + rect.h > imgH) return;
 
-            // 从外框区域采样颜色（排除内框区域）
-            // 为了性能，采样外框四个角和四条边中点
-            let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
+            // 采样边距（向外扩展采样）
+            const margin = 5;
 
-            // 采样点：外框的边缘区域
-            const samplePoints = [
-                // 四角
-                { x: outer.x + 2, y: outer.y + 2 },
-                { x: outer.x + outer.w - 2, y: outer.y + 2 },
-                { x: outer.x + 2, y: outer.y + outer.h - 2 },
-                { x: outer.x + outer.w - 2, y: outer.y + outer.h - 2 },
-                // 四条边中点
-                { x: outer.x + outer.w / 2, y: outer.y + 2 },
-                { x: outer.x + outer.w / 2, y: outer.y + outer.h - 2 },
-                { x: outer.x + 2, y: outer.y + outer.h / 2 },
-                { x: outer.x + outer.w - 2, y: outer.y + outer.h / 2 }
-            ];
-
-            samplePoints.forEach(pt => {
-                const sx = Math.floor(pt.x);
-                const sy = Math.floor(pt.y);
-                if (sx >= 0 && sx < imgW && sy >= 0 && sy < imgH) {
-                    const pixel = ctx.getImageData(sx, sy, 1, 1).data;
-                    rTotal += pixel[0];
-                    gTotal += pixel[1];
-                    bTotal += pixel[2];
-                    count++;
+            // 采样四条边的颜色（多点采样）
+            function sampleEdgeColors(isHorizontal, startPos, length, fixedPos, offset) {
+                const colors = [];
+                const numSamples = Math.max(5, Math.floor(length / 10));
+                for (let i = 0; i < numSamples; i++) {
+                    const t = numSamples > 1 ? i / (numSamples - 1) : 0.5;
+                    const pos = startPos + t * length;
+                    const sx = isHorizontal ? pos : fixedPos + offset;
+                    const sy = isHorizontal ? fixedPos + offset : pos;
+                    const px = Math.max(0, Math.min(imgW - 1, Math.floor(sx)));
+                    const py = Math.max(0, Math.min(imgH - 1, Math.floor(sy)));
+                    const pixel = ctx.getImageData(px, py, 1, 1).data;
+                    colors.push({ t, r: pixel[0], g: pixel[1], b: pixel[2] });
                 }
-            });
-
-            if (count > 0) {
-                // 用采样颜色完全填充内框
-                ctx.fillStyle = `rgb(${Math.round(rTotal / count)}, ${Math.round(gTotal / count)}, ${Math.round(bTotal / count)})`;
-                ctx.fillRect(inner.x, inner.y, inner.w, inner.h);
+                return colors;
             }
+
+            // 为每条边采样颜色数组
+            const topEdge = sampleEdgeColors(true, rect.x, rect.w, rect.y, -margin);
+            const bottomEdge = sampleEdgeColors(true, rect.x, rect.w, rect.y + rect.h, margin);
+            const leftEdge = sampleEdgeColors(false, rect.y, rect.h, rect.x, -margin);
+            const rightEdge = sampleEdgeColors(false, rect.y, rect.h, rect.x + rect.w, margin);
+
+            // 根据位置插值获取边缘颜色
+            function interpolateEdge(edge, t) {
+                if (edge.length === 0) return { r: 128, g: 128, b: 128 };
+                if (edge.length === 1) return edge[0];
+
+                // 找到 t 所在的区间
+                for (let i = 0; i < edge.length - 1; i++) {
+                    if (t >= edge[i].t && t <= edge[i + 1].t) {
+                        const ratio = (t - edge[i].t) / (edge[i + 1].t - edge[i].t);
+                        return {
+                            r: edge[i].r + ratio * (edge[i + 1].r - edge[i].r),
+                            g: edge[i].g + ratio * (edge[i + 1].g - edge[i].g),
+                            b: edge[i].b + ratio * (edge[i + 1].b - edge[i].b)
+                        };
+                    }
+                }
+                return edge[edge.length - 1];
+            }
+
+            // 使用 ImageData 进行高效像素操作
+            const imageData = ctx.getImageData(rect.x, rect.y, rect.w, rect.h);
+            const data = imageData.data;
+
+            // 双线性插值渐变填充整个选区
+            for (let py = 0; py < rect.h; py++) {
+                for (let px = 0; px < rect.w; px++) {
+                    const tx = rect.w > 1 ? px / (rect.w - 1) : 0.5;
+                    const ty = rect.h > 1 ? py / (rect.h - 1) : 0.5;
+
+                    // 获取四边在当前位置的插值颜色
+                    const topC = interpolateEdge(topEdge, tx);
+                    const bottomC = interpolateEdge(bottomEdge, tx);
+                    const leftC = interpolateEdge(leftEdge, ty);
+                    const rightC = interpolateEdge(rightEdge, ty);
+
+                    // 双线性插值计算填充色
+                    const horizR = leftC.r * (1 - tx) + rightC.r * tx;
+                    const horizG = leftC.g * (1 - tx) + rightC.g * tx;
+                    const horizB = leftC.b * (1 - tx) + rightC.b * tx;
+                    const vertR = topC.r * (1 - ty) + bottomC.r * ty;
+                    const vertG = topC.g * (1 - ty) + bottomC.g * ty;
+                    const vertB = topC.b * (1 - ty) + bottomC.b * ty;
+
+                    const finalR = (horizR + vertR) / 2;
+                    const finalG = (horizG + vertG) / 2;
+                    const finalB = (horizB + vertB) / 2;
+
+                    // 添加微小噪点模拟自然纹理
+                    const noise = (Math.random() - 0.5) * 4;
+
+                    const idx = (py * rect.w + px) * 4;
+                    data[idx] = Math.max(0, Math.min(255, Math.round(finalR + noise)));
+                    data[idx + 1] = Math.max(0, Math.min(255, Math.round(finalG + noise)));
+                    data[idx + 2] = Math.max(0, Math.min(255, Math.round(finalB + noise)));
+                }
+            }
+
+            ctx.putImageData(imageData, rect.x, rect.y);
         }
 
         function drawOverlay() {
@@ -672,25 +714,21 @@
         }
 
 
-        // === 3. 交互逻辑 (双选框去水印 + 裁剪) ===
+        // === 3. 交互逻辑 (单框去水印 + 裁剪) ===
 
         // 更新去水印状态提示
         function updateWatermarkStatus() {
             if (!els.watermarkStatus) return;
-            if (state.watermarkStep === 'outer') {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制外框</span>（采样区域）';
-            } else if (state.watermarkStep === 'inner') {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-rose-400 font-bold">请绘制内框</span>（水印区域）';
-            } else {
+            if (state.watermarkRect) {
                 els.watermarkStatus.innerHTML = '当前状态：<span class="text-emerald-400 font-bold">✓ 去水印已完成</span>';
+            } else {
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制选框</span>（框选水印区域）';
             }
         }
 
         // 清除选框
         els.clearMaskBtn.onclick = () => {
-            state.watermarkOuter = null;
-            state.watermarkInner = null;
-            state.watermarkStep = 'outer';
+            state.watermarkRect = null;
             updateWatermarkStatus();
             render();
         };
@@ -715,12 +753,10 @@
                     lastMouse = { x: mx, y: my };
                 }
             } else {
-                // Pad 模式：双选框去水印
-                if (state.watermarkStep !== 'done') {
-                    state.isDrawingRect = true;
-                    state.rectStart = { x: mx, y: my };
-                    tempRect = { x: mx, y: my, w: 0, h: 0 };
-                }
+                // Pad 模式：单框去水印
+                state.isDrawingRect = true;
+                state.rectStart = { x: mx, y: my };
+                tempRect = { x: mx, y: my, w: 0, h: 0 };
             }
         });
 
@@ -760,7 +796,7 @@
                 };
 
                 // 绘制临时选框
-                ctx.strokeStyle = state.watermarkStep === 'outer' ? '#4a90e2' : '#e24a4a';
+                ctx.strokeStyle = '#10b981'; // emerald color
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
                 ctx.strokeRect(tempRect.x, tempRect.y, tempRect.w, tempRect.h);
@@ -775,21 +811,13 @@
             if (state.isDrawingRect && tempRect && tempRect.w > 5 && tempRect.h > 5) {
                 const img = state.currentImage;
                 if (img) {
-                    // 归一化存储
-                    const normalizedRect = {
+                    // 归一化存储 - 单框模式
+                    state.watermarkRect = {
                         x: tempRect.x / img.width,
                         y: tempRect.y / img.height,
                         w: tempRect.w / img.width,
                         h: tempRect.h / img.height
                     };
-
-                    if (state.watermarkStep === 'outer') {
-                        state.watermarkOuter = normalizedRect;
-                        state.watermarkStep = 'inner';
-                    } else if (state.watermarkStep === 'inner') {
-                        state.watermarkInner = normalizedRect;
-                        state.watermarkStep = 'done';
-                    }
                     updateWatermarkStatus();
                 }
             }
@@ -800,46 +828,26 @@
             if (state.currentImage) render();
         });
 
-        // 绘制已存在的去水印选框
+        // 绘制已存在的去水印选框 (单框模式)
         function drawWatermarkRects(ctx) {
             const img = state.currentImage;
-            if (!img) return;
+            if (!img || !state.watermarkRect) return;
 
-            // 绘制外框（蓝色）
-            if (state.watermarkOuter) {
-                const outer = {
-                    x: state.watermarkOuter.x * img.width,
-                    y: state.watermarkOuter.y * img.height,
-                    w: state.watermarkOuter.w * img.width,
-                    h: state.watermarkOuter.h * img.height
-                };
-                ctx.strokeStyle = '#4a90e2';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(outer.x, outer.y, outer.w, outer.h);
+            // 绘制水印框（绿色）
+            const rect = {
+                x: state.watermarkRect.x * img.width,
+                y: state.watermarkRect.y * img.height,
+                w: state.watermarkRect.w * img.width,
+                h: state.watermarkRect.h * img.height
+            };
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 
-                // 标注"外框"
-                ctx.fillStyle = '#4a90e2';
-                ctx.font = '14px sans-serif';
-                ctx.fillText('外框 (采样)', outer.x + 4, outer.y + 16);
-            }
-
-            // 绘制内框（红色）
-            if (state.watermarkInner) {
-                const inner = {
-                    x: state.watermarkInner.x * img.width,
-                    y: state.watermarkInner.y * img.height,
-                    w: state.watermarkInner.w * img.width,
-                    h: state.watermarkInner.h * img.height
-                };
-                ctx.strokeStyle = '#e24a4a';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(inner.x, inner.y, inner.w, inner.h);
-
-                // 标注"内框"
-                ctx.fillStyle = '#e24a4a';
-                ctx.font = '14px sans-serif';
-                ctx.fillText('内框 (填充)', inner.x + 4, inner.y + 16);
-            }
+            // 标注
+            ctx.fillStyle = '#10b981';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('水印区域', rect.x + 4, rect.y + 16);
         }
 
 
@@ -919,6 +927,49 @@
             }
         }
 
+        // 检测输出目录中的重复文件
+        async function scanOutputDirectory() {
+            if (!state.outputHandle) return new Set();
+
+            const existingFiles = new Set();
+            try {
+                for await (const entry of state.outputHandle.values()) {
+                    if (entry.kind === 'file') {
+                        // 存储不带扩展名的文件名，以便匹配不同格式
+                        const baseName = entry.name.replace(/\.[^.]+$/, '');
+                        existingFiles.add(baseName);
+                    }
+                }
+            } catch (err) {
+                console.error('扫描输出目录失败:', err);
+            }
+            return existingFiles;
+        }
+
+        // 更新文件列表显示（标记已处理的文件）
+        async function updateFileListWithDuplicates() {
+            const existingFiles = await scanOutputDirectory();
+            state.processedFiles = existingFiles;
+
+            const items = els.fileList.children;
+            for (let i = 0; i < state.files.length; i++) {
+                const baseName = state.files[i].name.replace(/\.[^.]+$/, '');
+                const li = items[i];
+                if (li && existingFiles.has(baseName)) {
+                    // 标记为已处理
+                    if (!li.querySelector('.duplicate-mark')) {
+                        const mark = document.createElement('span');
+                        mark.className = 'duplicate-mark text-emerald-400 ml-1';
+                        mark.textContent = '✓';
+                        mark.title = '已存在于输出目录';
+                        li.appendChild(mark);
+                    }
+                }
+            }
+
+            return existingFiles;
+        }
+
         // 保存到输出目录（批量模式）
         async function processAndSave() {
             // 单文件模式直接下载
@@ -991,15 +1042,114 @@
             if (e.key === 'ArrowRight') loadFile(state.currentIndex + 1);
             if (e.key === 'ArrowLeft') loadFile(state.currentIndex - 1);
             if (e.key.toLowerCase() === 's') processAndSave();
+            if (e.key.toLowerCase() === 'o') saveOriginal();
             if (e.key.toLowerCase() === 'c') {
                 // 快捷键清除选框
-                state.watermarkOuter = null;
-                state.watermarkInner = null;
-                state.watermarkStep = 'outer';
+                state.watermarkRect = null;
                 updateWatermarkStatus();
                 render();
             }
         });
+
+        // 保存原图（跳过处理）
+        els.saveOriginalBtn.onclick = saveOriginal;
+
+        async function saveOriginal() {
+            if (!state.currentImage) return;
+
+            // 创建一个临时画布绘制原图（不应用去水印）
+            const img = state.currentImage;
+            const offCanvas = document.createElement('canvas');
+            const offCtx = offCanvas.getContext('2d');
+
+            let finalW, finalH;
+            if (state.mode === 'pad') {
+                const ratio = 16 / 9;
+                if (img.width / img.height < ratio) {
+                    finalH = img.height;
+                    finalW = finalH * ratio;
+                } else {
+                    finalW = img.width;
+                    finalH = finalW / ratio;
+                }
+                offCanvas.width = finalW;
+                offCanvas.height = finalH;
+
+                // 从原图左上角采样背景色
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+                const pixel = tempCtx.getImageData(0, 0, 1, 1).data;
+                offCtx.fillStyle = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+                offCtx.fillRect(0, 0, finalW, finalH);
+
+                const dx = (finalW - img.width) / 2;
+                const dy = (finalH - img.height) / 2;
+                offCtx.drawImage(img, dx, dy);
+            } else {
+                offCanvas.width = state.cropRect.w;
+                offCanvas.height = state.cropRect.h;
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(img, 0, 0);
+
+                offCtx.drawImage(tempCanvas,
+                    state.cropRect.x, state.cropRect.y, state.cropRect.w, state.cropRect.h,
+                    0, 0, state.cropRect.w, state.cropRect.h
+                );
+            }
+
+            // 保存
+            try {
+                const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
+                const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
+                let filename = state.currentFileName.replace(/\.[^.]+$/, ext);
+
+                if (state.outputHandle) {
+                    const newFileHandle = await state.outputHandle.getFileHandle(filename, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    showToast(`已保存原图: ${filename}`);
+                } else {
+                    // 下载模式
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast(`已下载原图: ${filename}`);
+                }
+
+                // 切换到下一张
+                if (!state.isSingleFileMode && state.currentIndex < state.files.length - 1) {
+                    loadFile(state.currentIndex + 1);
+                } else if (!state.isSingleFileMode) {
+                    showToast("所有图片处理完毕！");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("保存失败");
+            }
+        }
+
+        // 更新文件名显示
+        function updateFilenameDisplay() {
+            const el = document.getElementById('current-filename');
+            if (el && state.currentFileName) {
+                el.textContent = state.currentFileName;
+            } else if (el) {
+                el.textContent = '未选择文件';
+            }
+        }
 
     </script>
 </body>
