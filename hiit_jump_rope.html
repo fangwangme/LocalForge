@@ -10,6 +10,10 @@
     <!-- sql.js for SQLite in browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Components -->
+    <script type="module" src="js/components.js"></script>
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="css/style.css">
     <style>
         /* 自定义过渡动画 */
         body {
@@ -20,13 +24,6 @@
             transition: stroke-dashoffset 0.1s linear, stroke 0.6s ease;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
-        }
-
-        /* 隐藏数字输入框的箭头 */
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
         }
 
         /* 脉冲动画 - 用于准备阶段 */
@@ -50,24 +47,27 @@
     </style>
 </head>
 
-<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col select-none">
+<body class="bg-slate-900 text-white font-sans h-screen overflow-hidden flex select-none">
 
-    <!-- 顶部导航/标题 -->
-    <header
-        class="p-4 flex flex-shrink-0 justify-between items-center z-10 bg-slate-900/80 backdrop-blur-sm sticky top-0">
-        <a href="index.html" class="text-xl font-bold tracking-wider hover:opacity-80 transition">
-            <i class="fas fa-stopwatch mr-2"></i>HIIT Jump Rope
-        </a>
-        <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
-            <i class="fas fa-redo-alt mr-1"></i> Reset
-        </button>
-        <button id="statsBtn" class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
-            <i class="fas fa-chart-line mr-1"></i> Stats
-        </button>
-    </header>
+    <local-sidebar></local-sidebar>
 
-    <!-- Main Content -->
-    <main class="flex-grow flex flex-col relative w-full max-w-md mx-auto px-6 pb-8">
+    <div class="flex-1 flex flex-col min-w-0 relative">
+        <!-- 顶部导航/标题 -->
+        <local-header title="HIIT Jump Rope">
+            <i slot="icon" class="fas fa-stopwatch text-white"></i>
+            <div slot="actions" class="flex items-center gap-2">
+                <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
+                    <i class="fas fa-redo-alt mr-1"></i> Reset
+                </button>
+                <button id="statsBtn" class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
+                    <i class="fas fa-chart-line mr-1"></i> Stats
+                </button>
+            </div>
+        </local-header>
+
+        <div class="flex-1 overflow-y-auto">
+            <!-- Main Content -->
+            <main class="flex-grow flex flex-col relative w-full max-w-md mx-auto px-6 pb-8">
 
         <!-- 1. Setup Screen -->
         <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6">
@@ -272,6 +272,8 @@
         </div>
 
     </main>
+        </div>
+    </div>
 
     <!-- Stats Overlay -->
     <div id="statsOverlay" class="fixed inset-0 bg-slate-900 z-20 hidden overflow-y-auto">
@@ -406,28 +408,11 @@
             weight: 70,
             totalWorkTime: 0, // 累计运动时间（秒）
             startTime: null,  // 实际开始时间
-            endTime: null,    // 实际结束时间
-            db: null // SQLite 数据库实例
+            endTime: null    // 实际结束时间
         };
 
-        // === IDB Constants (moved to top for accessibility) ===
-        const IDB_NAME = 'LocalForgeDB';
-        const IDB_STORE = 'snapshots';
-        const IDB_KEY = 'main_db';
+        // === IDB Constants (moved to db-client.js) ===
 
-        function openIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(IDB_NAME, 1);
-                request.onupgradeneeded = (event) => {
-                    const idb = event.target.result;
-                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
-                        idb.createObjectStore(IDB_STORE);
-                    }
-                };
-                request.onsuccess = (event) => resolve(event.target.result);
-                request.onerror = (event) => reject(event.target.error);
-            });
-        }
 
         // === DOM 元素 ===
         const els = {
@@ -651,29 +636,13 @@
         // === File Permission Helper ===
         async function ensureFilePermission() {
             try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const request = store.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => resolve(null);
-                });
-
-                if (!existing?.handle) {
+                const snapshot = await db.loadSnapshotFromIDB();
+                if (!snapshot?.handle) {
                     console.log('[HIIT] No file handle found');
                     return false;
                 }
 
-                const opts = { mode: 'readwrite' };
-                let perm = await existing.handle.queryPermission(opts);
-
-                if (perm !== 'granted') {
-                    console.log('[HIIT] Requesting file permission...');
-                    perm = await existing.handle.requestPermission(opts);
-                }
-
-                if (perm === 'granted') {
+                if (await db.ensureFilePermission(snapshot.handle)) {
                     console.log('[HIIT] ✅ File permission granted');
                     return true;
                 } else {
@@ -1132,23 +1101,7 @@
         };
 
         // === IDB Loading for Standalone Operation ===
-        // Note: IDB_NAME, IDB_STORE, IDB_KEY, and openIndexedDB are defined at the top of the script
-
-        async function loadSnapshotFromIDB() {
-            try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const request = store.get(IDB_KEY);
-                return new Promise((resolve, reject) => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            } catch (err) {
-                console.error('[HIIT] IDB Load Error:', err);
-                return null;
-            }
-        }
+        // Note: IDB_NAME, IDB_STORE, IDB_KEY, and openIndexedDB are defined in db-client.js
 
         // Listen for updates from SharedWorker - ALL pages save to IDB immediately
         db.on('db_updated', async () => {
@@ -1161,32 +1114,7 @@
 
             try {
                 const data = await db.export();
-                const idb = await openIndexedDB();
-
-                // Read existing record to get file handle
-                const readTx = idb.transaction(IDB_STORE, 'readonly');
-                const readStore = readTx.objectStore(IDB_STORE);
-                const existingReq = readStore.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    existingReq.onsuccess = () => resolve(existingReq.result);
-                    existingReq.onerror = () => resolve(null);
-                });
-
-                // Save to IDB
-                const record = {
-                    data: data,
-                    updated_at: Date.now(),
-                    handle: existing?.handle || null,
-                    filename: existing?.filename || 'auto_backup'
-                };
-
-                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
-                const writeStore = writeTx.objectStore(IDB_STORE);
-                writeStore.put(record, IDB_KEY);
-                await new Promise((resolve, reject) => {
-                    writeTx.oncomplete = resolve;
-                    writeTx.onerror = reject;
-                });
+                await db.saveSnapshotToIDB(data);
                 console.log('[HIIT] Saved to IDB');
             } catch (err) {
                 console.error('[HIIT] IDB Save Error:', err);
@@ -1197,24 +1125,14 @@
         db.on('sync_to_file', async () => {
             console.log('[HIIT] Syncing to file...');
             try {
-                const data = await db.export();
-                const idb = await openIndexedDB();
-                const readTx = idb.transaction(IDB_STORE, 'readonly');
-                const readStore = readTx.objectStore(IDB_STORE);
-                const existingReq = readStore.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    existingReq.onsuccess = () => resolve(existingReq.result);
-                    existingReq.onerror = () => resolve(null);
-                });
-
-                if (existing?.handle) {
-                    const opts = { mode: 'readwrite' };
-                    const perm = await existing.handle.queryPermission(opts);
-                    if (perm === 'granted') {
-                        const writable = await existing.handle.createWritable();
+                const snapshot = await db.loadSnapshotFromIDB();
+                if (snapshot?.handle) {
+                    const data = await db.export();
+                    if (await db.ensureFilePermission(snapshot.handle)) {
+                        const writable = await snapshot.handle.createWritable();
                         await writable.write(data);
                         await writable.close();
-                        console.log('[HIIT] ✅ Synced to file:', existing.handle.name);
+                        console.log('[HIIT] ✅ Synced to file:', snapshot.handle.name);
                     } else {
                         console.warn('[HIIT] File permission not granted');
                     }
@@ -1225,7 +1143,7 @@
         });
 
         // Listen for writer status changes
-        db.on('writer_changed', (data) => {
+        db.on('writer_changed', async (data) => {
             console.log('[HIIT] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
             if (data?.isWriter) {
                 ensureFilePermission();
@@ -1261,7 +1179,7 @@
                 if (initCalled) return;
                 console.log('[HIIT] Worker ready, trying to load from IDB...');
                 try {
-                    const snapshot = await loadSnapshotFromIDB();
+                    const snapshot = await db.loadSnapshotFromIDB();
                     if (initCalled) return;
                     if (snapshot && snapshot.data) {
                         console.log('[HIIT] Found IDB snapshot, initializing DB...');

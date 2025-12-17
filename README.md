@@ -1,90 +1,55 @@
 # LocalForge (HTML Tools)
 
-这是一个基于 **App Shell** 架构的本地 HTML 工具集。
+LocalForge 是一个基于 **SharedWorker + sql.js** 的本地优先（Local-First）Web 工具集。它提供了一系列独立运行的 HTML 工具，所有工具共享同一个本地 SQLite 数据库，数据安全地存储在您的本地文件系统中。
 
-## 🏗 架构说明
-- **App Shell (`index.html`)**: 
-  - **角色**: 主控台 & 数据库宿主。
-  - **职责**: 负责 UI 框架、路由（通过 `iframe` 切换工具）、以及基于 `sql.js` + `File System Access API` 的统一数据库管理。
-- **工具页面 (`*.html`)**: 
-  - **角色**: 独立的子应用。
-  - **职责**: 具体的业务逻辑。如果需要持久化数据，通过 `postMessage` 请求主控台处理。
+## 🏗 核心架构 (Architecture)
+- **多页应用 (MPA)**: 每个工具（如番茄钟、HIIT 计时器）都是独立的 HTML 文件，不依赖 `iframe`。
+- **SharedWorker**: `js/shared-db-worker.js` 作为核心，托管内存中的 `sql.js` 数据库实例。所有打开的标签页连接到同一个 Worker，实现跨页面数据实时同步。
+- **单写入者 (Single-Writer)**: 为了防止文件损坏，系统通过 `js/db-client.js` 协调一个“写入者”角色。只有拥有写入权限的标签页（通常是最近活动的页面或主页）负责调用 File System Access API 将数据从内存同步到本地 `.sqlite` 文件。
+- **UI 组件化**: 使用 Web Components (`<local-header>`, `<local-sidebar>`) 实现统一的导航和界面风格。
 
----
+## 📦 现有工具
+*   **番茄钟 (Pomodoro)**: 专注计时，记录专注时长和历史，支持自定义标签。
+*   **HIIT 计时器**: 高强度间歇训练计时，支持自定义运动/休息时间与轮数。
+*   **图片编辑器**: 支持图片裁剪（16:9）、去水印（菱形填充算法）和格式转换。
+*   **图片压缩**: 纯前端图片压缩工具，支持自定义大小和格式。
 
-## 🚀 如何添加新工具 (How to Add a New Tool)
+## 🚀 快速开始
 
-根据工具是否需要保存数据，分为两种集成模式。
+1.  **启动服务**:
+    由于使用了 ES Modules 和 SharedWorker，项目必须在 HTTP 服务器环境下运行（不能直接双击打开 html 文件）。
+    ```bash
+    ./start_server.sh
+    # 或者使用 Python: python3 -m http.server 8000
+    ```
+2.  **访问**: 打开浏览器访问 `http://localhost:8000`。
+3.  **数据库**: 首次使用时，建议在主页点击“设置 & 数据库” -> “新建本地数据库文件”，选择一个位置保存 `.sqlite` 文件。
 
-### 场景 A：添加独立工具 (无需数据库)
-此类工具仅在前端运行（如计算器、文本转换、正则表达式测试），不需要保存结构化数据。
+## 💻 开发指南 (Development)
 
-#### 开发步骤:
-1. **创建文件**: 新建 `my_tool.html`。
-2. **注册入口**:
-   - 在 `index.html` 的 side bar (`<nav>`) 添加链接。
-   - 在 `index.html` 的 Dashboard (`#dashboard-view`) 添加卡片。
-3. **完成**: 无需编写任何后端逻辑。
+详细的开发规范请参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-#### 🤖 AI Prompt 示例:
-> "请帮我添加一个【颜色转换器】工具。这是一个纯前端工具，支持 HEX 转 RGB。请创建 `color_converter.html`，并在 `index.html` 的侧边栏和主页卡片中添加对应的入口。"
+### 简要流程：
+1.  **创建文件**: 复制现有工具的 HTML 结构。
+2.  **引入组件**: 引入 `js/components.js` 和 `js/db-client.js`。
+3.  **接入数据库**:
+    ```javascript
+    import { db } from './js/db-client.js';
+    
+    // 初始化表
+    await db.execute("CREATE TABLE IF NOT EXISTS ...");
+    
+    // 查询
+    const res = await db.query("SELECT * FROM ...");
+    ```
+4.  **注册导航**: 修改 `js/components.js` 将新工具加入侧边栏。
 
+## 🛠 技术栈
+*   **Frontend**: 原生 HTML5 / JavaScript (ES6+ Modules)
+*   **Database**: [sql.js](https://sql.js.org/) (WebAssembly SQLite)
+*   **State Sync**: SharedWorker
+*   **Styling**: Tailwind CSS (CDN) + FontAwesome
+*   **Charts**: Chart.js
 
-### 场景 B：添加数据集成工具 (需要读写数据库)
-此类工具需要保存记录（如记账、日记、打卡、待办事项），需与 `index.html` 进行通信。
-
-#### 开发步骤:
-1. **定义数据结构**: 确定需要存储的字段（表名、列名）。
-2. **创建文件**: 新建 `my_data_tool.html`。
-3. **实现通信**:
-   - 使用 `window.parent.postMessage` 发送操作请求（如 `SAVE_ITEM`, `DELETE_ITEM`）。
-   - 监听 `message` 事件接收 `DB_UPDATED` 或查询结果。
-4. **更新 App Shell (`index.html`)**:
-   - **初始化表**: 在 `initAllTables()` 函数中添加新表的 `CREATE TABLE` 语句。
-   - **处理消息**: 在 `message` 事件监听器中添加 `else if (msg.type === 'YOUR_ACTION')` 分支，执行 SQL 并调用 `saveDatabaseToDisk()`。
-5. **注册入口**: 同场景 A。
-
-#### 🤖 AI Prompt 示例:
-> "请帮我添加一个【简易记账】工具。
-> 1. 创建 `expense.html`，界面包含金额输入框和历史列表。
-> 2. 此工具需要读写数据库。请在 `index.html` 中：
->    - 创建一个 `expenses` 表 (字段: id, date, item, amount, category)。
->    - 实现 `SAVE_EXPENSE` 和 `DELETE_EXPENSE` 的消息处理逻辑，确保数据能保存到本地文件。
-> 3. 在主页和侧边栏添加入口。"
-
----
-
-## 🛠 开发参考
-
-### 通信协议 (Window PostMessage)
-**1. 查询数据 (Query)**
-```javascript
-// 在子页面调用
-window.parent.postMessage({
-    type: 'REQUEST_DB_DATA',
-    requestId: 'req_' + Date.now(),
-    sql: "SELECT * FROM my_table ORDER BY date DESC"
-}, '*');
-```
-
-**2. 保存数据 (Save/Update)**
-```javascript
-// 在子页面调用
-window.parent.postMessage({
-    type: 'SAVE_MY_DATA', // 自定义类型
-    data: { name: 'test', value: 123 }
-}, '*');
-```
-
-### 数据库初始化
-在 `index.html` 中扩展 `initAllTables`:
-```javascript
-function initAllTables() {
-    initHiitTables(); // 现有工具
-    initMyNewToolTables(); // 新增工具 <--- 添加这一行
-}
-
-function initMyNewToolTables() {
-    db.run("CREATE TABLE IF NOT EXISTS my_table (...)");
-}
-```
+## 📄 License
+MIT

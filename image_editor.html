@@ -7,46 +7,30 @@
     <title>图片处理 - LocalForge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Custom scrollbar matching other tools */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-
         body {
             overflow: hidden;
         }
     </style>
+    <!-- Custom Components -->
+    <script type="module" src="js/components.js"></script>
 </head>
 
-<body class="bg-slate-900 text-slate-200 font-sans h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-200 font-sans h-screen flex overflow-hidden">
 
-    <!-- Header -->
-    <header
-        class="h-14 bg-slate-900/80 backdrop-blur-sm border-b border-slate-700 flex items-center justify-between px-4 z-10 shrink-0">
-        <a href="index.html"
-            class="text-lg font-bold tracking-wide hover:opacity-80 transition flex items-center gap-2 text-white">
-            <i class="fas fa-image text-blue-500"></i> 图片处理工具
-        </a>
-        <div class="text-xs text-slate-500">16:9 裁剪 & 去水印</div>
-    </header>
+    <local-sidebar></local-sidebar>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Header -->
+        <local-header title="图片处理工具">
+            <i slot="icon" class="fas fa-image text-blue-500"></i>
+            <div slot="actions" class="text-xs text-slate-500">16:9 裁剪 & 去水印</div>
+        </local-header>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
 
         <!-- Left Sidebar: File List -->
         <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col shrink-0 z-10">
@@ -202,6 +186,7 @@
 
             </div>
         </aside>
+        </div>
     </div>
 
     <!-- Hidden Inputs -->

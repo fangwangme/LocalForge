@@ -198,6 +198,87 @@ class DbClient {
             if (l.event === event) l.callback(data);
         });
     }
+
+    // === Persistence Helpers ===
+
+    async openIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('LocalForgeDB', 1);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('snapshots')) {
+                    db.createObjectStore('snapshots');
+                }
+            };
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = (event) => reject(event.target.error);
+        });
+    }
+
+    async saveSnapshotToIDB(data, handle = null, filename = null) {
+        try {
+            const idb = await this.openIndexedDB();
+            const tx = idb.transaction('snapshots', 'readwrite');
+            const store = tx.objectStore('snapshots');
+            // We only store one main DB snapshot for now
+            const key = 'main_db';
+
+            // Get existing to preserve handle if not provided
+            let existing = {};
+            try {
+                const getReq = store.get(key);
+                existing = await new Promise((res, rej) => {
+                    getReq.onsuccess = () => res(getReq.result || {});
+                    getReq.onerror = () => res({});
+                });
+            } catch (e) { /* ignore */ }
+
+            const record = {
+                data: data,
+                updated_at: Date.now(),
+                handle: handle || existing.handle || null,
+                filename: filename || existing.filename || 'auto_backup'
+            };
+
+            store.put(record, key);
+            return new Promise((resolve, reject) => {
+                tx.oncomplete = resolve;
+                tx.onerror = reject;
+            });
+        } catch (err) {
+            console.error('[DbClient] IDB Save Error:', err);
+            throw err;
+        }
+    }
+
+    async loadSnapshotFromIDB() {
+        try {
+            const idb = await this.openIndexedDB();
+            const tx = idb.transaction('snapshots', 'readonly');
+            const store = tx.objectStore('snapshots');
+            const request = store.get('main_db');
+            return new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        } catch (err) {
+            console.error('[DbClient] IDB Load Error:', err);
+            return null;
+        }
+    }
+
+    async ensureFilePermission(handle, mode = 'readwrite') {
+        if (!handle) return false;
+        try {
+            const opts = { mode };
+            if ((await handle.queryPermission(opts)) === 'granted') return true;
+            if ((await handle.requestPermission(opts)) === 'granted') return true;
+            return false;
+        } catch (err) {
+            console.error('[DbClient] Permission check failed:', err);
+            return false;
+        }
+    }
 }
 
 export const db = new DbClient();

@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片压缩工具</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="js/components.js"></script>
+    <link rel="stylesheet" href="css/style.css">
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -29,26 +32,6 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-        }
-
-        header {
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--bg-card);
-        }
-
-        header a {
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        header a:hover {
-            opacity: 0.8;
         }
 
         main {
@@ -225,12 +208,18 @@
     </style>
 </head>
 
-<body>
-    <header>
-        <a href="index.html"><i class="fas fa-compress-alt"></i> 图片压缩工具</a>
-    </header>
+<body class="bg-slate-900 text-slate-200 font-sans h-screen flex overflow-hidden">
 
-    <main>
+    <local-sidebar></local-sidebar>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Header -->
+        <local-header title="图片压缩工具">
+            <i slot="icon" class="fas fa-compress-alt text-pink-500"></i>
+        </local-header>
+
+        <div class="flex-1 overflow-y-auto">
+            <main>
         <div class="drop-zone" id="dropZone">
             <i class="fas fa-cloud-upload-alt"></i>
             <h3>拖放图片到这里</h3>
@@ -264,6 +253,8 @@
 
         <div class="results" id="results"></div>
     </main>
+        </div>
+    </div>
 
     <script>
         const dropZone = document.getElementById('dropZone');

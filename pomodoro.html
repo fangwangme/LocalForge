@@ -11,6 +11,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Custom Components -->
+    <script type="module" src="js/components.js"></script>
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="css/style.css">
     <style>
         .pixel-grid {
             display: grid;
@@ -28,80 +33,53 @@
         .pixel-filled {
             box-shadow: 0 0 2px rgba(239, 68, 68, 0.5);
         }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-
-        /* Fix datetime-local input visibility in dark theme */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
-        }
-
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
-        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 
-<body class="bg-slate-900 text-white font-sans min-h-screen">
+<body class="bg-slate-900 text-white font-sans flex h-screen overflow-hidden">
 
-    <!-- Header -->
-    <header
-        class="p-4 flex justify-between items-center bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10 border-b border-slate-800">
-        <div class="flex items-center gap-4">
-            <a href="index.html"
-                class="text-xl font-bold tracking-wider hover:opacity-80 transition flex items-center gap-2">
-                <i class="fas fa-clock text-rose-500"></i>番茄钟
-            </a>
-            <!-- Tag Selector -->
-            <div class="relative group">
-                <button onclick="toggleTagMenu()" id="currentTagBtn"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition">
-                    <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                    <span id="currentTagName">Work</span>
-                    <i class="fas fa-chevron-down text-xs text-slate-500"></i>
-                </button>
-                <div id="tagMenu"
-                    class="hidden absolute top-full left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
-                    <div id="tagList" class="max-h-60 overflow-y-auto">
-                        <!-- Tags rendered here -->
-                    </div>
-                    <div class="border-t border-slate-700 mt-1 pt-1 px-2">
-                        <button onclick="openAddTagModal()"
-                            class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
-                            <i class="fas fa-plus"></i> 新建标签
-                        </button>
+    <!-- Sidebar -->
+    <local-sidebar></local-sidebar>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col min-w-0 relative">
+        
+        <!-- Header -->
+        <local-header title="番茄钟">
+            <i slot="icon" class="fas fa-clock text-rose-500"></i>
+            <div slot="actions" class="flex items-center gap-4">
+                <!-- Tag Selector -->
+                <div class="relative group">
+                    <button onclick="toggleTagMenu()" id="currentTagBtn"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition">
+                        <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        <span id="currentTagName">Work</span>
+                        <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+                    </button>
+                    <div id="tagMenu"
+                        class="hidden absolute top-full left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
+                        <div id="tagList" class="max-h-60 overflow-y-auto">
+                            <!-- Tags rendered here -->
+                        </div>
+                        <div class="border-t border-slate-700 mt-1 pt-1 px-2">
+                            <button onclick="openAddTagModal()"
+                                class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
+                                <i class="fas fa-plus"></i> 新建标签
+                            </button>
+                        </div>
                     </div>
                 </div>
+                
+                <div class="flex items-center gap-3">
+                    <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
+                        <i class="fas fa-history text-xl"></i>
+                    </button>
+                </div>
             </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
-                <i class="fas fa-history text-xl"></i>
-            </button>
-        </div>
-    </header>
+        </local-header>
 
-    <main class="max-w-4xl mx-auto px-4 py-8">
+        <div class="flex-1 overflow-y-auto">
+            <main class="max-w-4xl mx-auto px-4 py-8">
 
         <!-- Timer View -->
         <div id="timerView" class="flex flex-col items-center justify-center min-h-[60vh]">
@@ -305,6 +283,8 @@
         </div>
 
     </main>
+        </div>
+    </div>
 
     <!-- Save Modal -->
     <div id="saveModal"
@@ -570,9 +550,6 @@
 
             // 1. DB Init
             await initTables();
-
-            // document.getElementById('historyFilter').value = 'today'; // Moved to immediate init
-            // setDuration(25); // Moved to immediate init
 
             // 2. Data Init
             await requestData();
@@ -2589,147 +2566,12 @@
             setTimeout(() => toast.remove(), 8000);
         }
 
-        async function ensureFilePermission() {
-            try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const request = store.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => resolve(null);
-                });
-
-                if (!existing?.handle) {
-                    console.log('[Pomodoro] No file handle found');
-                    return false;
-                }
-
-                const opts = { mode: 'readwrite' };
-                let perm = await existing.handle.queryPermission(opts);
-
-                if (perm !== 'granted') {
-                    console.log('[Pomodoro] Requesting file permission...');
-                    perm = await existing.handle.requestPermission(opts);
-                }
-
-                if (perm === 'granted') {
-                    console.log('[Pomodoro] ✅ File permission granted');
-                    updateSyncStatus(true);
-                    return true;
-                } else {
-                    console.warn('[Pomodoro] File permission denied');
-                    updateSyncStatus(false, '文件权限被拒绝');
-                    return false;
-                }
-            } catch (err) {
-                console.error('[Pomodoro] Permission check failed:', err);
-                return false;
-            }
-        }
-
-        // === IDB Loading for Standalone Operation ===
-        const IDB_NAME = 'LocalForgeDB';
-        const IDB_STORE = 'snapshots';
-        const IDB_KEY = 'main_db';
-
-        function openIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(IDB_NAME, 1);
-                request.onupgradeneeded = (event) => {
-                    const idb = event.target.result;
-                    if (!idb.objectStoreNames.contains(IDB_STORE)) {
-                        idb.createObjectStore(IDB_STORE);
-                    }
-                };
-                request.onsuccess = (event) => resolve(event.target.result);
-                request.onerror = (event) => reject(event.target.error);
-            });
-        }
-
-        async function loadSnapshotFromIDB() {
-            try {
-                const idb = await openIndexedDB();
-                const tx = idb.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const request = store.get(IDB_KEY);
-                return new Promise((resolve, reject) => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            } catch (err) {
-                console.error('[Pomodoro] IDB Load Error:', err);
-                return null;
-            }
-        }
-
-        async function saveSnapshotToIDB() {
-            try {
-                const data = await db.export();
-                const idb = await openIndexedDB();
-
-                // Read existing record to preserve file handle
-                const readTx = idb.transaction(IDB_STORE, 'readonly');
-                const readStore = readTx.objectStore(IDB_STORE);
-                const existingReq = readStore.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    existingReq.onsuccess = () => resolve(existingReq.result);
-                    existingReq.onerror = () => resolve(null);
-                });
-
-                // Build new record, preserving handle and filename from existing
-                const record = {
-                    data: data,
-                    updated_at: Date.now(),
-                    handle: existing?.handle || null,
-                    filename: existing?.filename || 'auto_backup'
-                };
-
-                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
-                const writeStore = writeTx.objectStore(IDB_STORE);
-                writeStore.put(record, IDB_KEY);
-                await new Promise((resolve, reject) => {
-                    writeTx.oncomplete = resolve;
-                    writeTx.onerror = reject;
-                });
-                console.log('[Pomodoro] Saved to IDB (handle preserved:', !!record.handle, ')');
-            } catch (err) {
-                console.error('[Pomodoro] IDB Save Error:', err);
-            }
-        }
-
         // Handle database updates - ALL pages save to IDB immediately
         db.on('db_updated', async () => {
             console.log('[Pomodoro] DB Updated, saving to IDB...');
-
             try {
                 const data = await db.export();
-                const idb = await openIndexedDB();
-
-                // Read existing record to get file handle
-                const readTx = idb.transaction(IDB_STORE, 'readonly');
-                const readStore = readTx.objectStore(IDB_STORE);
-                const existingReq = readStore.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    existingReq.onsuccess = () => resolve(existingReq.result);
-                    existingReq.onerror = () => resolve(null);
-                });
-
-                // Save to IDB
-                const record = {
-                    data: data,
-                    updated_at: Date.now(),
-                    handle: existing?.handle || null,
-                    filename: existing?.filename || 'auto_backup'
-                };
-
-                const writeTx = idb.transaction(IDB_STORE, 'readwrite');
-                const writeStore = writeTx.objectStore(IDB_STORE);
-                writeStore.put(record, IDB_KEY);
-                await new Promise((resolve, reject) => {
-                    writeTx.oncomplete = resolve;
-                    writeTx.onerror = reject;
-                });
+                await db.saveSnapshotToIDB(data);
                 console.log('[Pomodoro] Saved to IDB');
             } catch (err) {
                 console.error('[Pomodoro] IDB Save Error:', err);
@@ -2740,24 +2582,14 @@
         db.on('sync_to_file', async () => {
             console.log('[Pomodoro] Syncing to file...');
             try {
-                const data = await db.export();
-                const idb = await openIndexedDB();
-                const readTx = idb.transaction(IDB_STORE, 'readonly');
-                const readStore = readTx.objectStore(IDB_STORE);
-                const existingReq = readStore.get(IDB_KEY);
-                const existing = await new Promise(resolve => {
-                    existingReq.onsuccess = () => resolve(existingReq.result);
-                    existingReq.onerror = () => resolve(null);
-                });
-
-                if (existing?.handle) {
-                    const opts = { mode: 'readwrite' };
-                    const perm = await existing.handle.queryPermission(opts);
-                    if (perm === 'granted') {
-                        const writable = await existing.handle.createWritable();
+                const snapshot = await db.loadSnapshotFromIDB();
+                if (snapshot?.handle) {
+                    const data = await db.export();
+                    if (await db.ensureFilePermission(snapshot.handle)) {
+                        const writable = await snapshot.handle.createWritable();
                         await writable.write(data);
                         await writable.close();
-                        console.log('[Pomodoro] ✅ Synced to file:', existing.handle.name);
+                        console.log('[Pomodoro] ✅ Synced to file:', snapshot.handle.name);
                         updateSyncStatus(true);
                     } else {
                         console.warn('[Pomodoro] File permission not granted');
@@ -2771,10 +2603,14 @@
         });
 
         // Listen for writer status changes
-        db.on('writer_changed', (data) => {
+        db.on('writer_changed', async (data) => {
             console.log('[Pomodoro] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
             if (data?.isWriter) {
-                ensureFilePermission();
+                const snapshot = await db.loadSnapshotFromIDB();
+                if (snapshot?.handle) {
+                    const hasPerm = await db.ensureFilePermission(snapshot.handle);
+                    updateSyncStatus(hasPerm, hasPerm ? null : '需授权');
+                }
                 // Start periodic file sync (every 10 seconds)
                 db.startPeriodicSync(10000);
             }
@@ -2806,7 +2642,7 @@
                 if (initCalled) return;
                 console.log('[Pomodoro] Worker ready, trying to load from IDB...');
                 try {
-                    const snapshot = await loadSnapshotFromIDB();
+                    const snapshot = await db.loadSnapshotFromIDB();
                     if (initCalled) return;
                     if (snapshot && snapshot.data) {
                         console.log('[Pomodoro] Found IDB snapshot, initializing DB...');

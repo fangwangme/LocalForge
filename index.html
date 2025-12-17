@@ -19,128 +19,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        .sidebar-expanded {
-            width: 16rem;
-        }
-
-        .sidebar-collapsed {
-            width: 5rem;
-        }
-
         .sidebar-transition {
             transition: width 0.3s ease-in-out;
         }
-
-        /* Hide text in collapsed mode */
-        .sidebar-collapsed .nav-text {
-            display: none;
-        }
-
-        /* Center icons in collapsed mode */
-        .sidebar-collapsed .nav-item {
-            justify-content: center;
-            padding-left: 0;
-            padding-right: 0;
-        }
-
-        .sidebar-collapsed .section-title {
-            display: none;
-        }
-
-        .sidebar-collapsed .logo-text {
-            display: none;
-        }
     </style>
+    <script type="module" src="js/components.js"></script>
 </head>
 
 <body>
     <div class="flex h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
         <!-- Sidebar -->
-        <aside id="sidebar"
-            class="sidebar-expanded sidebar-transition bg-slate-900 border-r border-slate-800 flex flex-col z-20 relative">
-            <!-- Sidebar Header -->
-            <div class="h-16 flex items-center justify-between px-4 border-b border-slate-800 shrink-0">
-                <div onclick="showDashboard()"
-                    class="flex items-center gap-3 cursor-pointer overflow-hidden whitespace-nowrap">
-                    <div
-                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                        <i class="fas fa-layer-group text-white text-sm"></i>
-                    </div>
-                    <span class="logo-text font-bold text-lg tracking-tight">LocalForge</span>
-                </div>
-                <!-- Toggle Button (Absolute to stay accessible) -->
-                <button onclick="toggleSidebar()" class="text-slate-500 hover:text-white transition p-1">
-                    <i id="sidebar-toggle-icon" class="fas fa-chevron-left"></i>
-                </button>
-            </div>
-
-            <!-- Nav Items -->
-            <nav class="flex-1 overflow-y-auto py-4 overflow-x-hidden">
-                <ul class="space-y-1 px-2">
-                    <li>
-                        <button onclick="showDashboard()" id="nav-home"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition active-nav whitespace-nowrap group">
-                            <i class="fas fa-home w-6 text-center shrink-0 group-hover:text-blue-400 transition"></i>
-                            <span class="nav-text font-medium ml-3">主页概览</span>
-                        </button>
-                    </li>
-
-                    <div
-                        class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
-                        媒体工具</div>
-                    <li>
-                        <a href="image_editor.html"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
-                            <i class="fas fa-image w-6 text-center shrink-0 group-hover:text-purple-400 transition"></i>
-                            <span class="nav-text ml-3">图片编辑器</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="image_resize.html"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
-                            <i
-                                class="fas fa-compress-alt w-6 text-center shrink-0 group-hover:text-pink-400 transition"></i>
-                            <span class="nav-text ml-3">图片压缩</span>
-                        </a>
-                    </li>
-
-                    <div
-                        class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
-                        健身运动</div>
-                    <li>
-                        <a href="hiit_jump_rope.html"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
-                            <i
-                                class="fas fa-stopwatch w-6 text-center shrink-0 group-hover:text-rose-400 transition"></i>
-                            <span class="nav-text ml-3">HIIT 计时器</span>
-                        </a>
-                    </li>
-                    <li>
-
-
-                        <div
-                            class="section-title px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap">
-                            效率工具</div>
-                    <li>
-                        <a href="pomodoro.html"
-                            class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group">
-                            <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-red-400 transition"></i>
-                            <span class="nav-text ml-3">番茄钟</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- Bottom Settings -->
-            <div class="p-2 border-t border-slate-800">
-                <button onclick="window.openSettings()"
-                    class="nav-item w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap">
-                    <i class="fas fa-cog w-6 text-center shrink-0"></i>
-                    <span class="nav-text ml-3">设置 & 数据库</span>
-                </button>
-            </div>
-        </aside>
+        <local-sidebar></local-sidebar>
 
         <!-- Main Content (Dashboard Only) -->
         <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative">
@@ -307,22 +198,6 @@
                             let isAutoSave = true; // Always auto-save to disk
 
                             // === Helper Functions (Exposed to Window) ===
-                            window.toggleSidebar = () => {
-                                const sidebar = document.getElementById('sidebar');
-                                const toggleIcon = document.getElementById('sidebar-toggle-icon');
-                                if (sidebar.classList.contains('sidebar-expanded')) {
-                                    sidebar.classList.remove('sidebar-expanded');
-                                    sidebar.classList.add('sidebar-collapsed');
-                                    toggleIcon.classList.remove('fa-chevron-left');
-                                    toggleIcon.classList.add('fa-chevron-right');
-                                } else {
-                                    sidebar.classList.remove('sidebar-collapsed');
-                                    sidebar.classList.add('sidebar-expanded');
-                                    toggleIcon.classList.remove('fa-chevron-right');
-                                    toggleIcon.classList.add('fa-chevron-left');
-                                }
-                            };
-
                             window.showDashboard = () => {
                                 // Just focus, maybe nothing else needed as we are single page now
                                 // Or maybe reset scroll?
@@ -355,7 +230,7 @@
                                 console.log('[Host] db.on(ready) fired');
                                 updateDbStatus('引擎就绪', 'amber');
                                 // Try load from IDB
-                                loadSnapshotFromIDB().then(snapshot => {
+                                db.loadSnapshotFromIDB().then(snapshot => {
                                     if (snapshot && snapshot.data) {
                                         if (snapshot.handle) dbHandle = snapshot.handle;
                                         db.init(snapshot.data).then(() => {
@@ -384,7 +259,7 @@
                                 console.log('[Host] DB Updated, saving to IDB...');
                                 try {
                                     const data = await db.export();
-                                    saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
+                                    await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
                                     console.log('[Host] Saved to IDB');
                                 } catch (err) {
                                     console.error('[Host] IDB Save Error:', err);
@@ -398,15 +273,11 @@
 
                                 try {
                                     const data = await db.export();
-                                    const opts = { mode: 'readwrite' };
-                                    const perm = await dbHandle.queryPermission(opts);
+                                    const hasPerm = await db.ensureFilePermission(dbHandle, 'readwrite');
 
-                                    if (perm !== 'granted') {
-                                        const newPerm = await dbHandle.requestPermission(opts);
-                                        if (newPerm !== 'granted') {
-                                            console.warn('[Host] File permission denied');
-                                            return;
-                                        }
+                                    if (!hasPerm) {
+                                        console.warn('[Host] File permission denied');
+                                        return;
                                     }
 
                                     const writable = await dbHandle.createWritable();
@@ -465,7 +336,7 @@
 
                                         // IDB Cache
                                         const u8 = new Uint8Array(arrayBuffer);
-                                        saveSnapshotToIDB(u8, handle, file.name);
+                                        await db.saveSnapshotToIDB(u8, handle, file.name);
 
                                         // window.closeSettings();
                                         setTimeout(window.closeSettings, 2000); // Close after delay
@@ -488,13 +359,12 @@
                                     console.log('[Host] db.export() returned:', data?.length, 'bytes');
 
                                     if (dbHandle) {
-                                        const opts = { mode: 'readwrite' };
-                                        if ((await dbHandle.queryPermission(opts)) !== 'granted') {
+                                        if (!(await db.ensureFilePermission(dbHandle, 'readwrite'))) {
                                             if (isAuto) {
                                                 updateDbStatus('自动保存暂停 (需手动保存验证)', 'amber');
                                                 return;
                                             }
-                                            if ((await dbHandle.requestPermission(opts)) !== 'granted') return;
+                                            return;
                                         }
 
                                         const writable = await dbHandle.createWritable();
@@ -502,7 +372,7 @@
                                         await writable.close();
 
                                         updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
-                                        saveSnapshotToIDB(data, dbHandle, dbHandle.name);
+                                        await db.saveSnapshotToIDB(data, dbHandle, dbHandle.name);
                                         console.log('[Host] Database saved to file and IDB');
 
                                         if (event && event.currentTarget) {
@@ -523,12 +393,12 @@
                                         const writable = await handle.createWritable();
                                         await writable.write(data);
                                         await writable.close();
-                                        saveSnapshotToIDB(data, dbHandle, handle.name);
+                                        await db.saveSnapshotToIDB(data, dbHandle, handle.name);
                                         updateDbStatus(`已保存: ${handle.name}`, 'emerald');
                                         console.log('[Host] Database saved to new file and IDB');
                                     } else {
                                         // Auto-save to IDB only if no file handle
-                                        saveSnapshotToIDB(data, null, 'auto_backup');
+                                        await db.saveSnapshotToIDB(data, null, 'auto_backup');
                                         console.log('[Host] Auto-saved to IDB (no file handle)');
                                     }
                                 } catch (err) {
@@ -543,60 +413,11 @@
                                 const buf = await file.arrayBuffer();
                                 await db.init(buf);
                                 dbHandle = null;
-                                saveSnapshotToIDB(new Uint8Array(buf), null, file.name);
+                                await db.saveSnapshotToIDB(new Uint8Array(buf), null, file.name);
                                 updateDbStatus(`已加载: ${file.name} (Legacy)`, 'emerald');
                                 // window.closeSettings();
                                 setTimeout(window.closeSettings, 2000);
                             });
-
-                            // === IDB Persistence (Keep same logic) ===
-                            const IDB_NAME = 'LocalForgeDB';
-                            const IDB_STORE = 'snapshots';
-                            const IDB_KEY = 'main_db';
-
-                            function openIndexedDB() {
-                                return new Promise((resolve, reject) => {
-                                    const request = indexedDB.open(IDB_NAME, 1);
-                                    request.onupgradeneeded = (event) => {
-                                        const db = event.target.result;
-                                        if (!db.objectStoreNames.contains(IDB_STORE)) {
-                                            db.createObjectStore(IDB_STORE);
-                                        }
-                                    };
-                                    request.onsuccess = (event) => resolve(event.target.result);
-                                    request.onerror = (event) => reject(event.target.error);
-                                });
-                            }
-
-                            async function saveSnapshotToIDB(data, handle = null, filename = null) {
-                                try {
-                                    const idb = await openIndexedDB();
-                                    const tx = idb.transaction(IDB_STORE, 'readwrite');
-                                    const store = tx.objectStore(IDB_STORE);
-                                    const record = { data: data, updated_at: Date.now() };
-                                    if (handle) record.handle = handle;
-                                    if (filename) record.filename = filename;
-                                    if (dbHandle && !handle) record.handle = dbHandle;
-                                    store.put(record, IDB_KEY);
-                                    return new Promise((resolve, reject) => {
-                                        tx.oncomplete = resolve;
-                                        tx.onerror = reject;
-                                    });
-                                } catch (err) { console.error('IDB Save Error:', err); }
-                            }
-
-                            async function loadSnapshotFromIDB() {
-                                try {
-                                    const idb = await openIndexedDB();
-                                    const tx = idb.transaction(IDB_STORE, 'readonly');
-                                    const store = tx.objectStore(IDB_STORE);
-                                    const request = store.get(IDB_KEY);
-                                    return new Promise((resolve, reject) => {
-                                        request.onsuccess = () => resolve(request.result);
-                                        request.onerror = () => reject(request.error);
-                                    });
-                                } catch (err) { console.error('IDB Load Error:', err); return null; }
-                            }
 
                             // Init Autosave Toggle
                             const autoSaveToggle = document.getElementById('autoSaveToggle');
