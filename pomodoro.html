@@ -1761,8 +1761,22 @@
                 const date = new Date(s.startTime);
                 const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+                // Status badge
+                let statusBadge = '';
+                let statusBorder = '';
+                if (s.status === 'completed') {
+                    statusBadge = '<span class="text-emerald-400 text-xs ml-1" title="已完成"><i class="fas fa-check-circle"></i></span>';
+                    statusBorder = 'border-l-2 border-emerald-500';
+                } else if (s.status === 'in_progress') {
+                    statusBadge = '<span class="text-amber-400 text-xs ml-1" title="进行中"><i class="fas fa-spinner fa-spin"></i></span>';
+                    statusBorder = 'border-l-2 border-amber-500';
+                } else if (s.status === 'aborted') {
+                    statusBadge = '<span class="text-rose-400 text-xs ml-1" title="已中止"><i class="fas fa-times-circle"></i></span>';
+                    statusBorder = 'border-l-2 border-rose-500';
+                }
+
                 return `
-                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
+                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group ${statusBorder}">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold shrink-0">
                                 ${s.duration}
@@ -1771,6 +1785,7 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
                                     <span class="font-medium text-slate-200">${escapeHtml(tag.name)}</span>
+                                    ${statusBadge}
                                 </div>
                                 ${s.description ? `<div class="text-sm text-slate-300 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
                                 <div class="text-xs text-slate-500">${dateStr}</div>
