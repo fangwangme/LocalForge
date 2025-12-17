@@ -128,16 +128,16 @@
 
                 <!-- Watermark -->
                 <div class="space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (单框模式)</h4>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (菱形模式)</h4>
                     <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
                         <div class="text-[10px] text-slate-500 mb-3 space-y-1">
-                            <p>绘制矩形框选中水印区域</p>
-                            <p>系统自动识别水印像素并渐变填充</p>
+                            <p>绘制菱形框选中水印区域</p>
+                            <p>适配 Gemini 生成的菱形水印</p>
                         </div>
 
                         <div id="watermark-status"
                             class="px-3 py-2 bg-slate-800 rounded border border-slate-700 text-xs text-center mb-3">
-                            等待绘制选框...
+                            等待绘制菱形...
                         </div>
 
                         <button id="btn-clear-mask"
@@ -572,7 +572,7 @@
         }
 
         function applyInpainting() {
-            // 渐变填充：从水印框周围采样，使用双线性插值渐变填充整个选区
+            // 菱形渐变填充：从菱形边缘采样，使用双线性插值渐变填充菱形区域
             if (!state.watermarkRect) return;
 
             const ctx = els.ctxMain;
@@ -591,78 +591,78 @@
             if (rect.w <= 0 || rect.h <= 0) return;
             if (rect.x < 0 || rect.y < 0 || rect.x + rect.w > imgW || rect.y + rect.h > imgH) return;
 
+            // 菱形中心和半径
+            const cx = rect.x + rect.w / 2;
+            const cy = rect.y + rect.h / 2;
+            const rx = rect.w / 2; // 水平半径
+            const ry = rect.h / 2; // 垂直半径
+
             // 采样边距（向外扩展采样）
             const margin = 5;
 
-            // 采样四条边的颜色（多点采样）
-            function sampleEdgeColors(isHorizontal, startPos, length, fixedPos, offset) {
-                const colors = [];
-                const numSamples = Math.max(5, Math.floor(length / 10));
-                for (let i = 0; i < numSamples; i++) {
-                    const t = numSamples > 1 ? i / (numSamples - 1) : 0.5;
-                    const pos = startPos + t * length;
-                    const sx = isHorizontal ? pos : fixedPos + offset;
-                    const sy = isHorizontal ? fixedPos + offset : pos;
-                    const px = Math.max(0, Math.min(imgW - 1, Math.floor(sx)));
-                    const py = Math.max(0, Math.min(imgH - 1, Math.floor(sy)));
-                    const pixel = ctx.getImageData(px, py, 1, 1).data;
-                    colors.push({ t, r: pixel[0], g: pixel[1], b: pixel[2] });
-                }
-                return colors;
+            // 判断点是否在菱形内
+            function isInsideDiamond(px, py) {
+                const dx = Math.abs(px - cx) / rx;
+                const dy = Math.abs(py - cy) / ry;
+                return (dx + dy) <= 1.0;
             }
 
-            // 为每条边采样颜色数组
-            const topEdge = sampleEdgeColors(true, rect.x, rect.w, rect.y, -margin);
-            const bottomEdge = sampleEdgeColors(true, rect.x, rect.w, rect.y + rect.h, margin);
-            const leftEdge = sampleEdgeColors(false, rect.y, rect.h, rect.x, -margin);
-            const rightEdge = sampleEdgeColors(false, rect.y, rect.h, rect.x + rect.w, margin);
-
-            // 根据位置插值获取边缘颜色
-            function interpolateEdge(edge, t) {
-                if (edge.length === 0) return { r: 128, g: 128, b: 128 };
-                if (edge.length === 1) return edge[0];
-
-                // 找到 t 所在的区间
-                for (let i = 0; i < edge.length - 1; i++) {
-                    if (t >= edge[i].t && t <= edge[i + 1].t) {
-                        const ratio = (t - edge[i].t) / (edge[i + 1].t - edge[i].t);
-                        return {
-                            r: edge[i].r + ratio * (edge[i + 1].r - edge[i].r),
-                            g: edge[i].g + ratio * (edge[i + 1].g - edge[i].g),
-                            b: edge[i].b + ratio * (edge[i + 1].b - edge[i].b)
-                        };
-                    }
-                }
-                return edge[edge.length - 1];
+            // 从菱形四个顶点外侧采样颜色
+            function sampleDiamondVertexColor(vertex, offsetX, offsetY) {
+                const sx = Math.max(0, Math.min(imgW - 1, Math.floor(vertex.x + offsetX)));
+                const sy = Math.max(0, Math.min(imgH - 1, Math.floor(vertex.y + offsetY)));
+                const pixel = ctx.getImageData(sx, sy, 1, 1).data;
+                return { r: pixel[0], g: pixel[1], b: pixel[2] };
             }
+
+            // 菱形四个顶点
+            const topVertex = { x: cx, y: rect.y };
+            const bottomVertex = { x: cx, y: rect.y + rect.h };
+            const leftVertex = { x: rect.x, y: cy };
+            const rightVertex = { x: rect.x + rect.w, y: cy };
+
+            // 从顶点外侧采样颜色
+            const topColor = sampleDiamondVertexColor(topVertex, 0, -margin);
+            const bottomColor = sampleDiamondVertexColor(bottomVertex, 0, margin);
+            const leftColor = sampleDiamondVertexColor(leftVertex, -margin, 0);
+            const rightColor = sampleDiamondVertexColor(rightVertex, margin, 0);
 
             // 使用 ImageData 进行高效像素操作
             const imageData = ctx.getImageData(rect.x, rect.y, rect.w, rect.h);
             const data = imageData.data;
 
-            // 双线性插值渐变填充整个选区
+            // 渐变填充菱形区域
             for (let py = 0; py < rect.h; py++) {
                 for (let px = 0; px < rect.w; px++) {
-                    const tx = rect.w > 1 ? px / (rect.w - 1) : 0.5;
-                    const ty = rect.h > 1 ? py / (rect.h - 1) : 0.5;
+                    const absX = rect.x + px;
+                    const absY = rect.y + py;
 
-                    // 获取四边在当前位置的插值颜色
-                    const topC = interpolateEdge(topEdge, tx);
-                    const bottomC = interpolateEdge(bottomEdge, tx);
-                    const leftC = interpolateEdge(leftEdge, ty);
-                    const rightC = interpolateEdge(rightEdge, ty);
+                    // 只填充菱形内部的像素
+                    if (!isInsideDiamond(absX, absY)) continue;
 
-                    // 双线性插值计算填充色
-                    const horizR = leftC.r * (1 - tx) + rightC.r * tx;
-                    const horizG = leftC.g * (1 - tx) + rightC.g * tx;
-                    const horizB = leftC.b * (1 - tx) + rightC.b * tx;
-                    const vertR = topC.r * (1 - ty) + bottomC.r * ty;
-                    const vertG = topC.g * (1 - ty) + bottomC.g * ty;
-                    const vertB = topC.b * (1 - ty) + bottomC.b * ty;
+                    // 计算相对于菱形中心的归一化位置
+                    const tx = rx > 0 ? (px - rx) / rx : 0; // -1 到 1
+                    const ty = ry > 0 ? (py - ry) / ry : 0; // -1 到 1
 
-                    const finalR = (horizR + vertR) / 2;
-                    const finalG = (horizG + vertG) / 2;
-                    const finalB = (horizB + vertB) / 2;
+                    // 基于位置，计算四个顶点颜色的权重
+                    // 上/下权重
+                    const topWeight = Math.max(0, -ty);
+                    const bottomWeight = Math.max(0, ty);
+                    // 左/右权重
+                    const leftWeight = Math.max(0, -tx);
+                    const rightWeight = Math.max(0, tx);
+
+                    // 归一化权重
+                    let totalWeight = topWeight + bottomWeight + leftWeight + rightWeight;
+                    if (totalWeight === 0) totalWeight = 1;
+
+                    // 加权混合颜色
+                    const finalR = (topColor.r * topWeight + bottomColor.r * bottomWeight +
+                        leftColor.r * leftWeight + rightColor.r * rightWeight) / totalWeight;
+                    const finalG = (topColor.g * topWeight + bottomColor.g * bottomWeight +
+                        leftColor.g * leftWeight + rightColor.g * rightWeight) / totalWeight;
+                    const finalB = (topColor.b * topWeight + bottomColor.b * bottomWeight +
+                        leftColor.b * leftWeight + rightColor.b * rightWeight) / totalWeight;
 
                     // 添加微小噪点模拟自然纹理
                     const noise = (Math.random() - 0.5) * 4;
@@ -720,9 +720,9 @@
         function updateWatermarkStatus() {
             if (!els.watermarkStatus) return;
             if (state.watermarkRect) {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-emerald-400 font-bold">✓ 去水印已完成</span>';
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-emerald-400 font-bold">✓ 菱形去水印已完成</span>';
             } else {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制选框</span>（框选水印区域）';
+                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制菱形</span>（框选水印区域）';
             }
         }
 
@@ -795,11 +795,11 @@
                     h: Math.abs(my - state.rectStart.y)
                 };
 
-                // 绘制临时选框
+                // 绘制临时菱形选框
                 ctx.strokeStyle = '#10b981'; // emerald color
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
-                ctx.strokeRect(tempRect.x, tempRect.y, tempRect.w, tempRect.h);
+                drawDiamond(ctx, tempRect.x, tempRect.y, tempRect.w, tempRect.h);
                 ctx.setLineDash([]);
             }
 
@@ -828,12 +828,25 @@
             if (state.currentImage) render();
         });
 
-        // 绘制已存在的去水印选框 (单框模式)
+        // 绘制菱形辅助函数
+        function drawDiamond(ctx, x, y, w, h) {
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, y);           // 上顶点
+            ctx.lineTo(x + w, cy);       // 右顶点
+            ctx.lineTo(cx, y + h);       // 下顶点
+            ctx.lineTo(x, cy);           // 左顶点
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // 绘制已存在的去水印菱形选框 (单框模式)
         function drawWatermarkRects(ctx) {
             const img = state.currentImage;
             if (!img || !state.watermarkRect) return;
 
-            // 绘制水印框（绿色）
+            // 绘制水印菱形框（绿色）
             const rect = {
                 x: state.watermarkRect.x * img.width,
                 y: state.watermarkRect.y * img.height,
@@ -842,12 +855,14 @@
             };
             ctx.strokeStyle = '#10b981';
             ctx.lineWidth = 2;
-            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+            drawDiamond(ctx, rect.x, rect.y, rect.w, rect.h);
 
-            // 标注
+            // 标注 - 放在菱形中心上方
             ctx.fillStyle = '#10b981';
             ctx.font = '14px sans-serif';
-            ctx.fillText('水印区域', rect.x + 4, rect.y + 16);
+            ctx.textAlign = 'center';
+            ctx.fillText('菱形水印区域', rect.x + rect.w / 2, rect.y + rect.h / 2 - 5);
+            ctx.textAlign = 'left'; // 重置
         }
 
 
