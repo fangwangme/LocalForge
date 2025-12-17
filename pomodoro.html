@@ -258,28 +258,47 @@
                     </div>
                 </div>
 
-                <!-- History List -->
+                <!-- History List (Unified with Export) -->
                 <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
-                    <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                        <h3 class="font-medium text-slate-300">详细记录</h3>
-                        <div class="flex gap-2 items-center">
-                            <select id="historyFilter" onchange="renderHistoryList()"
-                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 outline-none focus:border-blue-500">
-                                <option value="all">全部</option>
-                                <option value="today">今天</option>
-                                <option value="week">本周</option>
-                            </select>
-                            <div class="h-4 w-px bg-slate-600"></div>
-                            <input type="date" id="exportDatePicker"
-                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 text-white outline-none focus:border-blue-500">
-                            <button onclick="openExportRecordsModal()"
-                                class="px-2 py-1 text-xs border border-blue-600 rounded text-blue-400 hover:text-white hover:bg-blue-600/20 transition flex items-center gap-1">
-                                <i class="fas fa-file-export"></i> 导出
-                            </button>
+                    <!-- Header with Filters -->
+                    <div class="p-4 border-b border-slate-700">
+                        <div class="flex flex-wrap gap-3 items-center justify-between">
+                            <h3 class="font-medium text-slate-300">详细记录</h3>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <!-- Quick Filters -->
+                                <div class="flex bg-slate-900 rounded-lg p-0.5">
+                                    <button onclick="setHistoryFilter('today')" id="filterBtnToday"
+                                        class="px-3 py-1 text-xs rounded-md transition bg-blue-600 text-white">今天</button>
+                                    <button onclick="setHistoryFilter('week')" id="filterBtnWeek"
+                                        class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                                    <button onclick="setHistoryFilter('all')" id="filterBtnAll"
+                                        class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">全部</button>
+                                </div>
+                                <div class="h-4 w-px bg-slate-600 hidden sm:block"></div>
+                                <!-- Date Picker -->
+                                <input type="date" id="historyDatePicker" onchange="setHistoryFilter('date')"
+                                    class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 text-white outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <!-- Status & Export Controls -->
+                        <div
+                            class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
+                            <div id="historyStatus" class="text-xs text-slate-500">加载中...</div>
+                            <div class="flex gap-2 items-center">
+                                <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                                    <input type="checkbox" id="exportExcludeRelax" class="rounded w-3 h-3">
+                                    导出时排除休息
+                                </label>
+                                <button onclick="exportCurrentList()"
+                                    class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div id="historyList" class="divide-y divide-slate-700/50 max-h-96 overflow-y-auto">
-                        <!-- Items -->
+                    <!-- History Items -->
+                    <div id="historyList" class="divide-y divide-slate-700/50 max-h-[400px] overflow-y-auto">
+                        <!-- Items rendered by JS -->
                     </div>
                 </div>
             </div>
@@ -308,9 +327,14 @@
                     <span id="saveTagColor" class="w-3 h-3 rounded-full bg-blue-500"></span>
                     <span id="saveTagName" class="text-sm font-medium text-slate-300">Work</span>
                 </div>
+                <div class="mb-3">
+                    <label class="block text-xs text-slate-500 mb-1">标题</label>
+                    <input type="text" id="saveTitle" placeholder="做了什么？"
+                        class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition">
+                </div>
                 <div>
                     <label class="block text-xs text-slate-500 mb-1">备注 (可选)</label>
-                    <textarea id="saveDescription" rows="2" placeholder="做了什么？"
+                    <textarea id="saveDescription" rows="2" placeholder="补充说明..."
                         class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition resize-none"></textarea>
                 </div>
             </div>
@@ -391,8 +415,13 @@
                     </div>
                 </div>
                 <div>
+                    <label class="block text-xs text-slate-400 mb-1">标题</label>
+                    <input type="text" id="editTitle" placeholder="事件名称"
+                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                </div>
+                <div>
                     <label class="block text-xs text-slate-400 mb-1">备注</label>
-                    <textarea id="editDescription" rows="2"
+                    <textarea id="editDescription" rows="2" placeholder="可选备注..."
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none resize-none"></textarea>
                 </div>
             </div>
@@ -511,6 +540,7 @@
         let timeLeftSeconds = 25 * 60;
         let timerInterval = null;
         let startTime = null;
+        let sessionEndTime = null; // Track when timer actually ends (not when user confirms)
 
         let currentTag = null; // Will be set on load
         let tags = [];
@@ -589,9 +619,9 @@
             try {
                 // Insert the record
                 await db.execute(
-                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [segmentStartTime.toISOString(), segmentStartTime.toISOString(), 0, currentTag.id, 'in_progress', '', new Date().toISOString()]
+                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [segmentStartTime.toISOString(), segmentStartTime.toISOString(), 0, currentTag.id, 'in_progress', '', '', new Date().toISOString()]
                 );
 
                 // Get the last inserted ID
@@ -763,12 +793,14 @@
             clearInterval(timerInterval);
 
             pendingAbort = true; // Mark as abort for save modal
+            sessionEndTime = new Date(); // Record actual end time
 
             // Show Modal (same as completeSession, but status will be 'aborted')
             const elapsedMinutes = Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
             document.getElementById('saveDuration').innerText = elapsedMinutes;
             document.getElementById('saveTagColor').style.backgroundColor = currentTag.color;
             document.getElementById('saveTagName').innerText = currentTag.name;
+            document.getElementById('saveTitle').value = '';
             document.getElementById('saveDescription').value = '';
 
             const modal = els.saveModal;
@@ -785,6 +817,7 @@
             currentState = 'stopped';
             clearInterval(timerInterval);
             pendingAbort = false; // This is a completed session, not aborted
+            sessionEndTime = new Date(); // Record actual end time
 
             playCompletionSound();
 
@@ -818,6 +851,7 @@
             document.getElementById('saveDuration').innerText = durationMinutes;
             document.getElementById('saveTagColor').style.backgroundColor = currentTag.color;
             document.getElementById('saveTagName').innerText = currentTag.name;
+            document.getElementById('saveTitle').value = ''; // Clear previous input
             document.getElementById('saveDescription').value = ''; // Clear previous input
 
             const modal = els.saveModal;
@@ -840,6 +874,7 @@
         function resetTimerUI() {
             currentState = 'stopped';
             pendingAbort = false; // Reset abort flag
+            sessionEndTime = null; // Clear end time
             timeLeftSeconds = durationMinutes * 60;
             updateDigitalDisplay();
             renderPixels();
@@ -858,8 +893,10 @@
 
         async function confirmSaveSession() {
             // Update existing session record - status depends on pendingAbort flag
+            const title = document.getElementById('saveTitle').value.trim();
             const desc = document.getElementById('saveDescription').value.trim();
-            const end = new Date();
+            // Use recorded end time, not current time (user may have delayed clicking confirm)
+            const end = sessionEndTime || new Date();
             const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
 
             // Determine status and duration based on whether this was aborted
@@ -884,20 +921,20 @@
 
                         // Update the existing record to be Part 1 (Yesterday)
                         await db.execute(
-                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
-                            [midnight.toISOString(), dur1, 'completed', desc + ' (Part 1)', currentSessionId]
+                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, title = ?, description = ? WHERE id = ?`,
+                            [midnight.toISOString(), dur1, 'completed', title + ' (Part 1)', desc, currentSessionId]
                         );
 
                         // Create Part 2 (Today)
                         await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', desc, new Date().toISOString()]
+                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', title, desc, new Date().toISOString()]
                         );
                     } else {
                         // Normal update
                         await db.execute(
-                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, description = ? WHERE id = ?`,
-                            [end.toISOString(), actualDuration, status, desc, currentSessionId]
+                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, title = ?, description = ? WHERE id = ?`,
+                            [end.toISOString(), actualDuration, status, title, desc, currentSessionId]
                         );
                     }
                     currentSessionId = null;
@@ -910,17 +947,17 @@
                         const dur2 = durationMinutes - dur1;
 
                         await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [start.toISOString(), midnight.toISOString(), dur1, currentTag.id, 'completed', desc + ' (Part 1)', new Date().toISOString()]
+                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [start.toISOString(), midnight.toISOString(), dur1, currentTag.id, 'completed', title + ' (Part 1)', desc, new Date().toISOString()]
                         );
                         await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', desc, new Date().toISOString()]
+                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', title, desc, new Date().toISOString()]
                         );
                     } else {
                         await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, status, desc, new Date().toISOString()]
+                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, status, title, desc, new Date().toISOString()]
                         );
                     }
                 }
@@ -1343,6 +1380,8 @@
             els.statsOverlay.classList.add('translate-y-full');
         }
 
+        let tablesInitialized = false; // Flag to ensure migration is complete
+
         async function requestData() {
             if (!db.isOpen) {
                 // console.warn('Database not open');
@@ -1354,6 +1393,11 @@
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
                 }
+                return;
+            }
+
+            if (!tablesInitialized) {
+                console.log('[Pomodoro] Waiting for tables initialization...');
                 return;
             }
 
@@ -1381,13 +1425,13 @@
 
                 // 2. Get Sessions
                 console.log('[Pomodoro] Querying sessions from', startOfWeek);
-                const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, description FROM pomodoro_sessions WHERE start_time >= ? ORDER BY start_time DESC", [startOfWeek]);
+                const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description FROM pomodoro_sessions WHERE start_time >= ? ORDER BY start_time DESC", [startOfWeek]);
                 console.log('[Pomodoro] Sessions result:', sessionsResult);
 
                 if (sessionsResult && sessionsResult.length > 0) {
                     const raw = sessionsResult[0].values;
                     sessions = raw.map(r => ({
-                        id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], description: r[6] || ''
+                        id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], title: r[6] || '', description: r[7] || ''
                     }));
                     console.log('[Pomodoro] Parsed sessions:', sessions.length);
                 } else {
@@ -1724,39 +1768,125 @@
             });
         }
 
-        function renderHistoryList() {
-            const filter = document.getElementById('historyFilter').value;
-            const list = document.getElementById('historyList');
-            const now = new Date();
+        // === Unified History Filter State ===
+        let currentHistoryFilter = 'today'; // 'today', 'week', 'all', 'date'
+        let currentHistorySessions = []; // Currently displayed sessions (for export)
 
-            let displayedSessions = [...sessions];
-            console.log(`[Pomodoro] Render History - Total: ${sessions.length}, Filter: ${filter}`);
+        function setHistoryFilter(filter) {
+            currentHistoryFilter = filter;
+
+            // Update button states
+            const btnToday = document.getElementById('filterBtnToday');
+            const btnWeek = document.getElementById('filterBtnWeek');
+            const btnAll = document.getElementById('filterBtnAll');
+            const datePicker = document.getElementById('historyDatePicker');
+
+            const activeClass = 'bg-blue-600 text-white';
+            const inactiveClass = 'text-slate-400 hover:text-white';
+
+            [btnToday, btnWeek, btnAll].forEach(btn => {
+                btn.className = `px-3 py-1 text-xs rounded-md transition ${inactiveClass}`;
+            });
 
             if (filter === 'today') {
-                displayedSessions = displayedSessions.filter(s => {
-                    const match = new Date(s.startTime).toDateString() === now.toDateString();
-                    // console.log(`Date Check: ${s.startTime} vs ${now.toISOString()} -> ${match}`);
-                    return match;
-                });
+                btnToday.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
             } else if (filter === 'week') {
+                btnWeek.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
+            } else if (filter === 'all') {
+                btnAll.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
+            }
+            // 'date' filter doesn't highlight any button, just uses date picker
+
+            loadHistorySessions();
+        }
+
+        async function loadHistorySessions() {
+            const list = document.getElementById('historyList');
+            const statusEl = document.getElementById('historyStatus');
+            const datePicker = document.getElementById('historyDatePicker');
+            const now = new Date();
+
+            let startDate, endDate;
+            let filterLabel = '';
+
+            if (currentHistoryFilter === 'today') {
+                startDate = new Date(now);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 1);
+                filterLabel = '今天';
+            } else if (currentHistoryFilter === 'week') {
                 const d = new Date(now);
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                const weekStart = new Date(d.setDate(diff));
-                weekStart.setHours(0, 0, 0, 0);
-                displayedSessions = displayedSessions.filter(s => new Date(s.startTime) >= weekStart);
+                startDate = new Date(d.setDate(diff));
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date();
+                endDate.setDate(endDate.getDate() + 1);
+                filterLabel = '本周';
+            } else if (currentHistoryFilter === 'date' && datePicker.value) {
+                startDate = new Date(datePicker.value + 'T00:00:00');
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 1);
+                filterLabel = datePicker.value;
+            } else {
+                // 'all' - use sessions already loaded
+                currentHistorySessions = [...sessions];
+                renderHistoryItems();
+                return;
             }
 
-            console.log(`[Pomodoro] Displayed Sessions: ${displayedSessions.length}`);
+            // Query from database
+            statusEl.textContent = '加载中...';
+            statusEl.className = 'text-xs text-amber-400';
 
-            if (displayedSessions.length === 0) {
+            try {
+                const result = await db.query(
+                    `SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description 
+                     FROM pomodoro_sessions 
+                     WHERE start_time >= ? AND start_time < ? 
+                     ORDER BY start_time DESC`,
+                    [startDate.toISOString(), endDate.toISOString()]
+                );
+
+                if (result && result.length > 0 && result[0].values) {
+                    currentHistorySessions = result[0].values.map(r => ({
+                        id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], title: r[6] || '', description: r[7] || ''
+                    }));
+                } else {
+                    currentHistorySessions = [];
+                }
+            } catch (err) {
+                console.error('[Pomodoro] Load History Failed:', err);
+                statusEl.textContent = '加载失败';
+                statusEl.className = 'text-xs text-rose-400';
+                return;
+            }
+
+            renderHistoryItems();
+        }
+
+        function renderHistoryItems() {
+            const list = document.getElementById('historyList');
+            const statusEl = document.getElementById('historyStatus');
+
+            // Calculate stats
+            const totalMins = currentHistorySessions.reduce((sum, s) => sum + s.duration, 0);
+            const hrs = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+            const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+            statusEl.textContent = `${currentHistorySessions.length} 条记录，共 ${timeStr}`;
+            statusEl.className = 'text-xs text-emerald-400';
+
+            if (currentHistorySessions.length === 0) {
                 list.innerHTML = '<div class="p-8 text-center text-slate-500">暂无记录</div>';
                 return;
             }
 
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
 
-            list.innerHTML = displayedSessions.map(s => {
+            list.innerHTML = currentHistorySessions.map(s => {
                 const tag = getTag(s.tagId);
                 const date = new Date(s.startTime);
                 const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1787,7 +1917,8 @@
                                     <span class="font-medium text-slate-200">${escapeHtml(tag.name)}</span>
                                     ${statusBadge}
                                 </div>
-                                ${s.description ? `<div class="text-sm text-slate-300 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
+                                ${s.title ? `<div class="text-sm text-white mb-1 break-words">${escapeHtml(s.title)}</div>` : ''}
+                                ${s.description ? `<div class="text-xs text-slate-400 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
                                 <div class="text-xs text-slate-500">${dateStr}</div>
                             </div>
                         </div>
@@ -1802,6 +1933,80 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Keep old function for compatibility
+        function renderHistoryList() {
+            loadHistorySessions();
+        }
+
+        // Export current list to clipboard as markdown
+        function exportCurrentList() {
+            const excludeRelax = document.getElementById('exportExcludeRelax').checked;
+            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+
+            let sessionsToExport = [...currentHistorySessions];
+
+            // Filter out Relax if checked
+            if (excludeRelax) {
+                sessionsToExport = sessionsToExport.filter(s => {
+                    const tagName = getTag(s.tagId).name;
+                    return tagName !== 'Relax' && tagName !== 'Break' && tagName !== 'Rest';
+                });
+            }
+
+            // Sort by start time ascending (chronological order for export)
+            sessionsToExport.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+            if (sessionsToExport.length === 0) {
+                alert('没有可导出的记录');
+                return;
+            }
+
+            // Generate markdown
+            const lines = sessionsToExport.map(s => {
+                const start = new Date(s.startTime);
+                const end = new Date(s.endTime);
+                const formatTime = (d) => {
+                    const h = String(d.getHours()).padStart(2, '0');
+                    const m = String(d.getMinutes()).padStart(2, '0');
+                    return `${h}:${m}`;
+                };
+
+                const tag = getTag(s.tagId);
+                const tagName = tag ? tag.name : '';
+                const title = s.title || '';
+
+                let label = '';
+                if (title && tagName && title !== tagName) {
+                    label = `${title} | ${tagName}`;
+                } else if (title) {
+                    label = title;
+                } else if (tagName) {
+                    label = tagName;
+                }
+
+                return ` - ${formatTime(start)} - ${formatTime(end)} ${label} (${s.duration}min)`;
+            });
+
+            const markdown = lines.join('\n');
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(markdown).then(() => {
+                const btn = document.querySelector('button[onclick="exportCurrentList()"]');
+                if (!btn) return;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                btn.classList.add('bg-emerald-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-emerald-600');
+                    btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+                }, 1500);
+            }).catch(err => {
+                alert('复制失败：' + err);
+            });
         }
 
         async function deleteSession(id) {
@@ -1854,8 +2059,8 @@
 
             try {
                 await db.execute(
-                    `INSERT INTO pomodoro_sessions (id, start_time, end_time, duration_minutes, tag_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [session.id, session.startTime, session.endTime, session.duration, session.tagId, session.status, session.description || '', new Date().toISOString()]
+                    `INSERT INTO pomodoro_sessions (id, start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [session.id, session.startTime, session.endTime, session.duration, session.tagId, session.status, session.title || '', session.description || '', new Date().toISOString()]
                 );
                 window._deletedSession = null;
 
@@ -1868,35 +2073,35 @@
 
 
         function exportData() {
-            // Open the new export records modal
-            openExportRecordsModal();
+            // Legacy - no longer used, keep for compatibility
         }
 
         // === Daily Records Export (Markdown) ===
-        async function openExportRecordsModal() {
-            const modal = document.getElementById('exportRecordsModal');
-            const checkbox = document.getElementById('exportIncludeRelax');
+        async function onExportDateChange() {
             const datePicker = document.getElementById('exportDatePicker');
-            const dateLabel = document.getElementById('exportDateLabel');
+            const statusEl = document.getElementById('exportPreviewStatus');
+            const previewArea = document.getElementById('exportPreviewArea');
 
-            // Set default date if not set
             if (!datePicker.value) {
-                const today = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                datePicker.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+                statusEl.textContent = '请选择日期加载数据';
+                statusEl.className = 'text-xs text-slate-500 mb-2';
+                previewArea.classList.add('hidden');
+                return;
             }
 
-            // Show date in modal title
-            dateLabel.textContent = datePicker.value;
-            checkbox.checked = false;
+            statusEl.textContent = '正在加载...';
+            statusEl.className = 'text-xs text-amber-400 mb-2';
 
-            // Query database for the selected date and generate markdown
             await generateDailyMarkdown();
+        }
 
-            // Add event listener for checkbox
-            checkbox.onchange = generateDailyMarkdown;
-
-            modal.classList.remove('hidden');
+        // Keep for backward compatibility
+        async function openExportRecordsModal() {
+            // Just trigger date change if date is already set
+            const datePicker = document.getElementById('exportDatePicker');
+            if (datePicker.value) {
+                await onExportDateChange();
+            }
         }
 
         function closeExportRecordsModal() {
@@ -1907,9 +2112,13 @@
             const datePicker = document.getElementById('exportDatePicker');
             const includeRelax = document.getElementById('exportIncludeRelax').checked;
             const output = document.getElementById('exportRecordsOutput');
+            const statusEl = document.getElementById('exportPreviewStatus');
+            const previewArea = document.getElementById('exportPreviewArea');
 
             if (!datePicker.value) {
-                output.value = '// 请先选择日期';
+                statusEl.textContent = '请先选择日期';
+                statusEl.className = 'text-xs text-slate-500 mb-2';
+                previewArea.classList.add('hidden');
                 return;
             }
 
@@ -1921,7 +2130,7 @@
             let daySessions = [];
             try {
                 const result = await db.query(
-                    `SELECT id, start_time, end_time, duration_minutes, tag_id, status, description 
+                    `SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description 
                      FROM pomodoro_sessions 
                      WHERE start_time >= ? AND start_time < ? 
                      ORDER BY start_time ASC`,
@@ -1930,12 +2139,14 @@
 
                 if (result && result.length > 0 && result[0].values) {
                     daySessions = result[0].values.map(r => ({
-                        id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], description: r[6] || ''
+                        id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], title: r[6] || '', description: r[7] || ''
                     }));
                 }
             } catch (err) {
                 console.error('[Pomodoro] Query failed:', err);
-                output.value = '// 查询失败：' + err.message;
+                statusEl.textContent = '查询失败：' + err.message;
+                statusEl.className = 'text-xs text-rose-400 mb-2';
+                previewArea.classList.add('hidden');
                 return;
             }
 
@@ -1949,9 +2160,14 @@
             }
 
             if (daySessions.length === 0) {
-                output.value = '// 该日期没有记录';
+                statusEl.textContent = '该日期没有记录';
+                statusEl.className = 'text-xs text-slate-500 mb-2';
+                previewArea.classList.add('hidden');
                 return;
             }
+
+            // Calculate total duration
+            const totalMins = daySessions.reduce((sum, s) => sum + s.duration, 0);
 
             // Generate markdown
             const lines = daySessions.map(s => {
@@ -1965,13 +2181,13 @@
 
                 const tag = tags.find(t => t.id === s.tagId);
                 const tagName = tag ? tag.name : '';
-                const desc = escapeHtml(s.description || '');
+                const title = escapeHtml(s.title || '');
 
                 let label = '';
-                if (desc && tagName && desc !== tagName) {
-                    label = `${desc} | ${tagName}`;
-                } else if (desc) {
-                    label = desc;
+                if (title && tagName && title !== tagName) {
+                    label = `${title} | ${tagName}`;
+                } else if (title) {
+                    label = title;
                 } else if (tagName) {
                     label = tagName;
                 }
@@ -1980,13 +2196,19 @@
             });
 
             output.value = lines.join('\n');
+
+            // Update status and show preview
+            statusEl.textContent = `已加载 ${daySessions.length} 条记录，共 ${totalMins} 分钟`;
+            statusEl.className = 'text-xs text-emerald-400 mb-2';
+            previewArea.classList.remove('hidden');
         }
 
         function copyExportRecords() {
             const output = document.getElementById('exportRecordsOutput');
             navigator.clipboard.writeText(output.value).then(() => {
                 // Show feedback
-                const btn = document.querySelector('#exportRecordsModal button[onclick="copyExportRecords()"]');
+                const btn = document.querySelector('#exportPreviewArea button[onclick="copyExportRecords()"]');
+                if (!btn) return;
                 const originalHTML = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
@@ -2225,6 +2447,7 @@
 
             document.getElementById('editStartTime').value = formatForInput(session.startTime);
             document.getElementById('editEndTime').value = formatForInput(session.endTime);
+            document.getElementById('editTitle').value = session.title || '';
             document.getElementById('editDescription').value = session.description || '';
 
             // Set status
@@ -2250,6 +2473,7 @@
             const etVal = document.getElementById('editEndTime').value;
             const tagId = parseInt(document.getElementById('editTagSelect').value);
             const status = document.getElementById('editStatusSelect').value;
+            const title = document.getElementById('editTitle').value.trim();
             const desc = document.getElementById('editDescription').value.trim();
 
             if (!stVal || !etVal) {
@@ -2269,8 +2493,8 @@
 
             try {
                 await db.execute(
-                    `UPDATE pomodoro_sessions SET start_time = ?, end_time = ?, duration_minutes = ?, tag_id = ?, status = ?, description = ? WHERE id = ?`,
-                    [start.toISOString(), end.toISOString(), durationMins, tagId, status, desc, currentEditSessionId]
+                    `UPDATE pomodoro_sessions SET start_time = ?, end_time = ?, duration_minutes = ?, tag_id = ?, status = ?, title = ?, description = ? WHERE id = ?`,
+                    [start.toISOString(), end.toISOString(), durationMins, tagId, status, title, desc, currentEditSessionId]
                 );
             } catch (e) { console.error('Update Failed:', e); }
 
@@ -2313,10 +2537,14 @@
                         duration_minutes INTEGER NOT NULL,
                         tag_id INTEGER,
                         status TEXT,
+                        title TEXT,
                         description TEXT,
                         created_at TEXT NOT NULL
                     )
                 `);
+
+                tablesInitialized = true;
+                console.log('[Pomodoro] Tables initialized');
 
             } catch (err) {
                 console.error('Init Tables Failed:', err);
@@ -2595,9 +2823,20 @@
             };
 
             if (db.isReady) {
+                console.log('[Pomodoro] Worker already ready, trying IDB...');
                 tryLoadFromIDB();
             } else {
-                db.on('ready', tryLoadFromIDB);
+                db.on('ready', () => {
+                    console.log('[Pomodoro] Got ready event, trying IDB...');
+                    tryLoadFromIDB();
+                });
+                // Double check in case ready event was already fired
+                setTimeout(() => {
+                    if (db.isReady && !initCalled) {
+                        console.log('[Pomodoro] Late ready check, trying IDB...');
+                        tryLoadFromIDB();
+                    }
+                }, 100);
             }
         }
 
@@ -2632,9 +2871,12 @@
         window.setDuration = setDuration;
         window.setDistMode = setDistMode;
         window.renderHistoryList = renderHistoryList;
+        window.setHistoryFilter = setHistoryFilter;
+        window.exportCurrentList = exportCurrentList;
         window.moveSlider = moveSlider;
         window.skipRelax = skipRelax;
         window.openExportRecordsModal = openExportRecordsModal;
+        window.onExportDateChange = onExportDateChange;
         window.closeExportRecordsModal = closeExportRecordsModal;
         window.copyExportRecords = copyExportRecords;
         window.openExportPanoramaModal = openExportPanoramaModal;
@@ -2644,7 +2886,7 @@
         // === Immediate UI Init ===
         console.log('[Pomodoro] Executing immediate UI init...');
         setDuration(25);
-        document.getElementById('historyFilter').value = 'today';
+        // History filter is now button-based, default is 'today' (set in setHistoryFilter)
 
     </script>
 </body>
