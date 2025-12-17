@@ -95,8 +95,8 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="openStats()" class="p-2 text-slate-400 hover:text-white transition" title="统计历史">
-                <i class="fas fa-history text-lg"></i>
+            <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
+                <i class="fas fa-history text-xl"></i>
             </button>
         </div>
     </header>
@@ -183,8 +183,9 @@
                     <h2 class="text-2xl font-bold flex items-center gap-2">
                         <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
                     </h2>
-                    <button onclick="closeStats()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition">
-                        <i class="fas fa-times text-lg"></i>
+                    <button onclick="closeStats()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
+                        关闭
                     </button>
                 </div>
 
@@ -1109,8 +1110,10 @@
         function updateDigitalDisplay() {
             const mins = Math.floor(timeLeftSeconds / 60);
             const secs = timeLeftSeconds % 60;
-            els.digital.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            document.title = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} - 番茄钟`;
+            const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            els.digital.innerText = timeStr;
+            const tagName = currentTag?.name || '';
+            document.title = tagName ? `${timeStr} - ${tagName} - 番茄钟` : `${timeStr} - 番茄钟`;
         }
 
         // Smoother, rounder tomato shape

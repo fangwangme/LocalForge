@@ -61,7 +61,7 @@
         <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
             <i class="fas fa-redo-alt mr-1"></i> Reset
         </button>
-        <button id="statsBtn" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition ml-2">
+        <button id="statsBtn" class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
             <i class="fas fa-chart-line mr-1"></i> Stats
         </button>
     </header>
@@ -278,8 +278,9 @@
         <div class="max-w-4xl mx-auto px-4 py-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Training History</h2>
-                <button onclick="closeStats()" class="bg-slate-800 p-2 rounded-full hover:bg-slate-700 transition">
-                    <i class="fas fa-times"></i>
+                <button onclick="closeStats()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
+                    Close
                 </button>
             </div>
 
@@ -1085,7 +1086,7 @@
             const cals = parseInt(document.getElementById('edit-cals').value);
             const weight = parseFloat(document.getElementById('edit-weight').value);
             const dateStr = document.getElementById('edit-date').value;
-            
+
             // Convert datetime-local format (YYYY-MM-DDTHH:mm) to full ISO format
             const fullDate = new Date(dateStr).toISOString();
 
