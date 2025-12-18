@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HIIT Jump Rope Timer</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- sql.js for SQLite in browser -->
@@ -175,11 +176,11 @@
                                     </button>
                                 </div>
                             </label>
-                            <input type="range" id="weightInput" min="40" max="120" step="1" value="70"
+                            <input type="range" id="weightInput" min="60" max="80" step="1" value="70"
                                 class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500">
                             <div class="flex justify-between text-xs text-slate-500 mt-1">
-                                <span>40kg</span>
-                                <span>120kg</span>
+                                <span>60kg</span>
+                                <span>80kg</span>
                             </div>
                         </div>
                     </div>
@@ -673,6 +674,12 @@
             state.startTime = new Date().toISOString(); // 记录开始时间
             state.endTime = null; // 重置结束时间
 
+            // Save configuration when workout starts
+            saveConfig('workTime', state.workTime);
+            saveConfig('restTime', state.restTime);
+            saveConfig('rounds', state.totalRounds);
+            saveConfig('weight', state.weight);
+
             // UI 切换
             els.setupScreen.classList.add('hidden');
             els.timerScreen.classList.remove('hidden');
@@ -757,7 +764,7 @@
 
         // === 事件监听 ===
 
-        // 输入变化实时更新
+        // 输入变化实时更新 (不保存配置，只有开始训练时才保存)
         els.workInput.addEventListener('input', (e) => {
             els.workDisplay.innerText = `${e.target.value}s`;
             calculateTotalTime();
@@ -777,9 +784,17 @@
         // +/- 按钮事件监听
         document.querySelectorAll('.adjust-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const targetId = btn.dataset.target;
-                const delta = parseInt(btn.dataset.delta);
+                // 确保获取按钮元素（即使点击的是内部图标）
+                const button = e.currentTarget;
+                const targetId = button.dataset.target;
+                const delta = parseInt(button.dataset.delta);
                 const input = document.getElementById(targetId);
+
+                if (!input) {
+                    console.error('[HIIT] Input not found:', targetId);
+                    return;
+                }
+
                 const min = parseInt(input.min);
                 const max = parseInt(input.max);
                 let newValue = parseInt(input.value) + delta;
@@ -789,7 +804,7 @@
                 input.value = newValue;
 
                 // 触发 input 事件以更新显示
-                input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new Event('input', { bubbles: true }));
             });
         });
 
@@ -1211,7 +1226,7 @@
 
         async function initDatabase() {
             try {
-                // 1. Ensure Table Exists
+                // 1. Ensure workouts table exists
                 await db.execute(`
                     CREATE TABLE IF NOT EXISTS workouts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1228,19 +1243,76 @@
                     )
                 `);
 
+                // Note: app_config table is created in index.html (system-level table)
+
                 // 2. Safe Migration (Check columns first)
-                // We can just try adding columns, sqlite won't error hard or we catch it.
-                // Or better, check pragma if possible. But `db-client` doesn't expose easy pragma check yet without parsing.
-                // Simple atomic alters:
                 try { await db.execute("ALTER TABLE workouts ADD COLUMN total_time INTEGER;"); } catch (e) { }
                 try { await db.execute("ALTER TABLE workouts ADD COLUMN start_time TEXT;"); } catch (e) { }
                 try { await db.execute("ALTER TABLE workouts ADD COLUMN end_time TEXT;"); } catch (e) { }
 
-                console.log('Database initialized');
+                console.log('[HIIT] Database initialized');
+
+                // Load saved config
+                await loadConfig();
+
                 renderAllStats();
 
             } catch (err) {
-                console.error('Database initialization/migration failed:', err);
+                console.error('[HIIT] Database initialization/migration failed:', err);
+            }
+        }
+
+        // === Configuration Storage ===
+        async function loadConfig() {
+            try {
+                const result = await db.query(
+                    `SELECT config_key, config_value FROM app_config WHERE tool_name = 'hiit'`
+                );
+
+                if (result && result.length > 0 && result[0].values) {
+                    const config = {};
+                    result[0].values.forEach(row => {
+                        config[row[0]] = row[1];
+                    });
+
+                    console.log('[HIIT] Loaded config:', config);
+
+                    // Apply config to inputs
+                    if (config.workTime) {
+                        els.workInput.value = config.workTime;
+                        els.workDisplay.innerText = `${config.workTime}s`;
+                    }
+                    if (config.restTime) {
+                        els.restInput.value = config.restTime;
+                        els.restDisplay.innerText = `${config.restTime}s`;
+                    }
+                    if (config.rounds) {
+                        els.roundsInput.value = config.rounds;
+                        els.roundsDisplay.innerText = config.rounds;
+                    }
+                    if (config.weight) {
+                        els.weightInput.value = config.weight;
+                        els.weightDisplay.innerText = `${config.weight} kg`;
+                    }
+
+                    // Recalculate total time
+                    calculateTotalTime();
+                }
+            } catch (err) {
+                console.error('[HIIT] Failed to load config:', err);
+            }
+        }
+
+        async function saveConfig(key, value) {
+            try {
+                await db.execute(
+                    `INSERT OR REPLACE INTO app_config (tool_name, config_key, config_value, updated_at) 
+                     VALUES (?, ?, ?, ?)`,
+                    ['hiit', key, String(value), new Date().toISOString()]
+                );
+                console.log(`[HIIT] Saved config: ${key} = ${value}`);
+            } catch (err) {
+                console.error('[HIIT] Failed to save config:', err);
             }
         }
 
@@ -1338,25 +1410,6 @@
             // "window.saveEdit = ..."
             // Yes, I redefined them as window.saveEdit = async function... earlier.
             // So they are safe.
-        });
-
-        // Adjust buttons
-        document.querySelectorAll('.adjust-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const targetId = btn.dataset.target;
-                const delta = parseInt(btn.dataset.delta);
-                const input = document.getElementById(targetId);
-                let val = parseInt(input.value) + delta;
-                if (targetId === 'workInput' || targetId === 'restInput') val = Math.max(5, val);
-                if (targetId === 'roundsInput') val = Math.max(1, val);
-                input.value = val;
-                calculateTotalTime();
-            });
-        });
-
-        // Inputs change
-        ['workInput', 'restInput', 'roundsInput'].forEach(id => {
-            document.getElementById(id).addEventListener('input', calculateTotalTime);
         });
 
 

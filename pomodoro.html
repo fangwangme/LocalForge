@@ -602,10 +602,7 @@
                 notifyToggle.disabled = true;
             }
 
-            // 3. Check for aborted sessions on startup (non-blocking)
-            checkAbortedSessions();
-
-            // 4. Global Click Listener for Tag Menu
+            // 3. Global Click Listener for Tag Menu
             document.addEventListener('click', (e) => {
                 const menu = document.getElementById('tagMenu');
                 const btn = document.getElementById('currentTagBtn');
@@ -616,66 +613,9 @@
             });
         }
 
-        // === Timer State Persistence (Database-based) ===
-        let currentSessionId = null; // Track the current session's DB ID
+        // === Timer State Persistence ===
+        // Note: Sessions are only written to DB when user confirms or discards
 
-        async function createSessionRecord() {
-            // Create a new session record with status 'in_progress'
-            if (!currentTag || !segmentStartTime) return;
-
-            try {
-                // Insert the record
-                await db.execute(
-                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [segmentStartTime.toISOString(), segmentStartTime.toISOString(), 0, currentTag.id, 'in_progress', '', '', new Date().toISOString()]
-                );
-
-                // Get the last inserted ID
-                const result = await db.query(`SELECT last_insert_rowid() as id`);
-                if (result && result.length > 0 && result[0].values && result[0].values.length > 0) {
-                    currentSessionId = result[0].values[0][0];
-                    console.log('[Pomodoro] Created session record:', currentSessionId);
-                }
-            } catch (e) {
-                console.error('[Pomodoro] Failed to create session record:', e);
-            }
-        }
-
-        // updateSessionProgress and abortSession removed - no longer needed
-
-        // completeSessionRecord removed - no longer needed
-        async function deleteSessionRecord() {
-            // Delete current session (user discarded)
-            if (!currentSessionId) return;
-
-            try {
-                await db.execute(`DELETE FROM pomodoro_sessions WHERE id = ?`, [currentSessionId]);
-                currentSessionId = null;
-            } catch (e) {
-                console.error('[Pomodoro] Failed to delete session:', e);
-            }
-        }
-
-        async function checkAbortedSessions() {
-            // Clean up orphaned in_progress sessions on startup
-            // These are sessions that were started but never completed (e.g., browser crash)
-            try {
-                const result = await db.query(`SELECT COUNT(*) FROM pomodoro_sessions WHERE status = 'in_progress'`);
-                const count = result?.[0]?.values?.[0]?.[0] || 0;
-
-                if (count > 0) {
-                    console.log(`[Pomodoro] Found ${count} orphaned in_progress sessions, marking as aborted...`);
-                    await db.execute(`UPDATE pomodoro_sessions SET status = 'aborted' WHERE status = 'in_progress'`);
-                }
-            } catch (e) {
-                console.error('[Pomodoro] Failed to clean up orphaned sessions:', e);
-            }
-        }
-
-        function clearTimerState() {
-            currentSessionId = null;
-        }
 
         // === Timer Logic ===
         function setDuration(mins) {
@@ -768,9 +708,6 @@
             els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
             checkSkipButton();
-
-            // Create session record in DB
-            createSessionRecord();
 
             // Note: Removed 10s periodic progress update - data saved on session completion only
 
@@ -876,8 +813,22 @@
 
         async function discardSession() {
             closeSaveModal();
-            // Delete the session record since user discarded it
-            await deleteSessionRecord();
+
+            // Write an aborted record to track the discarded session
+            const end = sessionEndTime || new Date();
+            const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
+            const actualDuration = Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
+
+            try {
+                await db.execute(
+                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, 'aborted', '', '', new Date().toISOString()]
+                );
+                console.log('[Pomodoro] Discarded session saved as aborted');
+            } catch (err) {
+                console.error('[Pomodoro] Failed to save aborted session:', err);
+            }
+
             resetTimerUI();
         }
 
@@ -905,7 +856,7 @@
         let lastWorkTagId = null;
 
         async function confirmSaveSession() {
-            // Update existing session record - status depends on pendingAbort flag
+            // Insert session record only when user confirms
             const title = document.getElementById('saveTitle').value.trim();
             const desc = document.getElementById('saveDescription').value.trim();
             // Use recorded end time, not current time (user may have delayed clicking confirm)
@@ -918,61 +869,32 @@
                 ? Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60))
                 : durationMinutes;
 
-            console.log('[Pomodoro] confirmSaveSession called, currentSessionId:', currentSessionId, 'pendingAbort:', pendingAbort, 'status:', status, 'duration:', actualDuration);
+            console.log('[Pomodoro] confirmSaveSession called, pendingAbort:', pendingAbort, 'status:', status, 'duration:', actualDuration);
 
             try {
-                // Check if we have a current session ID (DB-based approach)
-                if (currentSessionId) {
-                    // Check if cross day
-                    if (start.toDateString() !== end.toDateString()) {
-                        // For cross-day sessions, we need to handle specially
-                        const midnight = new Date(start);
-                        midnight.setHours(24, 0, 0, 0);
+                // Check if cross day
+                if (start.toDateString() !== end.toDateString()) {
+                    const midnight = new Date(start);
+                    midnight.setHours(24, 0, 0, 0);
+                    const dur1 = Math.round((midnight - start) / 60000);
+                    const dur2 = actualDuration - dur1;
 
-                        const dur1 = Math.round((midnight - start) / 60000);
-                        const dur2 = durationMinutes - dur1;
-
-                        // Update the existing record to be Part 1 (Yesterday)
-                        await db.execute(
-                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, title = ?, description = ? WHERE id = ?`,
-                            [midnight.toISOString(), dur1, 'completed', title + ' (Part 1)', desc, currentSessionId]
-                        );
-
-                        // Create Part 2 (Today)
-                        await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', title, desc, new Date().toISOString()]
-                        );
-                    } else {
-                        // Normal update
-                        await db.execute(
-                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, status = ?, title = ?, description = ? WHERE id = ?`,
-                            [end.toISOString(), actualDuration, status, title, desc, currentSessionId]
-                        );
-                    }
-                    currentSessionId = null;
+                    // Create Part 1 (Yesterday)
+                    await db.execute(
+                        `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [start.toISOString(), midnight.toISOString(), dur1, currentTag.id, status, title + ' (Part 1)', desc, new Date().toISOString()]
+                    );
+                    // Create Part 2 (Today)
+                    await db.execute(
+                        `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, status, title, desc, new Date().toISOString()]
+                    );
                 } else {
-                    // Fallback: insert new record (for sessions started before this feature)
-                    if (start.toDateString() !== end.toDateString()) {
-                        const midnight = new Date(start);
-                        midnight.setHours(24, 0, 0, 0);
-                        const dur1 = Math.round((midnight - start) / 60000);
-                        const dur2 = durationMinutes - dur1;
-
-                        await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [start.toISOString(), midnight.toISOString(), dur1, currentTag.id, 'completed', title + ' (Part 1)', desc, new Date().toISOString()]
-                        );
-                        await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [midnight.toISOString(), end.toISOString(), dur2, currentTag.id, 'completed', title, desc, new Date().toISOString()]
-                        );
-                    } else {
-                        await db.execute(
-                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, status, title, desc, new Date().toISOString()]
-                        );
-                    }
+                    // Normal insert
+                    await db.execute(
+                        `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [start.toISOString(), end.toISOString(), actualDuration, currentTag.id, status, title, desc, new Date().toISOString()]
+                    );
                 }
             } catch (err) {
                 console.error('Save Session Failed:', err);

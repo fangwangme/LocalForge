@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片压缩工具</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="js/components.js"></script>
@@ -220,39 +221,39 @@
 
         <div class="flex-1 overflow-y-auto">
             <main>
-        <div class="drop-zone" id="dropZone">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <h3>拖放图片到这里</h3>
-            <p>或点击选择文件（支持 PNG、JPG）</p>
-        </div>
-        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple>
+                <div class="drop-zone" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>拖放图片到这里</h3>
+                    <p>或点击选择文件（支持 PNG、JPG）</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple>
 
-        <div class="settings">
-            <h4><i class="fas fa-cog"></i> 压缩设置</h4>
-            <div class="setting-row">
-                <label>目标大小</label>
-                <select id="targetSize">
-                    <option value="500">500 KB</option>
-                    <option value="1000">1 MB</option>
-                    <option value="2000" selected>2 MB (YouTube)</option>
-                    <option value="5000">5 MB</option>
-                    <option value="custom">自定义...</option>
-                </select>
-                <input type="number" id="customSize" class="hidden" placeholder="KB" min="100" max="10000">
-            </div>
-            <div class="setting-row">
-                <label>输出格式</label>
-                <select id="outputFormat">
-                    <option value="auto">保持原格式</option>
-                    <option value="jpeg">JPEG</option>
-                    <option value="png">PNG</option>
-                    <option value="webp">WebP</option>
-                </select>
-            </div>
-        </div>
+                <div class="settings">
+                    <h4><i class="fas fa-cog"></i> 压缩设置</h4>
+                    <div class="setting-row">
+                        <label>目标大小</label>
+                        <select id="targetSize">
+                            <option value="500">500 KB</option>
+                            <option value="1000">1 MB</option>
+                            <option value="2000" selected>2 MB (YouTube)</option>
+                            <option value="5000">5 MB</option>
+                            <option value="custom">自定义...</option>
+                        </select>
+                        <input type="number" id="customSize" class="hidden" placeholder="KB" min="100" max="10000">
+                    </div>
+                    <div class="setting-row">
+                        <label>输出格式</label>
+                        <select id="outputFormat">
+                            <option value="auto">保持原格式</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                            <option value="webp">WebP</option>
+                        </select>
+                    </div>
+                </div>
 
-        <div class="results" id="results"></div>
-    </main>
+                <div class="results" id="results"></div>
+            </main>
         </div>
     </div>
 

@@ -248,8 +248,26 @@
                                 });
                             });
 
-                            db.on('db_opened', () => {
+                            db.on('db_opened', async () => {
                                 console.log('[Host] Database opened/connected');
+
+                                // Create system-level tables
+                                try {
+                                    await db.execute(`
+                                        CREATE TABLE IF NOT EXISTS app_config (
+                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                            tool_name TEXT NOT NULL,
+                                            config_key TEXT NOT NULL,
+                                            config_value TEXT NOT NULL,
+                                            updated_at TEXT NOT NULL,
+                                            UNIQUE(tool_name, config_key)
+                                        )
+                                    `);
+                                    console.log('[Host] System tables initialized');
+                                } catch (err) {
+                                    console.error('[Host] Failed to create system tables:', err);
+                                }
+
                                 // index.html should be the primary writer
                                 db.claimWriter();
                             });

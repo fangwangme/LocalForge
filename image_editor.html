@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图片处理 - LocalForge</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Global Styles -->
@@ -32,160 +33,164 @@
         <!-- Main Content -->
         <div class="flex-1 flex overflow-hidden">
 
-        <!-- Left Sidebar: File List -->
-        <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col shrink-0 z-10">
-            <div class="p-4 border-b border-slate-700">
-                <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">资源管理器</h3>
-                <div class="flex gap-2 mb-2">
-                    <button id="btn-single"
-                        class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📄
-                        单文件</button>
-                    <button id="btn-input"
-                        class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📂
-                        目录</button>
+            <!-- Left Sidebar: File List -->
+            <aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col shrink-0 z-10">
+                <div class="p-4 border-b border-slate-700">
+                    <h3 class="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">资源管理器</h3>
+                    <div class="flex gap-2 mb-2">
+                        <button id="btn-single"
+                            class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📄
+                            单文件</button>
+                        <button id="btn-input"
+                            class="flex-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition border border-slate-600 hover:border-slate-500">📂
+                            目录</button>
+                    </div>
+                    <button id="btn-output"
+                        class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-blue-400 hover:text-blue-300 transition border border-slate-600 hover:border-slate-500 hidden mb-1">💾
+                        选择输出目录</button>
+                    <div id="output-info" class="text-[10px] text-slate-500 truncate mt-1">默认: Downloads</div>
                 </div>
-                <button id="btn-output"
-                    class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-blue-400 hover:text-blue-300 transition border border-slate-600 hover:border-slate-500 hidden mb-1">💾
-                    选择输出目录</button>
-                <div id="output-info" class="text-[10px] text-slate-500 truncate mt-1">默认: Downloads</div>
-            </div>
 
-            <ul id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
-                <li
-                    class="p-4 text-center text-slate-500 text-xs border border-dashed border-slate-700 rounded select-none">
-                    请选择文件或目录</li>
-            </ul>
+                <ul id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <li
+                        class="p-4 text-center text-slate-500 text-xs border border-dashed border-slate-700 rounded select-none">
+                        请选择文件或目录</li>
+                </ul>
 
-            <div class="p-2 border-t border-slate-700 text-center text-[10px] text-slate-500" id="file-count">0 张图片
-            </div>
-        </aside>
-
-        <!-- Center: Canvas -->
-        <main class="flex-1 bg-slate-900/50 flex flex-col relative overflow-hidden">
-            <!-- Filename Display -->
-            <div id="filename-bar"
-                class="h-10 bg-slate-800/90 border-b border-slate-700 flex items-center justify-center px-4 shrink-0">
-                <span id="current-filename" class="text-sm font-medium text-blue-400 truncate max-w-full">未选择文件</span>
-            </div>
-            <div
-                class="flex-1 flex items-center justify-center p-8 overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]">
-                <div id="canvas-wrapper"
-                    class="relative shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#111]">
-                    <canvas id="main-canvas" class="block max-w-full max-h-[75vh]"></canvas>
-                    <canvas id="interaction-layer"
-                        class="absolute top-0 left-0 w-full h-full cursor-crosshair touch-none"></canvas>
+                <div class="p-2 border-t border-slate-700 text-center text-[10px] text-slate-500" id="file-count">0 张图片
                 </div>
-            </div>
+            </aside>
 
-            <!-- Toast -->
-            <div id="toast"
-                class="absolute top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
-                <i class="fas fa-info-circle text-blue-400"></i> <span>提示消息</span>
-            </div>
-        </main>
-
-        <!-- Right Toolbar -->
-        <aside class="w-72 bg-slate-800 border-l border-slate-700 flex flex-col shrink-0 overflow-y-auto z-10">
-            <div class="p-4 space-y-6">
-
-                <!-- Crop Mode -->
-                <div class="space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">模式选择</h4>
-                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-2">
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <input type="radio" name="crop-mode" value="pad" checked class="accent-blue-500 w-4 h-4">
-                            <div>
-                                <div class="text-sm font-medium text-slate-200 group-hover:text-white">填充模式 (Pad)</div>
-                                <div class="text-[10px] text-slate-500">两边填充背景，保持完整画面</div>
-                            </div>
-                        </label>
-                        <div class="h-px bg-slate-700/50 my-1"></div>
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <input type="radio" name="crop-mode" value="crop" class="accent-blue-500 w-4 h-4">
-                            <div>
-                                <div class="text-sm font-medium text-slate-200 group-hover:text-white">裁剪模式 (Crop)</div>
-                                <div class="text-[10px] text-slate-500">自由拖动选框截取局部</div>
-                            </div>
-                        </label>
+            <!-- Center: Canvas -->
+            <main class="flex-1 bg-slate-900/50 flex flex-col relative overflow-hidden">
+                <!-- Filename Display -->
+                <div id="filename-bar"
+                    class="h-10 bg-slate-800/90 border-b border-slate-700 flex items-center justify-center px-4 shrink-0">
+                    <span id="current-filename"
+                        class="text-sm font-medium text-blue-400 truncate max-w-full">未选择文件</span>
+                </div>
+                <div
+                    class="flex-1 flex items-center justify-center p-8 overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]">
+                    <div id="canvas-wrapper"
+                        class="relative shadow-2xl shadow-black/50 border border-slate-700/50 bg-[#111]">
+                        <canvas id="main-canvas" class="block max-w-full max-h-[75vh]"></canvas>
+                        <canvas id="interaction-layer"
+                            class="absolute top-0 left-0 w-full h-full cursor-crosshair touch-none"></canvas>
                     </div>
                 </div>
 
-                <!-- Watermark -->
-                <div class="space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (菱形模式)</h4>
-                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                        <div class="text-[10px] text-slate-500 mb-3 space-y-1">
-                            <p>绘制菱形框选中水印区域</p>
-                            <p>适配 Gemini 生成的菱形水印</p>
-                        </div>
+                <!-- Toast -->
+                <div id="toast"
+                    class="absolute top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-400"></i> <span>提示消息</span>
+                </div>
+            </main>
 
-                        <div id="watermark-status"
-                            class="px-3 py-2 bg-slate-800 rounded border border-slate-700 text-xs text-center mb-3">
-                            等待绘制菱形...
-                        </div>
+            <!-- Right Toolbar -->
+            <aside class="w-72 bg-slate-800 border-l border-slate-700 flex flex-col shrink-0 overflow-y-auto z-10">
+                <div class="p-4 space-y-6">
 
-                        <button id="btn-clear-mask"
-                            class="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs rounded border border-slate-600 transition">
-                            清除选框 (C)
-                        </button>
-
-                        <div class="mt-3 pt-3 border-t border-slate-700/50">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="chk-persist-mask" checked
-                                    class="rounded border-slate-600 bg-slate-700 text-blue-500">
-                                <span class="text-xs font-medium text-slate-300">保留选框位置</span>
+                    <!-- Crop Mode -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">模式选择</h4>
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-2">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio" name="crop-mode" value="pad" checked
+                                    class="accent-blue-500 w-4 h-4">
+                                <div>
+                                    <div class="text-sm font-medium text-slate-200 group-hover:text-white">填充模式 (Pad)
+                                    </div>
+                                    <div class="text-[10px] text-slate-500">两边填充背景，保持完整画面</div>
+                                </div>
                             </label>
-                            <p class="text-[10px] text-slate-500 mt-1 pl-5">切换图片时自动应用去水印</p>
+                            <div class="h-px bg-slate-700/50 my-1"></div>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="radio" name="crop-mode" value="crop" class="accent-blue-500 w-4 h-4">
+                                <div>
+                                    <div class="text-sm font-medium text-slate-200 group-hover:text-white">裁剪模式 (Crop)
+                                    </div>
+                                    <div class="text-[10px] text-slate-500">自由拖动选框截取局部</div>
+                                </div>
+                            </label>
                         </div>
                     </div>
-                </div>
 
-                <!-- Export -->
-                <div class="space-y-3">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">输出设置</h4>
-                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs text-slate-400">格式</span>
-                            <select id="sel-format"
-                                class="bg-slate-800 border border-slate-600 text-xs text-white rounded px-2 py-1 outline-none focus:border-blue-500">
-                                <option value="image/jpeg">JPEG (体积小)</option>
-                                <option value="image/png">PNG (无损)</option>
-                            </select>
-                        </div>
-                        <div id="quality-wrapper" class="space-y-1">
-                            <div class="flex justify-between text-xs text-slate-400">
-                                <span>质量</span>
-                                <span id="quality-val" class="text-blue-400">95%</span>
+                    <!-- Watermark -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">去水印 (菱形模式)</h4>
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                            <div class="text-[10px] text-slate-500 mb-3 space-y-1">
+                                <p>绘制菱形框选中水印区域</p>
+                                <p>适配 Gemini 生成的菱形水印</p>
                             </div>
-                            <input type="range" id="rng-quality" min="10" max="100" value="95" step="5"
-                                class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+
+                            <div id="watermark-status"
+                                class="px-3 py-2 bg-slate-800 rounded border border-slate-700 text-xs text-center mb-3">
+                                等待绘制菱形...
+                            </div>
+
+                            <button id="btn-clear-mask"
+                                class="w-full py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs rounded border border-slate-600 transition">
+                                清除选框 (C)
+                            </button>
+
+                            <div class="mt-3 pt-3 border-t border-slate-700/50">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="chk-persist-mask" checked
+                                        class="rounded border-slate-600 bg-slate-700 text-blue-500">
+                                    <span class="text-xs font-medium text-slate-300">保留选框位置</span>
+                                </label>
+                                <p class="text-[10px] text-slate-500 mt-1 pl-5">切换图片时自动应用去水印</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Actions -->
-                <div class="pt-4 border-t border-slate-700 space-y-3">
-                    <button id="btn-save"
-                        class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2">
-                        <span>💾</span> 保存并下一张 (S)
-                    </button>
-                    <button id="btn-save-original"
-                        class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded border border-amber-500 transition flex items-center justify-center gap-1">
-                        <i class="fas fa-image"></i> 保存原图 (O)
-                    </button>
-                    <button id="btn-download"
-                        class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600 hidden transition">
-                        ⬇️ 下载到本地
-                    </button>
-                </div>
+                    <!-- Export -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">输出设置</h4>
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-400">格式</span>
+                                <select id="sel-format"
+                                    class="bg-slate-800 border border-slate-600 text-xs text-white rounded px-2 py-1 outline-none focus:border-blue-500">
+                                    <option value="image/jpeg">JPEG (体积小)</option>
+                                    <option value="image/png">PNG (无损)</option>
+                                </select>
+                            </div>
+                            <div id="quality-wrapper" class="space-y-1">
+                                <div class="flex justify-between text-xs text-slate-400">
+                                    <span>质量</span>
+                                    <span id="quality-val" class="text-blue-400">95%</span>
+                                </div>
+                                <input type="range" id="rng-quality" min="10" max="100" value="95" step="5"
+                                    class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="text-[10px] text-slate-600 text-center space-y-1 pb-4">
-                    <p>← / → : 切换图片</p>
-                    <p>S : 保存 | O : 保存原图 | C : 清除</p>
-                </div>
+                    <!-- Actions -->
+                    <div class="pt-4 border-t border-slate-700 space-y-3">
+                        <button id="btn-save"
+                            class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2">
+                            <span>💾</span> 保存并下一张 (S)
+                        </button>
+                        <button id="btn-save-original"
+                            class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded border border-amber-500 transition flex items-center justify-center gap-1">
+                            <i class="fas fa-image"></i> 保存原图 (O)
+                        </button>
+                        <button id="btn-download"
+                            class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600 hidden transition">
+                            ⬇️ 下载到本地
+                        </button>
+                    </div>
 
-            </div>
-        </aside>
+                    <div class="text-[10px] text-slate-600 text-center space-y-1 pb-4">
+                        <p>← / → : 切换图片</p>
+                        <p>S : 保存 | O : 保存原图 | C : 清除</p>
+                    </div>
+
+                </div>
+            </aside>
         </div>
     </div>
 
