@@ -56,10 +56,12 @@
         <local-header title="HIIT Jump Rope">
             <i slot="icon" class="fas fa-stopwatch text-white"></i>
             <div slot="actions" class="flex items-center gap-2">
-                <button id="resetBtn" class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
+                <button id="resetBtn"
+                    class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
                     <i class="fas fa-redo-alt mr-1"></i> Reset
                 </button>
-                <button id="statsBtn" class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
+                <button id="statsBtn"
+                    class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
                     <i class="fas fa-chart-line mr-1"></i> Stats
                 </button>
             </div>
@@ -69,214 +71,216 @@
             <!-- Main Content -->
             <main class="flex-grow flex flex-col relative w-full max-w-md mx-auto px-6 pb-8">
 
-        <!-- 1. Setup Screen -->
-        <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6">
-            <div class="text-center space-y-2">
-                <h2 class="text-3xl font-bold">Configure Workout</h2>
-                <p class="text-slate-400 text-sm">Set up your HIIT session</p>
-            </div>
+                <!-- 1. Setup Screen -->
+                <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6">
+                    <div class="text-center space-y-2">
+                        <h2 class="text-3xl font-bold">Configure Workout</h2>
+                        <p class="text-slate-400 text-sm">Set up your HIIT session</p>
+                    </div>
 
-            <div class="space-y-6">
-                <!-- 运动时间 -->
-                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                    <label class="flex justify-between text-rose-400 font-semibold mb-2">
-                        <span><i class="fas fa-fire-alt mr-2"></i>Work Time</span>
-                        <div class="flex items-center gap-2">
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
-                                data-target="workInput" data-delta="-5">
-                                <i class="fas fa-minus text-xs"></i>
-                            </button>
-                            <span id="workDisplay" class="w-14 text-center">60s</span>
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
-                                data-target="workInput" data-delta="5">
-                                <i class="fas fa-plus text-xs"></i>
-                            </button>
+                    <div class="space-y-6">
+                        <!-- 运动时间 -->
+                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                            <label class="flex justify-between text-rose-400 font-semibold mb-2">
+                                <span><i class="fas fa-fire-alt mr-2"></i>Work Time</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
+                                        data-target="workInput" data-delta="-5">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="workDisplay" class="w-14 text-center">60s</span>
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
+                                        data-target="workInput" data-delta="5">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+                            </label>
+                            <input type="range" id="workInput" min="30" max="90" step="5" value="60"
+                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                            <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                <span>30s</span>
+                                <span>90s</span>
+                            </div>
                         </div>
-                    </label>
-                    <input type="range" id="workInput" min="30" max="90" step="5" value="60"
-                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                    <div class="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>30s</span>
-                        <span>90s</span>
+
+                        <!-- 休息时间 -->
+                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                            <label class="flex justify-between text-emerald-400 font-semibold mb-2">
+                                <span><i class="fas fa-coffee mr-2"></i>Rest Time</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
+                                        data-target="restInput" data-delta="-5">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="restDisplay" class="w-14 text-center">45s</span>
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
+                                        data-target="restInput" data-delta="5">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+                            </label>
+                            <input type="range" id="restInput" min="30" max="60" step="5" value="45"
+                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                            <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                <span>30s</span>
+                                <span>60s</span>
+                            </div>
+                        </div>
+
+                        <!-- 轮数 -->
+                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                            <label class="flex justify-between text-blue-400 font-semibold mb-2">
+                                <span><i class="fas fa-sync-alt mr-2"></i>Rounds</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
+                                        data-target="roundsInput" data-delta="-1">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="roundsDisplay" class="w-14 text-center">7</span>
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
+                                        data-target="roundsInput" data-delta="1">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+                            </label>
+                            <input type="range" id="roundsInput" min="1" max="15" step="1" value="7"
+                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                <span>1</span>
+                                <span>15</span>
+                            </div>
+                        </div>
+
+                        <!-- 体重 -->
+                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
+                            <label class="flex justify-between text-purple-400 font-semibold mb-2">
+                                <span><i class="fas fa-weight mr-2"></i>Weight</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
+                                        data-target="weightInput" data-delta="-1">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="weightDisplay" class="w-16 text-center">70 kg</span>
+                                    <button type="button"
+                                        class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
+                                        data-target="weightInput" data-delta="1">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+                            </label>
+                            <input type="range" id="weightInput" min="40" max="120" step="1" value="70"
+                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                            <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                <span>40kg</span>
+                                <span>120kg</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button id="startBtn"
+                            class="w-full bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
+                            Start Workout
+                        </button>
+                        <p class="text-center text-xs text-slate-500 mt-3">Total Duration: <span
+                                id="totalTimeDisplay">08:00</span></p>
                     </div>
                 </div>
 
-                <!-- 休息时间 -->
-                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                    <label class="flex justify-between text-emerald-400 font-semibold mb-2">
-                        <span><i class="fas fa-coffee mr-2"></i>Rest Time</span>
-                        <div class="flex items-center gap-2">
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
-                                data-target="restInput" data-delta="-5">
-                                <i class="fas fa-minus text-xs"></i>
-                            </button>
-                            <span id="restDisplay" class="w-14 text-center">45s</span>
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
-                                data-target="restInput" data-delta="5">
-                                <i class="fas fa-plus text-xs"></i>
+                <!-- 2. Timer Screen -->
+                <div id="timerScreen"
+                    class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] py-8 relative">
+
+                    <!-- 状态标签 -->
+                    <div class="absolute top-0 text-center z-10">
+                        <div id="phaseText" class="text-4xl font-black uppercase tracking-widest drop-shadow-md">GET
+                            READY</div>
+                        <div class="text-lg font-medium opacity-90 mt-1">
+                            Round <span id="currentRoundDisplay">1</span> / <span id="totalRoundsDisplay">8</span>
+                        </div>
+                    </div>
+
+                    <!-- 圆形进度条容器 -->
+                    <div class="relative w-72 h-72 flex items-center justify-center">
+                        <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
+                            <!-- 背景圆环 -->
+                            <circle class="text-white/20" stroke-width="8" stroke="currentColor" fill="transparent"
+                                r="52" cx="60" cy="60" />
+                            <!-- 进度圆环 -->
+                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="8"
+                                stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60"
+                                cy="60" />
+                        </svg>
+
+                        <!-- 中间的大数字 -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="timerDisplay"
+                                class="text-7xl font-mono font-bold tabular-nums tracking-tight drop-shadow-lg">00:00</span>
+                            <button id="toggleBtn"
+                                class="mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center transition">
+                                <i id="toggleIcon" class="fas fa-pause"></i>
                             </button>
                         </div>
-                    </label>
-                    <input type="range" id="restInput" min="30" max="60" step="5" value="45"
-                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                    <div class="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>30s</span>
-                        <span>60s</span>
+                    </div>
+
+                    <!-- 下一阶段提示 -->
+                    <div class="absolute bottom-10 text-center opacity-80">
+                        <p class="text-sm uppercase tracking-wide">Up Next</p>
+                        <p id="nextPhaseText" class="font-bold text-lg">WORK</p>
                     </div>
                 </div>
 
-                <!-- 轮数 -->
-                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                    <label class="flex justify-between text-blue-400 font-semibold mb-2">
-                        <span><i class="fas fa-sync-alt mr-2"></i>Rounds</span>
-                        <div class="flex items-center gap-2">
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
-                                data-target="roundsInput" data-delta="-1">
-                                <i class="fas fa-minus text-xs"></i>
-                            </button>
-                            <span id="roundsDisplay" class="w-14 text-center">7</span>
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
-                                data-target="roundsInput" data-delta="1">
-                                <i class="fas fa-plus text-xs"></i>
-                            </button>
-                        </div>
-                    </label>
-                    <input type="range" id="roundsInput" min="1" max="15" step="1" value="7"
-                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                    <div class="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>1</span>
-                        <span>15</span>
+                <!-- 3. Complete Screen -->
+                <div id="completeScreen"
+                    class="hidden flex-col items-center justify-center text-center space-y-6 min-h-[calc(100vh-120px)] py-8">
+                    <div class="text-6xl text-yellow-400 animate-bounce">
+                        <i class="fas fa-trophy"></i>
                     </div>
-                </div>
+                    <h2 class="text-4xl font-bold">Workout Complete!</h2>
+                    <p class="text-lg text-slate-200">Great job!</p>
 
-                <!-- 体重 -->
-                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                    <label class="flex justify-between text-purple-400 font-semibold mb-2">
-                        <span><i class="fas fa-weight mr-2"></i>Weight</span>
-                        <div class="flex items-center gap-2">
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
-                                data-target="weightInput" data-delta="-1">
-                                <i class="fas fa-minus text-xs"></i>
-                            </button>
-                            <span id="weightDisplay" class="w-16 text-center">70 kg</span>
-                            <button type="button"
-                                class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
-                                data-target="weightInput" data-delta="1">
-                                <i class="fas fa-plus text-xs"></i>
-                            </button>
+                    <!-- 训练统计 -->
+                    <div class="w-full max-w-xs space-y-3 mt-4">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-rose-500/30 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-clock text-rose-400"></i>
+                                </div>
+                                <span class="text-slate-300">Work Time</span>
+                            </div>
+                            <span id="finalWorkTime" class="text-xl font-bold text-rose-400">00:00</span>
                         </div>
-                    </label>
-                    <input type="range" id="weightInput" min="40" max="120" step="1" value="70"
-                        class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500">
-                    <div class="flex justify-between text-xs text-slate-500 mt-1">
-                        <span>40kg</span>
-                        <span>120kg</span>
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-orange-500/30 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-fire text-orange-400"></i>
+                                </div>
+                                <span class="text-slate-300">Calories Burned</span>
+                            </div>
+                            <span id="finalCalories" class="text-xl font-bold text-orange-400">0 kcal</span>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="pt-4">
-                <button id="startBtn"
-                    class="w-full bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
-                    Start Workout
-                </button>
-                <p class="text-center text-xs text-slate-500 mt-3">Total Duration: <span
-                        id="totalTimeDisplay">08:00</span></p>
-            </div>
-        </div>
-
-        <!-- 2. Timer Screen -->
-        <div id="timerScreen"
-            class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] py-8 relative">
-
-            <!-- 状态标签 -->
-            <div class="absolute top-0 text-center z-10">
-                <div id="phaseText" class="text-4xl font-black uppercase tracking-widest drop-shadow-md">GET READY</div>
-                <div class="text-lg font-medium opacity-90 mt-1">
-                    Round <span id="currentRoundDisplay">1</span> / <span id="totalRoundsDisplay">8</span>
-                </div>
-            </div>
-
-            <!-- 圆形进度条容器 -->
-            <div class="relative w-72 h-72 flex items-center justify-center">
-                <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
-                    <!-- 背景圆环 -->
-                    <circle class="text-white/20" stroke-width="8" stroke="currentColor" fill="transparent" r="52"
-                        cx="60" cy="60" />
-                    <!-- 进度圆环 -->
-                    <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="8"
-                        stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
-                </svg>
-
-                <!-- 中间的大数字 -->
-                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                    <span id="timerDisplay"
-                        class="text-7xl font-mono font-bold tabular-nums tracking-tight drop-shadow-lg">00:00</span>
-                    <button id="toggleBtn"
-                        class="mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center transition">
-                        <i id="toggleIcon" class="fas fa-pause"></i>
+                    <button id="homeBtn"
+                        class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition"
+                        onclick="openStats()">
+                        Close
                     </button>
                 </div>
-            </div>
 
-            <!-- 下一阶段提示 -->
-            <div class="absolute bottom-10 text-center opacity-80">
-                <p class="text-sm uppercase tracking-wide">Up Next</p>
-                <p id="nextPhaseText" class="font-bold text-lg">WORK</p>
-            </div>
-        </div>
-
-        <!-- 3. Complete Screen -->
-        <div id="completeScreen"
-            class="hidden flex-col items-center justify-center text-center space-y-6 min-h-[calc(100vh-120px)] py-8">
-            <div class="text-6xl text-yellow-400 animate-bounce">
-                <i class="fas fa-trophy"></i>
-            </div>
-            <h2 class="text-4xl font-bold">Workout Complete!</h2>
-            <p class="text-lg text-slate-200">Great job!</p>
-
-            <!-- 训练统计 -->
-            <div class="w-full max-w-xs space-y-3 mt-4">
-                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-rose-500/30 rounded-full flex items-center justify-center">
-                            <i class="fas fa-clock text-rose-400"></i>
-                        </div>
-                        <span class="text-slate-300">Work Time</span>
-                    </div>
-                    <span id="finalWorkTime" class="text-xl font-bold text-rose-400">00:00</span>
-                </div>
-                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-orange-500/30 rounded-full flex items-center justify-center">
-                            <i class="fas fa-fire text-orange-400"></i>
-                        </div>
-                        <span class="text-slate-300">Calories Burned</span>
-                    </div>
-                    <span id="finalCalories" class="text-xl font-bold text-orange-400">0 kcal</span>
-                </div>
-            </div>
-
-            <button id="homeBtn"
-                class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition"
-                onclick="openStats()">
-                Close
-            </button>
-        </div>
-
-    </main>
+            </main>
         </div>
     </div>
 
     <!-- Stats Overlay -->
-    <div id="statsOverlay" class="fixed inset-0 bg-slate-900 z-20 hidden overflow-y-auto">
+    <div id="statsOverlay" class="fixed inset-0 bg-slate-900 z-[60] hidden overflow-y-auto">
         <div class="max-w-4xl mx-auto px-4 py-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Training History</h2>
@@ -343,7 +347,8 @@
     </div>
 
     <!-- Edit Modal -->
-    <div id="editModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div id="editModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl m-4">
             <h3 class="text-xl font-bold mb-4">Edit Workout</h3>
             <div class="space-y-4">

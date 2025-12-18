@@ -43,33 +43,11 @@
 
     <!-- Main Content Wrapper -->
     <div class="flex-1 flex flex-col min-w-0 relative">
-        
+
         <!-- Header -->
         <local-header title="番茄钟">
             <i slot="icon" class="fas fa-clock text-rose-500"></i>
             <div slot="actions" class="flex items-center gap-4">
-                <!-- Tag Selector -->
-                <div class="relative group">
-                    <button onclick="toggleTagMenu()" id="currentTagBtn"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition">
-                        <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                        <span id="currentTagName">Work</span>
-                        <i class="fas fa-chevron-down text-xs text-slate-500"></i>
-                    </button>
-                    <div id="tagMenu"
-                        class="hidden absolute top-full left-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
-                        <div id="tagList" class="max-h-60 overflow-y-auto">
-                            <!-- Tags rendered here -->
-                        </div>
-                        <div class="border-t border-slate-700 mt-1 pt-1 px-2">
-                            <button onclick="openAddTagModal()"
-                                class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
-                                <i class="fas fa-plus"></i> 新建标签
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="flex items-center gap-3">
                     <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
                         <i class="fas fa-history text-xl"></i>
@@ -81,211 +59,236 @@
         <div class="flex-1 overflow-y-auto">
             <main class="max-w-4xl mx-auto px-4 py-8">
 
-        <!-- Timer View -->
-        <div id="timerView" class="flex flex-col items-center justify-center min-h-[60vh]">
+                <!-- Timer View -->
+                <div id="timerView" class="flex flex-col items-center justify-center min-h-[60vh]">
 
-            <!-- Digital Timer -->
-            <div class="text-[8rem] font-bold font-mono tracking-tighter leading-none mb-4 tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400"
-                id="digitalTimer">
-                25:00
-            </div>
-
-            <!-- Pixel Tomato -->
-            <div class="w-full max-w-md mb-12">
-                <div id="pixelGrid"
-                    class="pixel-grid bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                    <!-- Blocks injected here -->
-                </div>
-                <div class="text-center mt-2 text-xs text-slate-500">
-                    <span id="progressText">0 / 25 min</span>
-                </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="flex items-center gap-6">
-
-                <!-- Duration Settings (Only valid when stopped) -->
-                <div id="durationSettings"
-                    class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700">
-                    <button onclick="setDuration(15)"
-                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                        data-min="15">15</button>
-                    <button onclick="setDuration(25)"
-                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
-                        data-min="25">25</button>
-                    <button onclick="setDuration(45)"
-                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                        data-min="45">45</button>
-                    <button onclick="setDuration(60)"
-                        class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                        data-min="60">60</button>
-                    <button onclick="askCustomDuration()"
-                        class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
-                            class="fas fa-edit"></i></button>
-                </div>
-
-                <!-- Main Action -->
-                <button id="mainBtn" onclick="toggleTimer()"
-                    class="h-16 w-16 rounded-full bg-rose-500 hover:bg-rose-400 text-white text-2xl flex items-center justify-center shadow-lg shadow-rose-500/30 transition transform hover:scale-105 active:scale-95">
-                    <i class="fas fa-play ml-1"></i>
-                </button>
-
-                <!-- Stop Button (Hidden by default, shown when running) -->
-                <button id="resetBtn" onclick="resetTimer()"
-                    class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition">
-                    <i class="fas fa-stop"></i>
-                </button>
-
-                <!-- Skip (Hidden by default) -->
-                <button id="skipBtn" onclick="skipRelax()"
-                    class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition"
-                    title="跳过">
-                    <i class="fas fa-forward"></i>
-                </button>
-
-            </div>
-
-            <!-- Notification Toggle -->
-            <div class="mt-8 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
-                <input type="checkbox" id="notifyToggle"
-                    class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
-                <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">任务结束通知</label>
-            </div>
-        </div>
-
-        <!-- Stats View (Modal/Overlay) -->
-        <div id="statsOverlay"
-            class="fixed inset-0 bg-slate-900 z-30 transform translate-y-full transition duration-300 overflow-y-auto">
-            <div class="max-w-5xl mx-auto px-4 py-8">
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl font-bold flex items-center gap-2">
-                        <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
-                    </h2>
-                    <button onclick="closeStats()"
-                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
-                        关闭
-                    </button>
-                </div>
-
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-slate-400 text-xs mb-1">今日专注</div>
-                        <div class="text-2xl font-bold text-white"><span id="todayCount">0</span> <span
-                                class="text-sm font-normal text-slate-500">个番茄</span></div>
+                    <!-- Digital Timer -->
+                    <div class="text-[8rem] font-bold font-mono tracking-tighter leading-none mb-4 tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400"
+                        id="digitalTimer">
+                        25:00
                     </div>
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-slate-400 text-xs mb-1">今日时长</div>
-                        <div class="text-2xl font-bold text-blue-400"><span id="todayMins">0</span> <span
-                                class="text-sm font-normal text-slate-500">分钟</span></div>
-                    </div>
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-slate-400 text-xs mb-1">本周累计</div>
-                        <div class="text-2xl font-bold text-emerald-400"><span id="weekCount">0</span> <span
-                                class="text-sm font-normal text-slate-500">个</span></div>
-                    </div>
-                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                        <div class="text-slate-400 text-xs mb-1">总专注时长</div>
-                        <div class="text-2xl font-bold text-amber-400"><span id="totalHours">0.0</span> <span
-                                class="text-sm font-normal text-slate-500">小时</span></div>
-                    </div>
-                </div>
 
-                <!-- Charts -->
-                <div class="grid md:grid-cols-3 gap-6 mb-8">
-                    <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-sm font-medium text-slate-300">专注趋势</h3>
-                            <div class="flex items-center gap-4">
-                                <button onclick="toggleFullView()" id="fullViewBtn"
-                                    class="px-2 py-1 text-xs border border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400 transition">
-                                    <i class="fas fa-expand"></i> 全景
-                                </button>
-                                <button onclick="openExportPanoramaModal()"
-                                    class="px-2 py-1 text-xs border border-emerald-600 rounded text-emerald-400 hover:text-white hover:border-emerald-400 hover:bg-emerald-600/20 transition">
-                                    <i class="fas fa-image"></i> 导出
-                                </button>
-                                <div class="flex items-center gap-2 text-xs text-slate-400" id="sliderContainer">
-                                    <button onclick="moveSlider(-1)" class="p-1 hover:text-white transition"><i
-                                            class="fas fa-chevron-left"></i></button>
-                                    <input type="range" id="chartSlider" min="0" max="20" step="1" value="0"
-                                        class="w-24 md:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                        oninput="onSliderChange(this.value)">
-                                    <button onclick="moveSlider(1)" class="p-1 hover:text-white transition"><i
-                                            class="fas fa-chevron-right"></i></button>
+                    <!-- Pixel Tomato -->
+                    <div class="w-full max-w-md mb-12">
+                        <div id="pixelGrid"
+                            class="pixel-grid bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                            <!-- Blocks injected here -->
+                        </div>
+                        <div class="text-center mt-2 text-xs text-slate-500">
+                            <span id="progressText">0 / 25 min</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex items-center gap-6">
+                        <!-- Tag Selector -->
+                        <div class="relative group">
+                            <button onclick="toggleTagMenu()" id="currentTagBtn"
+                                class="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition h-10">
+                                <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                <span id="currentTagName">Work</span>
+                                <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+                            </button>
+                            <div id="tagMenu"
+                                class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
+                                <div id="tagList" class="max-h-60 overflow-y-auto">
+                                    <!-- Tags rendered here -->
+                                </div>
+                                <div class="border-t border-slate-700 mt-1 pt-1 px-2">
+                                    <button onclick="openAddTagModal()"
+                                        class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
+                                        <i class="fas fa-plus"></i> 新建标签
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="h-64">
-                            <canvas id="trendChart"></canvas>
+
+                        <!-- Duration Settings (Only valid when stopped) -->
+                        <div id="durationSettings"
+                            class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700">
+                            <button onclick="setDuration(15)"
+                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                data-min="15">15</button>
+                            <button onclick="setDuration(25)"
+                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
+                                data-min="25">25</button>
+                            <button onclick="setDuration(45)"
+                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                data-min="45">45</button>
+                            <button onclick="setDuration(60)"
+                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                data-min="60">60</button>
+                            <button onclick="askCustomDuration()"
+                                class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
+                                    class="fas fa-edit"></i></button>
                         </div>
+
+                        <!-- Main Action -->
+                        <button id="mainBtn" onclick="toggleTimer()"
+                            class="h-16 w-16 rounded-full bg-rose-500 hover:bg-rose-400 text-white text-2xl flex items-center justify-center shadow-lg shadow-rose-500/30 transition transform hover:scale-105 active:scale-95">
+                            <i class="fas fa-play ml-1"></i>
+                        </button>
+
+                        <!-- Stop Button (Hidden by default, shown when running) -->
+                        <button id="resetBtn" onclick="resetTimer()"
+                            class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition">
+                            <i class="fas fa-stop"></i>
+                        </button>
+
+                        <!-- Skip (Hidden by default) -->
+                        <button id="skipBtn" onclick="skipRelax()"
+                            class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition"
+                            title="跳过">
+                            <i class="fas fa-forward"></i>
+                        </button>
+
                     </div>
-                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-sm font-medium text-slate-300">分布占比</h3>
-                            <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
-                                <button onclick="setDistMode('today')" id="distModeToday"
-                                    class="px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm">今天</button>
-                                <button onclick="setDistMode('week')" id="distModeWeek"
-                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
-                            </div>
-                        </div>
-                        <div class="h-64 flex items-center justify-center">
-                            <canvas id="distChart"></canvas>
-                        </div>
+
+                    <!-- Notification Toggle -->
+                    <div class="mt-8 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
+                        <input type="checkbox" id="notifyToggle"
+                            class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
+                        <label for="notifyToggle"
+                            class="text-sm text-slate-400 cursor-pointer select-none">任务结束通知</label>
                     </div>
                 </div>
 
-                <!-- History List (Unified with Export) -->
-                <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
-                    <!-- Header with Filters -->
-                    <div class="p-4 border-b border-slate-700">
-                        <div class="flex flex-wrap gap-3 items-center justify-between">
-                            <h3 class="font-medium text-slate-300">详细记录</h3>
-                            <div class="flex flex-wrap gap-2 items-center">
-                                <!-- Quick Filters -->
-                                <div class="flex bg-slate-900 rounded-lg p-0.5">
-                                    <button onclick="setHistoryFilter('today')" id="filterBtnToday"
-                                        class="px-3 py-1 text-xs rounded-md transition bg-blue-600 text-white">今天</button>
-                                    <button onclick="setHistoryFilter('week')" id="filterBtnWeek"
-                                        class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
-                                    <button onclick="setHistoryFilter('all')" id="filterBtnAll"
-                                        class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">全部</button>
-                                </div>
-                                <div class="h-4 w-px bg-slate-600 hidden sm:block"></div>
-                                <!-- Date Picker -->
-                                <input type="date" id="historyDatePicker" onchange="setHistoryFilter('date')"
-                                    class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 text-white outline-none focus:border-blue-500">
-                            </div>
-                        </div>
-                        <!-- Status & Export Controls -->
-                        <div
-                            class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
-                            <div id="historyStatus" class="text-xs text-slate-500">加载中...</div>
-                            <div class="flex gap-2 items-center">
-                                <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
-                                    <input type="checkbox" id="exportExcludeRelax" class="rounded w-3 h-3">
-                                    导出时排除休息
-                                </label>
-                                <button onclick="exportCurrentList()"
-                                    class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5">
-                                    <i class="fas fa-copy"></i> 复制
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- History Items -->
-                    <div id="historyList" class="divide-y divide-slate-700/50 max-h-[400px] overflow-y-auto">
-                        <!-- Items rendered by JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
 
-    </main>
+
+            </main>
         </div>
     </div>
 
+    <!-- Save Modal -->
+    <!-- Stats View (Modal/Overlay) -->
+    <div id="statsOverlay"
+        class="fixed inset-0 bg-slate-900 z-[60] transform translate-y-full transition duration-300 overflow-y-auto">
+        <div class="max-w-5xl mx-auto px-4 pb-8">
+            <div
+                class="sticky top-0 z-[70] bg-slate-900/95 backdrop-blur pt-8 pb-4 mb-6 flex justify-between items-center border-b border-slate-800/50">
+                <h2 class="text-2xl font-bold flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
+                </h2>
+                <button onclick="closeStats()"
+                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
+                    关闭
+                </button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-slate-400 text-xs mb-1">今日专注</div>
+                    <div class="text-2xl font-bold text-white"><span id="todayCount">0</span> <span
+                            class="text-sm font-normal text-slate-500">个番茄</span></div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-slate-400 text-xs mb-1">今日时长</div>
+                    <div class="text-2xl font-bold text-blue-400"><span id="todayMins">0</span> <span
+                            class="text-sm font-normal text-slate-500">分钟</span></div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-slate-400 text-xs mb-1">本周累计</div>
+                    <div class="text-2xl font-bold text-emerald-400"><span id="weekCount">0</span> <span
+                            class="text-sm font-normal text-slate-500">个</span></div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-slate-400 text-xs mb-1">总专注时长</div>
+                    <div class="text-2xl font-bold text-amber-400"><span id="totalHours">0.0</span> <span
+                            class="text-sm font-normal text-slate-500">小时</span></div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-medium text-slate-300">专注趋势</h3>
+                        <div class="flex items-center gap-4">
+                            <button onclick="toggleFullView()" id="fullViewBtn"
+                                class="px-2 py-1 text-xs border border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400 transition">
+                                <i class="fas fa-expand"></i> 全景
+                            </button>
+                            <button onclick="openExportPanoramaModal()"
+                                class="px-2 py-1 text-xs border border-emerald-600 rounded text-emerald-400 hover:text-white hover:border-emerald-400 hover:bg-emerald-600/20 transition">
+                                <i class="fas fa-image"></i> 导出
+                            </button>
+                            <div class="flex items-center gap-2 text-xs text-slate-400" id="sliderContainer">
+                                <button onclick="moveSlider(-1)" class="p-1 hover:text-white transition"><i
+                                        class="fas fa-chevron-left"></i></button>
+                                <input type="range" id="chartSlider" min="0" max="20" step="1" value="0"
+                                    class="w-24 md:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                    oninput="onSliderChange(this.value)">
+                                <button onclick="moveSlider(1)" class="p-1 hover:text-white transition"><i
+                                        class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-medium text-slate-300">分布占比</h3>
+                        <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
+                            <button onclick="setDistMode('today')" id="distModeToday"
+                                class="px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm">今天</button>
+                            <button onclick="setDistMode('week')" id="distModeWeek"
+                                class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                        </div>
+                    </div>
+                    <div class="h-64 flex items-center justify-center">
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History List (Unified with Export) -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
+                <!-- Header with Filters -->
+                <div class="p-4 border-b border-slate-700">
+                    <div class="flex flex-wrap gap-3 items-center justify-between">
+                        <h3 class="font-medium text-slate-300">详细记录</h3>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <!-- Quick Filters -->
+                            <div class="flex bg-slate-900 rounded-lg p-0.5">
+                                <button onclick="setHistoryFilter('today')" id="filterBtnToday"
+                                    class="px-3 py-1 text-xs rounded-md transition bg-blue-600 text-white">今天</button>
+                                <button onclick="setHistoryFilter('week')" id="filterBtnWeek"
+                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                                <button onclick="setHistoryFilter('all')" id="filterBtnAll"
+                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">全部</button>
+                            </div>
+                            <div class="h-4 w-px bg-slate-600 hidden sm:block"></div>
+                            <!-- Date Picker -->
+                            <input type="date" id="historyDatePicker" onchange="setHistoryFilter('date')"
+                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 text-white outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <!-- Status & Export Controls -->
+                    <div
+                        class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
+                        <div id="historyStatus" class="text-xs text-slate-500">加载中...</div>
+                        <div class="flex gap-2 items-center">
+                            <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                                <input type="checkbox" id="exportExcludeRelax" class="rounded w-3 h-3">
+                                导出时排除休息
+                            </label>
+                            <button onclick="exportCurrentList()"
+                                class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- History Items -->
+                <div id="historyList" class="divide-y divide-slate-700/50 max-h-[400px] overflow-y-auto">
+                    <!-- Items rendered by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Save Modal -->
     <div id="saveModal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
@@ -540,6 +543,7 @@
             tagList: document.getElementById('tagList'),
             currentTagName: document.getElementById('currentTagName'),
             currentTagDot: document.getElementById('currentTagDot'),
+            currentTagBtn: document.getElementById('currentTagBtn'),
             progressText: document.getElementById('progressText'),
             skipBtn: document.getElementById('skipBtn')
         };
@@ -584,6 +588,16 @@
 
             // 3. Check for aborted sessions on startup (non-blocking)
             checkAbortedSessions();
+
+            // 4. Global Click Listener for Tag Menu
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('tagMenu');
+                const btn = document.getElementById('currentTagBtn');
+                // If menu is open, and click is NOT on menu AND NOT on button, close it.
+                if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
         }
 
         // === Timer State Persistence (Database-based) ===
@@ -703,7 +717,6 @@
         async function toggleTimer() {
             // Only start if stopped - there's no pause, only stop (reset button)
             if (currentState === 'stopped') {
-                await ensureFilePermission();
                 startTimer();
             }
             // When running, user can only use reset button to stop
@@ -726,6 +739,10 @@
             currentState = 'running';
             // Hide main button while running (user uses reset button to stop)
             els.mainBtn.classList.add('hidden');
+
+            // Disable tag selection
+            els.currentTagBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            els.tagMenu.classList.add('hidden');
 
             // Show stop button
             els.resetBtn.classList.remove('hidden');
@@ -855,6 +872,9 @@
             timeLeftSeconds = durationMinutes * 60;
             updateDigitalDisplay();
             renderPixels();
+
+            // Enable tag selection
+            els.currentTagBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
             // Show main button again
             els.mainBtn.classList.remove('hidden');
@@ -1210,6 +1230,7 @@
 
         // === Tag Logic ===
         function toggleTagMenu() {
+            if (currentState === 'running') return;
             els.tagMenu.classList.toggle('hidden');
         }
 
