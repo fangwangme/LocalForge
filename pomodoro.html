@@ -49,6 +49,9 @@
             <i slot="icon" class="fas fa-clock text-rose-500"></i>
             <div slot="actions" class="flex items-center gap-4">
                 <div class="flex items-center gap-3">
+                    <button onclick="openTagsManagement()" class="p-3 text-slate-400 hover:text-white transition" title="管理标签">
+                        <i class="fas fa-tags text-xl"></i>
+                    </button>
                     <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
                         <i class="fas fa-history text-xl"></i>
                     </button>
@@ -106,6 +109,9 @@
                         <!-- Duration Settings (Only valid when stopped) -->
                         <div id="durationSettings"
                             class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700">
+                            <button onclick="setDuration(5)"
+                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                data-min="5">5</button>
                             <button onclick="setDuration(15)"
                                 class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
                                 data-min="15">15</button>
@@ -135,12 +141,7 @@
                             <i class="fas fa-stop"></i>
                         </button>
 
-                        <!-- Skip (Hidden by default) -->
-                        <button id="skipBtn" onclick="skipRelax()"
-                            class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition"
-                            title="跳过">
-                            <i class="fas fa-forward"></i>
-                        </button>
+
 
                     </div>
 
@@ -290,8 +291,8 @@
         </div>
     </div>
     <!-- Save Modal -->
-    <div id="saveModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+    <div id="saveModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div
             class="bg-slate-800 border-t-4 border-rose-500 rounded-2xl w-full max-w-sm p-8 shadow-2xl transform scale-90 transition-transform duration-300">
             <div class="text-center mb-6">
@@ -349,11 +350,43 @@
         </div>
     </div>
 
-    <!-- Add Tag Modal -->
-    <div id="addTagModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <!-- Tag Management Modal -->
+    <div id="tagsManagementModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-xl text-white flex items-center gap-2">
+                    <i class="fas fa-tags text-rose-500"></i> 标签管理
+                </h3>
+                <button onclick="closeTagsManagement()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <button onclick="openAddTagModal()" 
+                    class="w-full py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 border-dashed text-slate-300 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i> 新建标签
+                </button>
+            </div>
+
+            <div id="manageTagList" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <!-- Tags rendered here -->
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeTagsManagement()"
+                    class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addTagModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4">新建标签</h3>
+            <h3 class="font-bold text-lg mb-4" id="tagModalTitle">新建标签</h3>
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">名称</label>
@@ -368,6 +401,11 @@
                         <span class="text-xs text-slate-500">点击色块选择颜色</span>
                     </div>
                 </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="newTagDefault" 
+                        class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
+                    <label for="newTagDefault" class="text-xs text-slate-400 cursor-pointer select-none">设为默认标签</label>
+                </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="document.getElementById('addTagModal').classList.add('hidden')"
@@ -377,11 +415,10 @@
             </div>
         </div>
     </div>
-    </div>
 
     <!-- Edit Session Modal -->
-    <div id="editSessionModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div id="editSessionModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-white">编辑记录</h3>
             <div class="space-y-4">
@@ -434,8 +471,8 @@
     </div>
 
     <!-- Custom Duration Modal -->
-    <div id="customDurationModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div id="customDurationModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-center">自定义时长</h3>
             <div class="space-y-4">
@@ -467,8 +504,8 @@
     </div>
 
     <!-- Export Records Modal (Daily Markdown) -->
-    <div id="exportRecordsModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+    <div id="exportRecordsModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-white flex items-center gap-2">
                 <i class="fas fa-file-export text-blue-400"></i> 导出记录
@@ -499,8 +536,8 @@
     </div>
 
     <!-- Export Panorama Modal (7-Day PNG) -->
-    <div id="exportPanoramaModal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center overflow-y-auto py-8">
+    <div id="exportPanoramaModal" style="z-index: 100;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center overflow-y-auto py-8">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl p-6 shadow-2xl my-auto">
             <h3 class="font-bold text-lg mb-4 text-white flex items-center gap-2">
                 <i class="fas fa-image text-emerald-400"></i> 导出7日全景图
@@ -534,6 +571,7 @@
 
         // === State ===
         let currentState = 'stopped'; // stopped, running
+        let currentEditTagId = null; // null for add, id for edit
         let pendingAbort = false; // true if user clicked stop button (for save modal)
         let durationMinutes = 25;
         let timeLeftSeconds = 25 * 60;
@@ -560,8 +598,7 @@
             currentTagName: document.getElementById('currentTagName'),
             currentTagDot: document.getElementById('currentTagDot'),
             currentTagBtn: document.getElementById('currentTagBtn'),
-            progressText: document.getElementById('progressText'),
-            skipBtn: document.getElementById('skipBtn')
+            progressText: document.getElementById('progressText')
         };
 
         // === Init ===
@@ -730,8 +767,6 @@
             els.resetBtn.onclick = resetTimer;
             els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
-            checkSkipButton();
-
             // Note: Removed 10s periodic progress update - data saved on session completion only
 
             // Use timestamp diffing for accuracy
@@ -885,16 +920,7 @@
                 </button>
             `).join('');
 
-            const addBtnHtml = `
-                <div class="border-t border-slate-700 mt-1 pt-1 px-2">
-                    <button type="button" onclick="openAddTagModal(); toggleSaveTagMenu();"
-                        class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
-                        <i class="fas fa-plus"></i> 新建标签
-                    </button>
-                </div>
-            `;
-
-            menu.innerHTML = listHtml + addBtnHtml;
+            menu.innerHTML = listHtml;
             
             // Set initial selection
             if (currentTag) {
@@ -921,7 +947,6 @@
 
             // Hide reset button when stopped (only show when running as stop button)
             els.resetBtn.classList.add('hidden');
-            checkSkipButton();
         }
 
         let pomosCompleted = 0;
@@ -938,6 +963,7 @@
 
             // Update currentTag for auto-flow
             currentTag = selectedTag;
+            if (currentTag) localStorage.setItem('pomodoro_last_tag_id', currentTag.id);
 
             // Use recorded end time, not current time (user may have delayed clicking confirm)
             const end = sessionEndTime || new Date();
@@ -985,86 +1011,13 @@
             handleAutoFlow();
         }
 
-        async function saveTag(inputValue) {
-            if (inputValue) {
-                const newTag = { name: inputValue, color: '#64748b' }; // Default color
-                try {
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, 0)", [newTag.name, newTag.color]);
-                    // Reload tags will happen via db_updated event
-                } catch (e) { console.error(e); }
-
-                closeAddTagModal();
-            }
-        }
-
-        async function deleteTag(tagId) {
-            try {
-                await db.execute("DELETE FROM pomodoro_tags WHERE id = ?", [tagId]);
-            } catch (e) { console.error(e); }
-        }
-
-
         function handleAutoFlow() {
-            // New logic: removed duration check, always trigger auto-relax logic
-            // Work session - trigger auto relax
+            // Simply reset UI, user manually chooses next action
             pomosCompleted++;
-            lastWorkTagId = currentTag?.id;
-
-            let breakMins = 5;
-            if (pomosCompleted % 4 === 0) {
-                breakMins = 15; // Long break after 4 pomos
-            }
-
-            // Find Relax Tag if exists, otherwise just set break duration
-            const relaxTag = tags.find(t => t.name === 'Relax') || tags.find(t => t.name === 'Rest');
-            if (relaxTag) {
-                selectTag(relaxTag.id);
-            }
-
-            setDuration(breakMins);
             resetTimerUI();
         }
 
-        // === Skip Logic ===
-        function checkSkipButton() {
-            // Check if current is Relax
-            const isRelax = currentTag && (currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest');
 
-            // Show skip only if:
-            // 1. Tag is Relax
-            // 2. Timer is STOPPED (not running)
-            // When running, user should use stop button, not skip
-            if (isRelax && currentState === 'stopped') {
-                els.skipBtn.classList.remove('hidden');
-            } else {
-                els.skipBtn.classList.add('hidden');
-            }
-        }
-
-        function skipRelax() {
-            // Confirm we are in relax
-            const isRelax = currentTag.name === 'Relax' || currentTag.name === 'Break' || currentTag.name === 'Rest';
-            if (!isRelax) return;
-
-            // Stop timer if running
-            if (currentState === 'running') {
-                clearInterval(timerInterval);
-                currentState = 'stopped';
-
-                // Delete the relax session (skipped, not completed or aborted)
-                deleteSessionRecord();
-
-                // Show Main Button
-                els.mainBtn.classList.remove('hidden');
-                els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
-
-                // Hide Reset Button
-                els.resetBtn.classList.add('hidden');
-            }
-
-            // Execute AutoFlow to switch to Work
-            handleAutoFlow();
-        }
 
         function closeSaveModal() {
             const modal = els.saveModal;
@@ -1234,16 +1187,13 @@
                 currentTag = t;
                 els.currentTagName.innerText = t.name;
                 els.currentTagDot.style.backgroundColor = t.color;
-                // Update visuals if not running
-                if (currentState === 'stopped') {
-                    // Update pixel colors if any were filled? No, they are empty when stopped.
-                }
+                // Save selection
+                localStorage.setItem('pomodoro_last_tag_id', id);
             }
             els.tagMenu.classList.add('hidden');
-            checkSkipButton();
         }
 
-        function renderTags(tagList) {
+        function renderTags(tagList, showActions = true) {
             if (tagList) {
                 tags = tagList.map(r => ({
                     id: r.values[0],
@@ -1251,6 +1201,13 @@
                     color: r.values[2],
                     isDefault: r.values[3] === 1
                 }));
+
+                // Sort: isDefault first, then alphabetically by name
+                tags.sort((a, b) => {
+                    if (a.isDefault && !b.isDefault) return -1;
+                    if (!a.isDefault && b.isDefault) return 1;
+                    return a.name.localeCompare(b.name, 'zh-CN');
+                });
             }
 
             if (tags.length === 0) {
@@ -1265,6 +1222,14 @@
             if (currentTag) {
                 // Try to keep current selection
                 selected = tags.find(t => t.id === currentTag.id);
+            }
+
+            // Try to restore from localStorage
+            if (!selected) {
+                const lastId = localStorage.getItem('pomodoro_last_tag_id');
+                if (lastId) {
+                    selected = tags.find(t => t.id == lastId);
+                }
             }
 
             if (!selected) {
@@ -1284,14 +1249,59 @@
             }
 
             els.tagList.innerHTML = tags.map(t => `
-                <button onclick="selectTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-700 transition flex items-center justify-between group">
-                    <div class="flex items-center gap-2">
+                <div class="w-full px-3 py-1 hover:bg-slate-700/50 transition flex items-center justify-between group">
+                    <button onclick="selectTag(${t.id})" class="flex-1 flex items-center gap-2 py-1.5 text-left">
                         <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
-                        <span class="text-sm text-slate-300 group-hover:text-white">${t.name}</span>
+                        <span class="text-sm ${currentTag && t.id === currentTag.id ? 'text-white font-bold' : 'text-slate-300 group-hover:text-white'}">${t.name}</span>
+                    </button>
+                    ${showActions ? `
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="editTag(${t.id})" class="p-1.5 text-slate-500 hover:text-blue-400" title="编辑">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
+                        ${!t.isDefault ? `
+                        <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-500 hover:text-rose-400" title="删除">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                        ` : ''}
                     </div>
-                    ${(currentTag && t.id === currentTag.id) ? '<i class="fas fa-check text-xs text-blue-500"></i>' : ''}
-                </button>
+                    ` : (currentTag && t.id === currentTag.id ? '<i class="fas fa-check text-xs text-blue-500"></i>' : '')}
+                </div>
             `).join('');
+
+            // Also update the list in Tags Management modal
+            const manageList = document.getElementById('manageTagList');
+            if (manageList) {
+                manageList.innerHTML = tags.map(t => `
+                    <div class="bg-slate-900/50 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-4 h-4 rounded-full shadow-sm" style="background-color: ${t.color}"></div>
+                            <div>
+                                <div class="text-sm font-medium text-slate-200">${t.name}</div>
+                                ${t.isDefault ? '<div class="text-[10px] text-slate-500 uppercase tracking-wider">默认标签</div>' : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editTag(${t.id})" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition">
+                                <i class="fas fa-edit text-sm"></i>
+                            </button>
+                            ${!t.isDefault ? `
+                            <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openTagsManagement() {
+            document.getElementById('tagsManagementModal').classList.remove('hidden');
+        }
+
+        function closeTagsManagement() {
+            document.getElementById('tagsManagementModal').classList.add('hidden');
         }
 
         async function createDefaultTags() {
@@ -1313,12 +1323,11 @@
         
         function openAddTagModal() {
             els.tagMenu.classList.add('hidden');
-            // Reset fields
+            currentEditTagId = null;
+            document.getElementById('tagModalTitle').innerText = '新建标签';
             document.getElementById('newTagName').value = '';
-            // Random default color or fixed default? Let's use a nice blue default, or maybe random? 
-            // Let's stick to a fixed default for simplicity, user can change it.
             document.getElementById('newTagColor').value = '#3b82f6';
-            
+            document.getElementById('newTagDefault').checked = false;
             document.getElementById('addTagModal').classList.remove('hidden');
         }
 
@@ -1326,15 +1335,56 @@
             document.getElementById('addTagModal').classList.add('hidden');
         }
 
+        async function editTag(id) {
+            const tag = tags.find(t => t.id === id);
+            if (!tag) return;
+
+            currentEditTagId = id;
+            document.getElementById('tagModalTitle').innerText = '编辑标签';
+            document.getElementById('newTagName').value = tag.name;
+            document.getElementById('newTagColor').value = tag.color;
+            document.getElementById('newTagDefault').checked = tag.isDefault;
+            document.getElementById('addTagModal').classList.remove('hidden');
+        }
+
+        async function confirmDeleteTag(id, name) {
+            if (confirm(`确定要删除标签 "${name}" 吗？\n相关的所有历史记录仍会保留，但标签将显示为“未知”。`)) {
+                try {
+                    await db.execute("DELETE FROM pomodoro_tags WHERE id = ?", [id]);
+                } catch (e) { console.error('Delete Tag Failed:', e); }
+            }
+        }
+
         async function confirmAddTag() {
             const name = document.getElementById('newTagName').value.trim();
             const color = document.getElementById('newTagColor').value;
+            const isDefault = document.getElementById('newTagDefault').checked ? 1 : 0;
             
             if (!name) return;
 
             try {
-                await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, 0)", [name, color]);
-            } catch (e) { console.error('Add Tag Failed:', e); }
+                // If this tag is being set as default, unset others first
+                if (isDefault === 1) {
+                    await db.execute("UPDATE pomodoro_tags SET is_default = 0");
+                }
+
+                if (currentEditTagId) {
+                    await db.execute("UPDATE pomodoro_tags SET name = ?, color = ?, is_default = ? WHERE id = ?", [name, color, isDefault, currentEditTagId]);
+                } else {
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, ?)", [name, color, isDefault]);
+                }
+                
+                // If we unset a default but didn't set a new one, we might need a fallback.
+                // But normally we'd always want at least one default. 
+                // Ensuring at least one default tag exists:
+                if (isDefault === 0) {
+                   const countRes = await db.query("SELECT COUNT(*) FROM pomodoro_tags WHERE is_default = 1");
+                   if (countRes && countRes[0].values[0][0] === 0) {
+                       // If no default exists, force this one or keep the first one as default
+                       // For now, let's just let it be, but usually it's better to keep one.
+                   }
+                }
+            } catch (e) { console.error('Save Tag Failed:', e); }
 
             document.getElementById('addTagModal').classList.add('hidden');
             document.getElementById('newTagName').value = '';
@@ -2414,10 +2464,12 @@
         let currentEditSessionId = null;
 
         function editSession(id) {
-            const session = sessions.find(s => s.id === id);
+            const targetId = parseInt(id);
+            const session = currentHistorySessions.find(s => s.id === targetId) || sessions.find(s => s.id === targetId);
+            
             if (!session) return;
 
-            currentEditSessionId = id;
+            currentEditSessionId = targetId;
 
             // Format times for datetimelocal (YYYY-MM-DDTHH:mm)
             const formatForInput = (isoStr) => {
@@ -2707,15 +2759,16 @@
         window.confirmCustomDuration = confirmCustomDuration;
         window.confirmSaveSession = confirmSaveSession;
         window.discardSession = discardSession;
-        window.saveTag = saveTag;
-        window.deleteTag = deleteTag;
+        window.openTagsManagement = openTagsManagement;
+        window.closeTagsManagement = closeTagsManagement;
+        window.editTag = editTag;
+        window.confirmDeleteTag = confirmDeleteTag;
         window.setDuration = setDuration;
         window.setDistMode = setDistMode;
         window.renderHistoryList = renderHistoryList;
         window.setHistoryFilter = setHistoryFilter;
         window.exportCurrentList = exportCurrentList;
         window.moveSlider = moveSlider;
-        window.skipRelax = skipRelax;
         window.openExportRecordsModal = openExportRecordsModal;
         window.onExportDateChange = onExportDateChange;
         window.closeExportRecordsModal = closeExportRecordsModal;
