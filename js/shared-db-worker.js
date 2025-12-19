@@ -137,16 +137,27 @@ self.onconnect = function (e) {
                     if (!db) throw new Error('Database not open');
 
                     let result = [];
+                    let lastId = null;
                     if (msg.sql.trim().toUpperCase().startsWith('SELECT')) {
                         result = db.exec(msg.sql, msg.params);
                     } else {
                         db.run(msg.sql, msg.params);
+                        // Get last insert ID only for modifications
+                        try {
+                            const idRes = db.exec("SELECT last_insert_rowid()");
+                            if (idRes && idRes[0]) {
+                                lastId = idRes[0].values[0][0];
+                            }
+                        } catch (e) {
+                            console.warn('[SharedWorker] Failed to get last_insert_rowid', e);
+                        }
                     }
 
                     port.postMessage({
                         type: 'QuerySuccess',
                         requestId: msg.requestId,
-                        result: result
+                        result: result,
+                        lastInsertRowid: lastId
                     });
 
                     if (!msg.sql.trim().toUpperCase().startsWith('SELECT')) {

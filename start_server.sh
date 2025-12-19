@@ -28,7 +28,7 @@ start_server() {
     echo "=================================================="
 
     # 使用 nohup 后台运行服务器
-    nohup python3 -m http.server $PORT >> "$LOG_FILE" 2>&1 &
+    nohup python -m http.server $PORT >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
 
     echo "Server started with PID: $(cat $PID_FILE)"

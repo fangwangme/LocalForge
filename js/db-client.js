@@ -76,7 +76,12 @@ class DbClient {
                     const req = this.pendingRequests.get(msg.requestId);
                     if (req) {
                         this.pendingRequests.delete(msg.requestId);
-                        req.resolve(msg.result);
+                        const result = msg.result;
+                        // Attach lastInsertRowid to the result (works for both arrays and objects)
+                        if (msg.lastInsertRowid !== undefined && msg.lastInsertRowid !== null) {
+                            result.lastInsertRowid = msg.lastInsertRowid;
+                        }
+                        req.resolve(result);
                     }
                     break;
 

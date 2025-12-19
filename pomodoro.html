@@ -33,6 +33,30 @@
         .pixel-filled {
             box-shadow: 0 0 2px rgba(239, 68, 68, 0.5);
         }
+
+        @keyframes pulse-yellow {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+                opacity: 0.7;
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(234, 179, 8, 0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+                opacity: 0.7;
+            }
+        }
+
+        .animate-pulse-yellow {
+            animation: pulse-yellow 2s infinite;
+        }
     </style>
 </head>
 
@@ -587,6 +611,11 @@
         let sessions = [];
         let statsTimeRange = 'today'; // Unified time range for Summary Cards and Distribution Chart
 
+        // === Session Tracking ===
+        let currentSessionId = null; // Track record ID in DB for early save/periodic update
+        let lastSyncTime = 0;       // Last time we updated DB
+        let lastUpdateCheckSecs = 0; // The timeLeft value at last DB update
+
         // === DOM Elements ===
         const els = {
             digital: document.getElementById('digitalTimer'),
@@ -677,7 +706,67 @@
         }
 
         // === Timer State Persistence ===
-        // Note: Sessions are only written to DB when user confirms or discards
+        // Note: Sessions are now written to DB early to prevent data loss.
+        // We use currentSessionId to track the row across updates.
+
+        let isUpserting = false; // Prevent concurrent upsert calls
+        async function upsertSessionRecord() {
+            if (!startTime || !currentTag || isUpserting) return;
+            isUpserting = true;
+
+            const startStr = startTime.toISOString();
+            const tagId = currentTag.id;
+
+            try {
+                // Check if already exists (prevent duplicate start for same tag and time)
+                const existing = await db.query(
+                    "SELECT id FROM pomodoro_sessions WHERE start_time = ? AND tag_id = ?",
+                    [startStr, tagId]
+                );
+
+                if (existing && existing[0] && existing[0].values.length > 0) {
+                    currentSessionId = existing[0].values[0][0];
+                    console.log('[Pomodoro] Resumed existing record:', currentSessionId);
+                    isUpserting = false;
+                    return;
+                }
+
+                // Create new record
+                const res = await db.execute(
+                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [startStr, startStr, 0, tagId, 'in_progress', '', '', new Date().toISOString()]
+                );
+
+                if (res && res.lastInsertRowid) {
+                    currentSessionId = res.lastInsertRowid;
+                    console.log('[Pomodoro] Created early session record:', currentSessionId);
+                }
+            } catch (err) {
+                console.error('[Pomodoro] upsertSessionRecord failed:', err);
+            } finally {
+                isUpserting = false;
+            }
+        }
+
+        async function updateActiveSessionProgress() {
+            if (!currentSessionId) return;
+
+            const elapsedMinutes = Math.max(0, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
+            const nowStr = new Date().toISOString();
+
+            try {
+                await db.execute(
+                    "UPDATE pomodoro_sessions SET duration_minutes = ?, end_time = ? WHERE id = ?",
+                    [elapsedMinutes, nowStr, currentSessionId]
+                );
+                lastSyncTime = Date.now();
+                lastUpdateCheckSecs = timeLeftSeconds;
+                console.log('[Pomodoro] Session progress synced:', elapsedMinutes, 'mins');
+            } catch (err) {
+                console.error('[Pomodoro] updateActiveSessionProgress failed:', err);
+            }
+        }
 
 
         // === Timer Logic ===
@@ -736,7 +825,7 @@
         async function toggleTimer() {
             // Only start if stopped - there's no pause, only stop (reset button)
             if (currentState === 'stopped') {
-                startTimer();
+                await startTimer();
             }
             // When running, user can only use reset button to stop
         }
@@ -744,10 +833,18 @@
         let targetEndTime = null;
         let segmentStartTime = null; // Track when current segment started
 
-        function startTimer() {
+        async function startTimer() {
+            if (currentState === 'running') return;
+            currentState = 'running'; // Set immediately to prevent toggle race
+
             // Initialize new session
             startTime = new Date();
             timeLeftSeconds = durationMinutes * 60;
+
+            // Reset session tracking
+            currentSessionId = null;
+            lastSyncTime = Date.now();
+            lastUpdateCheckSecs = timeLeftSeconds;
 
             // Track segment start time
             segmentStartTime = new Date();
@@ -755,22 +852,19 @@
             // Calculate target end time based on current remaining seconds
             targetEndTime = Date.now() + (timeLeftSeconds * 1000);
 
-            currentState = 'running';
-            // Hide main button while running (user uses reset button to stop)
+            // UI Adjustments
             els.mainBtn.classList.add('hidden');
-
-            // Disable tag selection
             els.currentTagBtn.classList.add('opacity-50', 'cursor-not-allowed');
             els.tagMenu.classList.add('hidden');
 
-            // Show stop button
             els.resetBtn.classList.remove('hidden');
             els.resetBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             els.resetBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500', 'hover:bg-red-600');
             els.resetBtn.onclick = resetTimer;
             els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
-            // Note: Removed 10s periodic progress update - data saved on session completion only
+            // Early save to prevent data loss - Await to ensure ID is set before interval or save actions
+            await upsertSessionRecord();
 
             // Use timestamp diffing for accuracy
             if (timerInterval) clearInterval(timerInterval);
@@ -783,6 +877,11 @@
                         timeLeftSeconds = diff;
                         updateDigitalDisplay();
                         updatePixelDisplay();
+
+                        // Periodic Sync every 30 seconds
+                        if (lastUpdateCheckSecs - timeLeftSeconds >= 30) {
+                            updateActiveSessionProgress();
+                        }
                     }
                 } else {
                     timeLeftSeconds = 0;
@@ -880,18 +979,40 @@
             // Write an aborted record to track the discarded session
             const end = sessionEndTime || new Date();
             const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
-            const actualDuration = Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
+            const actualDuration = Math.max(0, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
 
             try {
-                await db.execute(
-                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [start.toISOString(), end.toISOString(), actualDuration, selectedTag.id, 'aborted', '', '', new Date().toISOString()]
-                );
+                if (currentSessionId) {
+                    await db.execute(
+                        "UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, tag_id = ?, status = ? WHERE id = ?",
+                        [end.toISOString(), actualDuration, selectedTag.id, 'aborted', currentSessionId]
+                    );
+                } else {
+                    // Fallback: Triple check if record exists before inserting
+                    const existing = await db.query(
+                        "SELECT id FROM pomodoro_sessions WHERE start_time = ? AND tag_id = ?",
+                        [start.toISOString(), selectedTag.id]
+                    );
+
+                    if (existing && existing[0] && existing[0].values.length > 0) {
+                        const foundId = existing[0].values[0][0];
+                        await db.execute(
+                            "UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, tag_id = ?, status = ? WHERE id = ?",
+                            [end.toISOString(), actualDuration, selectedTag.id, 'aborted', foundId]
+                        );
+                    } else {
+                        await db.execute(
+                            `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [start.toISOString(), end.toISOString(), actualDuration, selectedTag.id, 'aborted', '', '', new Date().toISOString()]
+                        );
+                    }
+                }
                 console.log('[Pomodoro] Discarded session saved as aborted');
             } catch (err) {
                 console.error('[Pomodoro] Failed to save aborted session:', err);
             }
 
+            currentSessionId = null; // Clear tracking
             resetTimerUI();
         }
 
@@ -950,67 +1071,102 @@
 
             // Hide reset button when stopped (only show when running as stop button)
             els.resetBtn.classList.add('hidden');
+
+            resetTimerToDefaultTag();
+        }
+
+        function resetTimerToDefaultTag() {
+            const defaultTag = tags.find(t => t.isDefault) || tags[0];
+            if (defaultTag) {
+                currentTag = defaultTag;
+                els.currentTagName.innerText = defaultTag.name;
+                els.currentTagDot.style.backgroundColor = defaultTag.color;
+            }
         }
 
         let pomosCompleted = 0;
         let lastWorkTagId = null;
 
         async function confirmSaveSession() {
-            // Insert session record only when user confirms
+            // Get inputs
             const title = document.getElementById('saveTitle').value.trim();
             const desc = document.getElementById('saveDescription').value.trim();
 
-            // Get selected tag from modal dropdown
+            // Get selected tag
             const selectedTagId = parseInt(document.getElementById('saveTagValue').value);
             const selectedTag = tags.find(t => t.id === selectedTagId) || currentTag;
 
             // Update currentTag for auto-flow
             currentTag = selectedTag;
-            if (currentTag) localStorage.setItem('pomodoro_last_tag_id', currentTag.id);
 
-            // Use recorded end time, not current time (user may have delayed clicking confirm)
+            // Time calculation
             const end = sessionEndTime || new Date();
             const start = startTime || new Date(end.getTime() - durationMinutes * 60000);
 
-            // Determine status and duration based on whether this was aborted
+            // Status and duration
             const status = pendingAbort ? 'aborted' : 'completed';
             const actualDuration = pendingAbort
                 ? Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60))
                 : durationMinutes;
 
-            console.log('[Pomodoro] confirmSaveSession called, tag:', selectedTag.name, 'status:', status, 'duration:', actualDuration);
+            console.log('[Pomodoro] confirmSaveSession called, id:', currentSessionId, 'tag:', selectedTag.name, 'status:', status);
 
             try {
                 // Check if cross day
                 if (start.toDateString() !== end.toDateString()) {
+                    // Cross-day: Delete the early-saved record and insert split records
+                    if (currentSessionId) {
+                        await db.execute("DELETE FROM pomodoro_sessions WHERE id = ?", [currentSessionId]);
+                    }
+
                     const midnight = new Date(start);
                     midnight.setHours(24, 0, 0, 0);
                     const dur1 = Math.round((midnight - start) / 60000);
                     const dur2 = actualDuration - dur1;
 
-                    // Create Part 1 (Yesterday)
                     await db.execute(
                         `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                         [start.toISOString(), midnight.toISOString(), dur1, selectedTag.id, status, title + ' (Part 1)', desc, new Date().toISOString()]
                     );
-                    // Create Part 2 (Today)
                     await db.execute(
                         `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                         [midnight.toISOString(), end.toISOString(), dur2, selectedTag.id, status, title, desc, new Date().toISOString()]
                     );
                 } else {
-                    // Normal insert
-                    await db.execute(
-                        `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                        [start.toISOString(), end.toISOString(), actualDuration, selectedTag.id, status, title, desc, new Date().toISOString()]
-                    );
+                    if (currentSessionId) {
+                        // Update existing record
+                        await db.execute(
+                            `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, tag_id = ?, status = ?, title = ?, description = ? WHERE id = ?`,
+                            [end.toISOString(), actualDuration, selectedTag.id, status, title, desc, currentSessionId]
+                        );
+                    } else {
+                        // Fallback: Triple check if record exists by start_time before inserting
+                        const existing = await db.query(
+                            "SELECT id FROM pomodoro_sessions WHERE start_time = ? AND tag_id = ?",
+                            [start.toISOString(), selectedTag.id]
+                        );
+
+                        if (existing && existing[0] && existing[0].values.length > 0) {
+                            const foundId = existing[0].values[0][0];
+                            await db.execute(
+                                `UPDATE pomodoro_sessions SET end_time = ?, duration_minutes = ?, tag_id = ?, status = ?, title = ?, description = ? WHERE id = ?`,
+                                [end.toISOString(), actualDuration, selectedTag.id, status, title, desc, foundId]
+                            );
+                        } else {
+                            await db.execute(
+                                `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                [start.toISOString(), end.toISOString(), actualDuration, selectedTag.id, status, title, desc, new Date().toISOString()]
+                            );
+                        }
+                    }
                 }
             } catch (err) {
                 console.error('Save Session Failed:', err);
             }
 
+            currentSessionId = null; // Clear tracking
             closeSaveModal();
-            resetTimerUI(); // Reset UI and show start button
+            resetTimerUI();
             handleAutoFlow();
         }
 
@@ -1190,8 +1346,6 @@
                 currentTag = t;
                 els.currentTagName.innerText = t.name;
                 els.currentTagDot.style.backgroundColor = t.color;
-                // Save selection
-                localStorage.setItem('pomodoro_last_tag_id', id);
             }
             els.tagMenu.classList.add('hidden');
         }
@@ -1227,13 +1381,7 @@
                 selected = tags.find(t => t.id === currentTag.id);
             }
 
-            // Try to restore from localStorage
-            if (!selected) {
-                const lastId = localStorage.getItem('pomodoro_last_tag_id');
-                if (lastId) {
-                    selected = tags.find(t => t.id == lastId);
-                }
-            }
+            // Always prefer Default tag initially, ignore localStorage
 
             if (!selected) {
                 // Fallback: Default tag or First tag
@@ -1955,9 +2103,9 @@
                 if (s.status === 'completed') {
                     statusBadge = '<span class="text-emerald-400 text-xs ml-1" title="已完成"><i class="fas fa-check-circle"></i></span>';
                     statusBorder = 'border-l-2 border-emerald-500';
-                } else if (s.status === 'in_progress') {
-                    statusBadge = '<span class="text-amber-400 text-xs ml-1" title="进行中"><i class="fas fa-spinner fa-spin"></i></span>';
-                    statusBorder = 'border-l-2 border-amber-500';
+                } else if (s.status === 'in_progress' || s.status === 'running') {
+                    statusBadge = '<span class="text-yellow-400 text-[10px] ml-1 flex items-center justify-center animate-pulse-yellow" title="进行中"><i class="fas fa-circle"></i></span>';
+                    statusBorder = 'border-l-2 border-yellow-500';
                 } else if (s.status === 'aborted') {
                     statusBadge = '<span class="text-rose-400 text-xs ml-1" title="已中止"><i class="fas fa-times-circle"></i></span>';
                     statusBorder = 'border-l-2 border-rose-500';
@@ -2091,13 +2239,20 @@
 
             const toast = document.createElement('div');
             toast.id = 'undoToast';
-            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-700 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-4 z-50 animate-fade-in';
+            toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[1000] border border-slate-700/50 animate-fade-in';
             toast.innerHTML = `
-                <span>已删除记录</span>
-                <button onclick="undoDelete()" class="px-3 py-1 bg-blue-500 hover:bg-blue-400 rounded-lg text-sm font-medium transition">撤销</button>
-                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center">
+                        <i class="fas fa-trash-alt text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium">已删除一条专注记录</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="undoDelete()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all active:scale-95">撤销</button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="p-2 text-slate-500 hover:text-white transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             `;
             document.body.appendChild(toast);
 
