@@ -49,7 +49,8 @@
             <i slot="icon" class="fas fa-clock text-rose-500"></i>
             <div slot="actions" class="flex items-center gap-4">
                 <div class="flex items-center gap-3">
-                    <button onclick="openTagsManagement()" class="p-3 text-slate-400 hover:text-white transition" title="管理标签">
+                    <button onclick="openTagsManagement()" class="p-3 text-slate-400 hover:text-white transition"
+                        title="管理标签">
                         <i class="fas fa-tags text-xl"></i>
                     </button>
                     <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
@@ -170,33 +171,41 @@
                 <h2 class="text-2xl font-bold flex items-center gap-2">
                     <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
                 </h2>
-                <button onclick="closeStats()"
-                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
-                    关闭
-                </button>
+                <div class="flex items-center gap-4">
+                    <!-- Unified Time Range Toggle -->
+                    <div class="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                        <button onclick="setStatsTimeRange('today')" id="statsRangeToday"
+                            class="px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm">今天</button>
+                        <button onclick="setStatsTimeRange('week')" id="statsRangeWeek"
+                            class="px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                    </div>
+                    <button onclick="closeStats()"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
+                        关闭
+                    </button>
+                </div>
             </div>
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">今日专注</div>
-                    <div class="text-2xl font-bold text-white"><span id="todayCount">0</span> <span
+                    <div class="text-slate-400 text-xs mb-1">专注次数</div>
+                    <div class="text-2xl font-bold text-white"><span id="statsFocusCount">0</span> <span
                             class="text-sm font-normal text-slate-500">个番茄</span></div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">今日时长</div>
-                    <div class="text-2xl font-bold text-blue-400"><span id="todayMins">0</span> <span
-                            class="text-sm font-normal text-slate-500">分钟</span></div>
+                    <div class="text-slate-400 text-xs mb-1">总时长</div>
+                    <div class="text-xl font-bold text-blue-400" id="statsTotalTime">0分钟</div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">本周累计</div>
-                    <div class="text-2xl font-bold text-emerald-400"><span id="weekCount">0</span> <span
+                    <div class="text-slate-400 text-xs mb-1">有效时长</div>
+                    <div class="text-xl font-bold text-emerald-400" id="statsEffectiveTime">0分钟</div>
+                    <div class="text-xs text-slate-500 mt-1">不含 Default</div>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                    <div class="text-slate-400 text-xs mb-1">标签数</div>
+                    <div class="text-2xl font-bold text-amber-400"><span id="statsTagCount">0</span> <span
                             class="text-sm font-normal text-slate-500">个</span></div>
-                </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">总专注时长</div>
-                    <div class="text-2xl font-bold text-amber-400"><span id="totalHours">0.0</span> <span
-                            class="text-sm font-normal text-slate-500">小时</span></div>
                 </div>
             </div>
 
@@ -232,12 +241,6 @@
                 <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-medium text-slate-300">分布占比</h3>
-                        <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-700">
-                            <button onclick="setDistMode('today')" id="distModeToday"
-                                class="px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm">今天</button>
-                            <button onclick="setDistMode('week')" id="distModeWeek"
-                                class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
-                        </div>
                     </div>
                     <div class="h-64 flex items-center justify-center">
                         <canvas id="distChart"></canvas>
@@ -362,9 +365,9 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="mb-4">
-                <button onclick="openAddTagModal()" 
+                <button onclick="openAddTagModal()"
                     class="w-full py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 border-dashed text-slate-300 rounded-lg text-sm transition flex items-center justify-center gap-2">
                     <i class="fas fa-plus"></i> 新建标签
                 </button>
@@ -396,13 +399,13 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">颜色</label>
                     <div class="flex items-center gap-3">
-                        <input type="color" id="newTagColor" value="#3b82f6" 
+                        <input type="color" id="newTagColor" value="#3b82f6"
                             class="w-10 h-10 p-0 rounded border-none cursor-pointer bg-transparent">
                         <span class="text-xs text-slate-500">点击色块选择颜色</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 pt-2">
-                    <input type="checkbox" id="newTagDefault" 
+                    <input type="checkbox" id="newTagDefault"
                         class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
                     <label for="newTagDefault" class="text-xs text-slate-400 cursor-pointer select-none">设为默认标签</label>
                 </div>
@@ -582,7 +585,7 @@
         let currentTag = null; // Will be set on load
         let tags = [];
         let sessions = [];
-        let currentDistMode = 'today'; // 'today' or 'week'
+        let statsTimeRange = 'today'; // Unified time range for Summary Cards and Distribution Chart
 
         // === DOM Elements ===
         const els = {
@@ -921,12 +924,12 @@
             `).join('');
 
             menu.innerHTML = listHtml;
-            
+
             // Set initial selection
             if (currentTag) {
                 selectSaveTag(currentTag.id);
             } else if (tags.length > 0) {
-                 selectSaveTag(tags[0].id);
+                selectSaveTag(tags[0].id);
             }
         }
 
@@ -1320,7 +1323,7 @@
         }
 
         // Add Tag color picker
-        
+
         function openAddTagModal() {
             els.tagMenu.classList.add('hidden');
             currentEditTagId = null;
@@ -1359,7 +1362,7 @@
             const name = document.getElementById('newTagName').value.trim();
             const color = document.getElementById('newTagColor').value;
             const isDefault = document.getElementById('newTagDefault').checked ? 1 : 0;
-            
+
             if (!name) return;
 
             try {
@@ -1373,16 +1376,16 @@
                 } else {
                     await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, ?)", [name, color, isDefault]);
                 }
-                
+
                 // If we unset a default but didn't set a new one, we might need a fallback.
                 // But normally we'd always want at least one default. 
                 // Ensuring at least one default tag exists:
                 if (isDefault === 0) {
-                   const countRes = await db.query("SELECT COUNT(*) FROM pomodoro_tags WHERE is_default = 1");
-                   if (countRes && countRes[0].values[0][0] === 0) {
-                       // If no default exists, force this one or keep the first one as default
-                       // For now, let's just let it be, but usually it's better to keep one.
-                   }
+                    const countRes = await db.query("SELECT COUNT(*) FROM pomodoro_tags WHERE is_default = 1");
+                    if (countRes && countRes[0].values[0][0] === 0) {
+                        // If no default exists, force this one or keep the first one as default
+                        // For now, let's just let it be, but usually it's better to keep one.
+                    }
                 }
             } catch (e) { console.error('Save Tag Failed:', e); }
 
@@ -1494,30 +1497,53 @@
             // Helper: get tag
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
             const isRelax = (s) => getTag(s.tagId).name === 'Relax';
+            const isDefault = (s) => getTag(s.tagId).name === 'Default';
 
             const now = new Date();
 
-            // 1. Summary Cards (Exclude Relax)
             // Filter out Relax for ALL summary metrics
             const focusSessions = sessions.filter(s => !isRelax(s));
 
-            const today = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
-            const todayMins = today.reduce((sum, s) => sum + s.duration, 0);
+            // Calculate week start (Monday)
+            const weekStartDate = new Date(now);
+            const dayOfWeek = weekStartDate.getDay();
+            const diffToMonday = weekStartDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            weekStartDate.setDate(diffToMonday);
+            weekStartDate.setHours(0, 0, 0, 0);
 
-            // Week start (Monday)
-            const d = new Date(now);
-            const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            const weekStart = new Date(d.setDate(diff));
-            weekStart.setHours(0, 0, 0, 0);
+            // Filter sessions based on statsTimeRange
+            let rangedSessions;
+            if (statsTimeRange === 'today') {
+                rangedSessions = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
+            } else {
+                rangedSessions = focusSessions.filter(s => new Date(s.startTime) >= weekStartDate);
+            }
 
-            const week = focusSessions.filter(s => new Date(s.startTime) >= weekStart);
-            const totalMins = focusSessions.reduce((sum, s) => sum + s.duration, 0);
+            // Calculate metrics for ranged sessions
+            const focusCount = rangedSessions.length;
+            const totalMins = rangedSessions.reduce((sum, s) => sum + s.duration, 0);
 
-            document.getElementById('todayCount').innerText = today.length;
-            document.getElementById('todayMins').innerText = todayMins;
-            document.getElementById('weekCount').innerText = week.length;
-            document.getElementById('totalHours').innerText = (totalMins / 60).toFixed(1);
+            // Effective = exclude Default tag
+            const effectiveSessions = rangedSessions.filter(s => !isDefault(s));
+            const effectiveMins = effectiveSessions.reduce((sum, s) => sum + s.duration, 0);
+
+            // Unique tags used in ranged sessions
+            const usedTagIds = [...new Set(rangedSessions.map(s => s.tagId))];
+            const tagCount = usedTagIds.length;
+
+            // Helper: format minutes as "xx H xx mins"
+            function formatDuration(mins) {
+                if (mins < 60) return `${mins} mins`;
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                return m > 0 ? `${h} H ${m} mins` : `${h} H`;
+            }
+
+            // Update Summary Cards
+            document.getElementById('statsFocusCount').innerText = focusCount;
+            document.getElementById('statsTotalTime').innerText = formatDuration(totalMins);
+            document.getElementById('statsEffectiveTime').innerText = formatDuration(effectiveMins);
+            document.getElementById('statsTagCount').innerText = tagCount;
 
             // 2. Charts
             const ctxTrend = document.getElementById('trendChart').getContext('2d');
@@ -1711,21 +1737,22 @@
             }
         }
 
-        function setDistMode(mode) {
-            currentDistMode = mode;
+        function setStatsTimeRange(mode) {
+            statsTimeRange = mode;
             // Update Toggle UI
-            const btnToday = document.getElementById('distModeToday');
-            const btnWeek = document.getElementById('distModeWeek');
+            const btnToday = document.getElementById('statsRangeToday');
+            const btnWeek = document.getElementById('statsRangeWeek');
 
             if (mode === 'today') {
-                btnToday.className = 'px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm';
-                btnWeek.className = 'px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white';
+                btnToday.className = 'px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm';
+                btnWeek.className = 'px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white';
             } else {
-                btnToday.className = 'px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white';
-                btnWeek.className = 'px-3 py-1 text-xs rounded-md transition bg-slate-700 text-white shadow-sm';
+                btnToday.className = 'px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white';
+                btnWeek.className = 'px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm';
             }
 
-            renderDistChart();
+            // Re-render both Summary Cards and Distribution Chart
+            updateStatsUI();
         }
 
         function renderDistChart() {
@@ -1733,12 +1760,12 @@
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
             const isRelax = (s) => getTag(s.tagId).name === 'Relax';
 
-            // Filter Sessions based on Mode
+            // Filter Sessions based on statsTimeRange (same as Summary Cards)
             const focusSessions = sessions.filter(s => !isRelax(s));
             const now = new Date();
             let distSource = [];
 
-            if (currentDistMode === 'today') {
+            if (statsTimeRange === 'today') {
                 distSource = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
             } else {
                 // Week
@@ -2466,7 +2493,7 @@
         function editSession(id) {
             const targetId = parseInt(id);
             const session = currentHistorySessions.find(s => s.id === targetId) || sessions.find(s => s.id === targetId);
-            
+
             if (!session) return;
 
             currentEditSessionId = targetId;
@@ -2764,7 +2791,7 @@
         window.editTag = editTag;
         window.confirmDeleteTag = confirmDeleteTag;
         window.setDuration = setDuration;
-        window.setDistMode = setDistMode;
+        window.setStatsTimeRange = setStatsTimeRange;
         window.renderHistoryList = renderHistoryList;
         window.setHistoryFilter = setHistoryFilter;
         window.exportCurrentList = exportCurrentList;
