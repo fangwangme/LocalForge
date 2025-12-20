@@ -18,37 +18,49 @@
     <style>
         /* 自定义过渡动画 */
         body {
-            transition: background-color 0.6s ease-in-out;
+            transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .progress-ring__circle {
-            transition: stroke-dashoffset 0.1s linear, stroke 0.6s ease;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.8s ease;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
         }
 
         /* 脉冲动画 - 用于准备阶段 */
         @keyframes pulse-text {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.8;
-                transform: scale(0.95);
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.95); }
         }
 
         .animate-pulse-custom {
             animation: pulse-text 1.5s infinite;
         }
+
+        .active-segment-glow {
+            box-shadow: 0 0 30px rgba(163, 230, 53, 0.8); /* Neon Lime glow */
+            z-index: 20;
+            transform: scaleY(1.2);
+        }
+
+        @keyframes segment-pulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+        
+        .segment-pulsing {
+            animation: segment-pulse 0.4s ease-in-out infinite;
+        }
+
+        /* 柔和的背景色定义 */
+        .bg-phase-setup { background-color: #0f172a; } /* Slate 900 */
+        .bg-phase-work { background-color: #1e1b4b; }  /* Indigo 950 */
+        .bg-phase-rest { background-color: #064e3b; }  /* Emerald 950/Teal */
+        .bg-phase-ready { background-color: #431407; } /* Orange 950/Rust */
     </style>
 </head>
 
-<body class="bg-slate-900 text-white font-sans h-screen overflow-hidden flex select-none">
+<body class="bg-phase-setup text-white font-sans h-screen overflow-hidden flex select-none">
 
     <local-sidebar></local-sidebar>
 
@@ -58,11 +70,11 @@
             <i slot="icon" class="fas fa-stopwatch text-white"></i>
             <div slot="actions" class="flex items-center gap-2">
                 <button id="resetBtn"
-                    class="hidden text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition">
+                    class="hidden text-sm bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition border border-white/10">
                     <i class="fas fa-redo-alt mr-1"></i> Reset
                 </button>
                 <button id="statsBtn"
-                    class="text-base bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition ml-2">
+                    class="text-base bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition ml-2 border border-white/10">
                     <i class="fas fa-chart-line mr-1"></i> Stats
                 </button>
             </div>
@@ -70,171 +82,143 @@
 
         <div class="flex-1 overflow-y-auto">
             <!-- Main Content -->
-            <main class="flex-grow flex flex-col relative w-full max-w-md mx-auto px-6 pb-8">
+            <main class="flex-grow flex flex-col relative w-full max-w-2xl mx-auto px-6 pb-8">
 
                 <!-- 1. Setup Screen -->
-                <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6">
+                <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6 max-w-md mx-auto">
                     <div class="text-center space-y-2">
-                        <h2 class="text-3xl font-bold">Configure Workout</h2>
-                        <p class="text-slate-400 text-sm">Set up your HIIT session</p>
+                        <h2 class="text-3xl font-bold tracking-tight">Jump Master</h2>
+                        <p class="text-slate-400 text-sm">Optimize your HIIT performance</p>
                     </div>
 
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- 运动时间 -->
-                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                            <label class="flex justify-between text-rose-400 font-semibold mb-2">
-                                <span><i class="fas fa-fire-alt mr-2"></i>Work Time</span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
-                                        data-target="workInput" data-delta="-5">
-                                        <i class="fas fa-minus text-xs"></i>
-                                    </button>
-                                    <span id="workDisplay" class="w-14 text-center">60s</span>
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-rose-500/30 hover:bg-rose-500/50 flex items-center justify-center transition"
-                                        data-target="workInput" data-delta="5">
-                                        <i class="fas fa-plus text-xs"></i>
-                                    </button>
-                                </div>
+                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                            <label class="flex justify-between text-indigo-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                                <span><i class="fas fa-fire-alt mr-2"></i>Jump Interval</span>
+                                <span id="workDisplay" class="bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-400">60s</span>
                             </label>
-                            <input type="range" id="workInput" min="30" max="90" step="5" value="60"
-                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                            <div class="flex justify-between text-xs text-slate-500 mt-1">
-                                <span>30s</span>
-                                <span>90s</span>
+                            <div class="flex items-center gap-4">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="workInput" data-delta="-5">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="range" id="workInput" min="30" max="90" step="5" value="60" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="workInput" data-delta="5">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
 
                         <!-- 休息时间 -->
-                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                            <label class="flex justify-between text-emerald-400 font-semibold mb-2">
-                                <span><i class="fas fa-coffee mr-2"></i>Rest Time</span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
-                                        data-target="restInput" data-delta="-5">
-                                        <i class="fas fa-minus text-xs"></i>
-                                    </button>
-                                    <span id="restDisplay" class="w-14 text-center">45s</span>
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-emerald-500/30 hover:bg-emerald-500/50 flex items-center justify-center transition"
-                                        data-target="restInput" data-delta="5">
-                                        <i class="fas fa-plus text-xs"></i>
-                                    </button>
-                                </div>
+                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                            <label class="flex justify-between text-emerald-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                                <span><i class="fas fa-coffee mr-2"></i>Rest Interval</span>
+                                <span id="restDisplay" class="bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-400">45s</span>
                             </label>
-                            <input type="range" id="restInput" min="30" max="90" step="5" value="45"
-                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                            <div class="flex justify-between text-xs text-slate-500 mt-1">
-                                <span>30s</span>
-                                <span>90s</span>
+                            <div class="flex items-center gap-4">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="restInput" data-delta="-5">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="range" id="restInput" min="30" max="90" step="5" value="45" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="restInput" data-delta="5">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- 轮数 -->
-                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                            <label class="flex justify-between text-blue-400 font-semibold mb-2">
-                                <span><i class="fas fa-sync-alt mr-2"></i>Rounds</span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
-                                        data-target="roundsInput" data-delta="-1">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 轮数 -->
+                            <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                                <label class="block text-blue-300 font-bold mb-3 uppercase text-xs tracking-wider">Rounds</label>
+                                <div class="flex items-center justify-between">
+                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="roundsInput" data-delta="-1">
                                         <i class="fas fa-minus text-xs"></i>
                                     </button>
-                                    <span id="roundsDisplay" class="w-14 text-center">7</span>
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-blue-500/30 hover:bg-blue-500/50 flex items-center justify-center transition"
-                                        data-target="roundsInput" data-delta="1">
+                                    <span id="roundsDisplay" class="text-xl font-black">7</span>
+                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="roundsInput" data-delta="1">
                                         <i class="fas fa-plus text-xs"></i>
                                     </button>
                                 </div>
-                            </label>
-                            <input type="range" id="roundsInput" min="1" max="15" step="1" value="7"
-                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                            <div class="flex justify-between text-xs text-slate-500 mt-1">
-                                <span>1</span>
-                                <span>15</span>
+                                <input type="range" id="roundsInput" min="1" max="15" step="1" value="7" class="hidden">
+                            </div>
+                            <!-- 体重 -->
+                            <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                                <label class="block text-purple-300 font-bold mb-3 uppercase text-xs tracking-wider">Weight</label>
+                                <div class="flex items-center justify-between">
+                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="weightInput" data-delta="-1">
+                                        <i class="fas fa-minus text-xs"></i>
+                                    </button>
+                                    <span id="weightDisplay" class="text-lg font-black">70<span class="text-xs ml-0.5">kg</span></span>
+                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="weightInput" data-delta="1">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </button>
+                                </div>
+                                <input type="range" id="weightInput" min="40" max="120" step="1" value="70" class="hidden">
                             </div>
                         </div>
 
-                        <!-- 体重 -->
-                        <div class="bg-slate-800 p-5 rounded-2xl shadow-lg border border-slate-700">
-                            <label class="flex justify-between text-purple-400 font-semibold mb-2">
-                                <span><i class="fas fa-weight mr-2"></i>Weight</span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
-                                        data-target="weightInput" data-delta="-1">
-                                        <i class="fas fa-minus text-xs"></i>
-                                    </button>
-                                    <span id="weightDisplay" class="w-16 text-center">70 kg</span>
-                                    <button type="button"
-                                        class="adjust-btn w-7 h-7 rounded-full bg-purple-500/30 hover:bg-purple-500/50 flex items-center justify-center transition"
-                                        data-target="weightInput" data-delta="1">
-                                        <i class="fas fa-plus text-xs"></i>
-                                    </button>
-                                </div>
+                        <!-- 目标配速 (Pace) -->
+                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                            <label class="flex justify-between text-lime-400 font-bold mb-3 uppercase text-xs tracking-wider">
+                                <span><i class="fas fa-tachometer-alt mr-2"></i>Target Pace (Jumps/Min)</span>
+                                <span id="paceDisplay" class="bg-lime-500/20 px-2 py-0.5 rounded text-lime-400">140 JPM</span>
                             </label>
-                            <input type="range" id="weightInput" min="60" max="80" step="1" value="70"
-                                class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-500">
-                            <div class="flex justify-between text-xs text-slate-500 mt-1">
-                                <span>60kg</span>
-                                <span>80kg</span>
+                            <div class="flex items-center gap-4">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="paceInput" data-delta="-5">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="range" id="paceInput" min="100" max="180" step="5" value="140" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-500">
+                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="paceInput" data-delta="5">
+                                    <i class="fas fa-plus"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
 
                     <div class="pt-4">
                         <button id="startBtn"
-                            class="w-full bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
-                            Start Workout
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl shadow-2xl transform transition active:scale-[0.98] text-xl uppercase tracking-widest">
+                            Start Session
                         </button>
-                        <p class="text-center text-xs text-slate-500 mt-3">Total Duration: <span
-                                id="totalTimeDisplay">08:00</span></p>
+                        <p class="text-center text-[10px] text-slate-500 mt-4 uppercase tracking-[0.2em]">Est. Duration: <span id="totalTimeDisplay">08:00</span></p>
                     </div>
                 </div>
 
                 <!-- 2. Timer Screen -->
                 <div id="timerScreen"
-                    class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] py-8 relative">
+                    class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] relative overflow-hidden">
 
                     <!-- 状态标签 -->
-                    <div class="absolute top-0 text-center z-10">
-                        <div id="phaseText" class="text-4xl font-black uppercase tracking-widest drop-shadow-md">GET
-                            READY</div>
-                        <div class="text-lg font-medium opacity-90 mt-1">
-                            Round <span id="currentRoundDisplay">1</span> / <span id="totalRoundsDisplay">8</span>
+                    <div class="absolute top-4 text-center z-10">
+                        <div id="phaseText" class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl">GET READY</div>
+                        <div class="text-sm font-bold opacity-60 mt-2 uppercase tracking-widest">
+                            Round <span id="currentRoundDisplay" class="text-white">1</span> of <span id="totalRoundsDisplay">8</span>
                         </div>
                     </div>
 
+                    <!-- 闪烁背景层 -->
+                    <div id="flashOverlay" class="fixed inset-0 bg-white/20 opacity-0 pointer-events-none z-[5] transition-opacity duration-75"></div>
+
                     <!-- 圆形进度条容器 -->
-                    <div class="relative w-72 h-72 flex items-center justify-center">
+                    <div class="relative w-80 h-80 flex items-center justify-center z-10">
                         <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
-                            <!-- 背景圆环 -->
-                            <circle class="text-white/20" stroke-width="8" stroke="currentColor" fill="transparent"
-                                r="52" cx="60" cy="60" />
-                            <!-- 进度圆环 -->
-                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="8"
-                                stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60"
-                                cy="60" />
+                            <circle class="text-white/5" stroke-width="6" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60" />
+                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60" />
                         </svg>
 
                         <!-- 中间的大数字 -->
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span id="timerDisplay"
-                                class="text-7xl font-mono font-bold tabular-nums tracking-tight drop-shadow-lg">00:00</span>
-                            <button id="toggleBtn"
-                                class="mt-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center transition">
-                                <i id="toggleIcon" class="fas fa-pause"></i>
+                            <span id="timerDisplay" class="text-8xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl">00:00</span>
+                            <button id="toggleBtn" class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full w-14 h-14 flex items-center justify-center transition active:scale-90">
+                                <i id="toggleIcon" class="fas fa-pause text-xl"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- 下一阶段提示 -->
-                    <div class="absolute bottom-10 text-center opacity-80">
-                        <p class="text-sm uppercase tracking-wide">Up Next</p>
-                        <p id="nextPhaseText" class="font-bold text-lg">WORK</p>
+                    <div class="absolute bottom-32 text-center opacity-40 z-10">
+                        <p class="text-[10px] uppercase tracking-[0.3em] mb-1">Coming Up</p>
+                        <p id="nextPhaseText" class="font-black text-xl uppercase tracking-widest">JUMP</p>
                     </div>
                 </div>
 
@@ -251,12 +235,12 @@
                     <div class="w-full max-w-xs space-y-3 mt-4">
                         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-rose-500/30 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-clock text-rose-400"></i>
+                                <div class="w-10 h-10 bg-indigo-500/30 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-clock text-indigo-400"></i>
                                 </div>
-                                <span class="text-slate-300">Work Time</span>
+                                <span class="text-slate-300">Jump Time</span>
                             </div>
-                            <span id="finalWorkTime" class="text-xl font-bold text-rose-400">00:00</span>
+                            <span id="finalWorkTime" class="text-xl font-bold text-indigo-400">00:00</span>
                         </div>
                         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
                             <div class="flex items-center gap-3">
@@ -277,6 +261,25 @@
                 </div>
 
             </main>
+        </div>
+
+        <!-- 配速进度条 (Pace Progress) - Move to main wrapper, absolute positioning -->
+        <div id="paceContainer" class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-white/10 p-4 pb-8 hidden z-50 animate-slide-up">
+            <div class="w-full">
+                <div class="flex justify-between items-end mb-3 px-2">
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-lime-400">Rhythm Pacer</span>
+                        <p class="text-xs text-white/50">Maintain <span id="segmentSeconds" class="text-lime-400 font-bold">0.0</span>s per 10 jumps</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="paceJumpCount" class="text-4xl font-black text-white leading-none">0</span>
+                        <span class="text-[10px] font-black text-lime-400 uppercase ml-1">Jumps</span>
+                    </div>
+                </div>
+                <div id="paceSegments" class="flex gap-1 h-12">
+                    <!-- Segments -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -412,9 +415,12 @@
             isPaused: false,
             audioContext: null,
             weight: 70,
+            pace: 140,
             totalWorkTime: 0, // 累计运动时间（秒）
             startTime: null,  // 实际开始时间
-            endTime: null    // 实际结束时间
+            endTime: null,    // 实际结束时间
+            paceTimeElapsed: 0, // 当前10次跳绳周期已过时间
+            currentPaceSegment: 0 // 当前是第几个10次
         };
 
         // === IDB Constants (moved to db-client.js) ===
@@ -432,12 +438,14 @@
             restInput: document.getElementById('restInput'),
             roundsInput: document.getElementById('roundsInput'),
             weightInput: document.getElementById('weightInput'),
+            paceInput: document.getElementById('paceInput'),
 
             // Displays
             workDisplay: document.getElementById('workDisplay'),
             restDisplay: document.getElementById('restDisplay'),
             roundsDisplay: document.getElementById('roundsDisplay'),
             weightDisplay: document.getElementById('weightDisplay'),
+            paceDisplay: document.getElementById('paceDisplay'),
             totalTimeDisplay: document.getElementById('totalTimeDisplay'),
 
             // Complete Screen Stats
@@ -452,6 +460,11 @@
             progressCircle: document.getElementById('progressCircle'),
             nextPhaseText: document.getElementById('nextPhaseText'),
             toggleIcon: document.getElementById('toggleIcon'),
+            flashOverlay: document.getElementById('flashOverlay'),
+            paceContainer: document.getElementById('paceContainer'),
+            paceSegments: document.getElementById('paceSegments'),
+            paceJumpCount: document.getElementById('paceJumpCount'),
+            segmentSeconds: document.getElementById('segmentSeconds'),
 
             // Buttons
             startBtn: document.getElementById('startBtn'),
@@ -521,16 +534,16 @@
 
         const updateColors = (phase) => {
             // 重置所有类
-            els.body.classList.remove('bg-rose-600', 'bg-emerald-600', 'bg-slate-900', 'bg-yellow-600');
+            els.body.classList.remove('bg-phase-setup', 'bg-phase-work', 'bg-phase-rest', 'bg-phase-ready');
 
             if (phase === 'setup' || phase === 'finished') {
-                els.body.classList.add('bg-slate-900');
+                els.body.classList.add('bg-phase-setup');
             } else if (phase === 'work') {
-                els.body.classList.add('bg-rose-600'); // 红色/运动
+                els.body.classList.add('bg-phase-work');
             } else if (phase === 'rest') {
-                els.body.classList.add('bg-emerald-600'); // 绿色/休息
+                els.body.classList.add('bg-phase-rest');
             } else if (phase === 'getReady') {
-                els.body.classList.add('bg-yellow-600'); // 黄色/准备
+                els.body.classList.add('bg-phase-ready');
             }
         };
 
@@ -559,6 +572,7 @@
                     // 累计运动时间（只在运动阶段累计）
                     if (state.phase === 'work') {
                         state.totalWorkTime += delta;
+                        updatePaceProgress(delta);
                     }
 
                     // 音效逻辑：最后3秒，且是整数秒附近
@@ -581,13 +595,85 @@
             }, 100); // 100ms 更新一次UI，保证圆环流畅
         };
 
+        const initPaceSegments = () => {
+            if (state.pace <= 0) {
+                els.paceContainer.classList.add('hidden');
+                return;
+            }
+            els.paceContainer.classList.remove('hidden');
+            els.paceSegments.innerHTML = '';
+            
+            const segmentDuration = 600 / state.pace;
+            els.segmentSeconds.innerText = segmentDuration.toFixed(1);
+
+            // 计算总共需要跳多少个10次
+            const totalSegments = Math.floor(state.workTime * (state.pace / 60) / 10);
+            
+            for (let i = 0; i < totalSegments; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'flex-1 bg-white/5 rounded-lg overflow-hidden relative border border-white/5';
+                const progress = document.createElement('div');
+                progress.className = 'absolute inset-0 bg-gradient-to-r from-lime-500 to-lime-300 w-0 transition-all duration-100 shadow-[0_0_20px_rgba(163,230,53,0.4)]';
+                progress.id = `pace-seg-progress-${i}`;
+                segment.appendChild(progress);
+                els.paceSegments.appendChild(segment);
+            }
+            
+            state.paceTimeElapsed = 0;
+            state.currentPaceSegment = 0;
+            els.paceJumpCount.innerText = '0';
+        };
+
+        const updatePaceProgress = (delta) => {
+            if (state.pace <= 0) return;
+            
+            const segmentDuration = 600 / state.pace; // 每10次的秒数
+            state.paceTimeElapsed += delta;
+            
+            const currentSegment = Math.floor(state.paceTimeElapsed / segmentDuration);
+            const segmentProgress = (state.paceTimeElapsed % segmentDuration) / segmentDuration;
+            
+            // 更新当前段的进度和效果
+            const progressEl = document.getElementById(`pace-seg-progress-${currentSegment}`);
+            if (progressEl) {
+                progressEl.style.width = `${segmentProgress * 100}%`;
+                progressEl.parentElement.classList.add('active-segment-glow', 'segment-pulsing');
+            }
+            
+            // 将之前的所有段填满并移除动画
+            for (let i = 0; i < currentSegment; i++) {
+                const prevEl = document.getElementById(`pace-seg-progress-${i}`);
+                if (prevEl) {
+                    if (prevEl.style.width !== '100%') prevEl.style.width = '100%';
+                    prevEl.parentElement.classList.remove('active-segment-glow', 'segment-pulsing');
+                    prevEl.parentElement.classList.add('border-lime-500/50');
+                }
+            }
+
+            // 检查是否进入了新的一段（提醒）
+            if (currentSegment > state.currentPaceSegment) {
+                state.currentPaceSegment = currentSegment;
+                triggerFlash();
+                els.paceJumpCount.innerText = currentSegment * 10;
+            }
+        };
+
+        const triggerFlash = () => {
+            els.flashOverlay.style.opacity = '1';
+            setTimeout(() => {
+                els.flashOverlay.style.opacity = '0';
+            }, 100);
+        };
+
         const switchPhase = () => {
             if (state.phase === 'getReady') {
                 // 准备结束，进入第一轮运动
                 state.phase = 'work';
                 state.timeLeft = state.workTime;
+                initPaceSegments();
             } else if (state.phase === 'work') {
                 // 运动结束，检查是否所有轮次都完成了
+                els.paceContainer.classList.add('hidden');
                 if (state.currentRound >= state.totalRounds) {
                     finishWorkout();
                     return;
@@ -601,6 +687,7 @@
                 state.currentRound++; // 在这里增加轮数
                 state.phase = 'work';
                 state.timeLeft = state.workTime;
+                initPaceSegments();
             }
             updateTimerUI(true); // 强制刷新文本
         };
@@ -624,15 +711,15 @@
             // Update text and colors
             if (state.phase === 'getReady') {
                 els.phaseText.innerText = 'GET READY';
-                els.nextPhaseText.innerText = 'WORK';
+                els.nextPhaseText.innerText = 'JUMP';
                 els.currentRoundDisplay.innerText = state.currentRound;
             } else if (state.phase === 'work') {
-                els.phaseText.innerText = 'WORK';
+                els.phaseText.innerText = 'JUMP';
                 els.nextPhaseText.innerText = (state.currentRound === state.totalRounds) ? 'FINISH' : 'REST';
                 els.currentRoundDisplay.innerText = state.currentRound;
             } else if (state.phase === 'rest') {
                 els.phaseText.innerText = 'REST';
-                els.nextPhaseText.innerText = 'WORK';
+                els.nextPhaseText.innerText = 'JUMP';
                 els.currentRoundDisplay.innerText = state.currentRound;
             }
 
@@ -669,6 +756,7 @@
             state.restTime = parseInt(els.restInput.value);
             state.totalRounds = parseInt(els.roundsInput.value);
             state.weight = parseInt(els.weightInput.value);
+            state.pace = parseInt(els.paceInput.value);
             state.currentRound = 1;
             state.totalWorkTime = 0; // 重置累计运动时间
             state.startTime = new Date().toISOString(); // 记录开始时间
@@ -679,6 +767,7 @@
             saveConfig('restTime', state.restTime);
             saveConfig('rounds', state.totalRounds);
             saveConfig('weight', state.weight);
+            saveConfig('pace', state.pace);
 
             // UI 切换
             els.setupScreen.classList.add('hidden');
@@ -780,6 +869,9 @@
         els.weightInput.addEventListener('input', (e) => {
             els.weightDisplay.innerText = `${e.target.value} kg`;
         });
+        els.paceInput.addEventListener('input', (e) => {
+            els.paceDisplay.innerText = `${e.target.value} JPM`;
+        });
 
         // +/- 按钮事件监听
         document.querySelectorAll('.adjust-btn').forEach(btn => {
@@ -853,10 +945,10 @@
             await renderHistory();
         }
 
-        async function executeQueryResult(sql) {
+        async function executeQueryResult(sql, params = []) {
             if (!db.isOpen) return [];
             try {
-                const res = await db.query(sql);
+                const res = await db.query(sql, params);
                 return res || [];
             } catch (err) {
                 console.error('Query Failed:', err);
@@ -999,8 +1091,9 @@
 
             if (!result || result.length === 0 || result[0].values.length === 0) {
                 document.getElementById('historyList').innerHTML = `
-                    <div class="text-center text-slate-500 py-8">
-                        <p>No workout records</p>
+                    <div class="text-center text-slate-500 py-12">
+                        <i class="fas fa-calendar-times text-4xl mb-4 opacity-20"></i>
+                        <p>No workout records found</p>
                     </div>
                 `;
                 return;
@@ -1015,24 +1108,34 @@
                 const workSecs = totalWorkTime % 60;
 
                 return `
-                    <div class="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg group hover:bg-slate-700 transition">
-                        <div>
-                            <div class="font-medium">${dateStr}</div>
-                            <div class="text-sm text-slate-400">
-                                ${rounds} Rounds · ${workTime}s/${restTime}s · Work ${workMins}m${workSecs}s
+                    <div class="p-4 hover:bg-slate-700/30 transition flex items-center justify-between group border-l-4 border-indigo-500/50 bg-slate-800/20 rounded-r-xl">
+                        <div class="flex items-center gap-4 flex-1 min-w-0">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex flex-col items-center justify-center text-indigo-400 shrink-0">
+                                <span class="text-xs font-black leading-none">${rounds}</span>
+                                <span class="text-[8px] uppercase font-bold opacity-60">Rounds</span>
+                            </div>
+                            <div class="min-w-0 pr-4">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-bolt text-[10px] text-lime-400"></i>
+                                    <span class="font-bold text-slate-200">${dateStr}</span>
+                                </div>
+                                <div class="text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
+                                    <span><i class="fas fa-stopwatch mr-1 opacity-50"></i>${workTime}s / ${restTime}s</span>
+                                    <span><i class="fas fa-clock mr-1 opacity-50"></i>Jump ${workMins}m ${workSecs}s</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <div class="text-xl font-bold text-orange-400">${calories}</div>
-                                <div class="text-xs text-slate-500">kcal</div>
+                        <div class="flex items-center gap-4 shrink-0">
+                            <div class="text-right px-2">
+                                <div class="text-xl font-black text-orange-400 leading-none">${calories}</div>
+                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">kcal</div>
                             </div>
-                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                                <button onclick="openEditModal(${id}, '${date}', ${rounds}, ${workTime}, ${restTime}, ${calories}, ${weight})" class="p-2 text-blue-400 hover:bg-blue-500/20 rounded">
-                                    <i class="fas fa-edit"></i>
+                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="openEditModal(${id}, '${date}', ${rounds}, ${workTime}, ${restTime}, ${calories}, ${weight})" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition" title="Edit">
+                                    <i class="fas fa-edit text-sm"></i>
                                 </button>
-                                <button onclick="deleteWorkout(${id})" class="p-2 text-red-400 hover:bg-red-500/20 rounded">
-                                    <i class="fas fa-trash"></i>
+                                <button onclick="deleteWorkout(${id})" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition" title="Delete">
+                                    <i class="fas fa-trash text-sm"></i>
                                 </button>
                             </div>
                         </div>
@@ -1040,7 +1143,7 @@
                 `;
             }).join('');
 
-            document.getElementById('historyList').innerHTML = html;
+            document.getElementById('historyList').innerHTML = `<div class="space-y-3">${html}</div>`;
         }
 
         // --- CRUD for Stats ---
@@ -1092,13 +1195,77 @@
         };
 
         window.deleteWorkout = async function (id) {
-            if (confirm('Are you sure you want to delete this workout?')) {
-                const sql = 'DELETE FROM workouts WHERE id = ?';
-                try {
-                    await db.execute(sql, [id]);
-                } catch (err) {
-                    console.error('Delete Failed:', err);
-                }
+            // Find session data for undo
+            let query = `SELECT id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time FROM workouts WHERE id = ?`;
+            let result = await executeQueryResult(query, [id]);
+            
+            if (!result || !result[0] || !result[0].values[0]) return;
+            
+            const row = result[0].values[0];
+            const session = {
+                id: row[0], date: row[1], rounds: row[2], workTime: row[3], restTime: row[4], 
+                totalWorkTime: row[5], calories: row[6], weight: row[7], totalTime: row[8],
+                startTime: row[9], endTime: row[10]
+            };
+
+            try {
+                await db.execute('DELETE FROM workouts WHERE id = ?', [id]);
+                showUndoToast(session);
+                renderAllStats();
+            } catch (err) {
+                console.error('Delete Failed:', err);
+            }
+        };
+
+        let undoTimeout = null;
+        function showUndoToast(session) {
+            const existing = document.getElementById('undoToast');
+            if (existing) existing.remove();
+            if (undoTimeout) clearTimeout(undoTimeout);
+
+            const toast = document.createElement('div');
+            toast.id = 'undoToast';
+            toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[1000] border border-slate-700/50 animate-fade-in';
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center">
+                        <i class="fas fa-trash-alt text-sm"></i>
+                    </div>
+                    <span class="text-sm font-medium">Deleted workout record</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="undoDeleteWorkout()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all active:scale-95">Undo</button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="p-2 text-slate-500 hover:text-white transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            window._deletedWorkout = session;
+
+            undoTimeout = setTimeout(() => {
+                toast.remove();
+                window._deletedWorkout = null;
+            }, 5000);
+        }
+
+        window.undoDeleteWorkout = async function() {
+            const s = window._deletedWorkout;
+            if (!s) return;
+
+            try {
+                await db.execute(
+                    `INSERT INTO workouts (id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [s.id, s.date, s.rounds, s.workTime, s.restTime, s.totalWorkTime, s.calories, s.weight, s.totalTime, s.startTime, s.endTime]
+                );
+                window._deletedWorkout = null;
+                const toast = document.getElementById('undoToast');
+                if (toast) toast.remove();
+                renderAllStats();
+            } catch (e) {
+                console.error('Undo failed:', e);
             }
         };
 
@@ -1293,6 +1460,10 @@
                     if (config.weight) {
                         els.weightInput.value = config.weight;
                         els.weightDisplay.innerText = `${config.weight} kg`;
+                    }
+                    if (config.pace) {
+                        els.paceInput.value = config.pace;
+                        els.paceDisplay.innerText = `${config.pace} JPM`;
                     }
 
                     // Recalculate total time
