@@ -153,7 +153,7 @@
                 </div>
 
                 <!-- Timer Tab Content -->
-                <div id="tabContentTimer" class="flex items-center justify-center min-h-[60vh] py-8">
+                <div id="tabContentTimer" class="flex flex-col items-center justify-center min-h-[60vh] py-8">
                     <!-- Grid Layout: 2 columns, 2 rows -->
                     <div class="grid grid-cols-2 gap-x-16 gap-y-8 items-center">
                         <!-- Row 1, Col 1: Pixel Tomato -->
@@ -176,7 +176,7 @@
                         </div>
 
                         <!-- Row 2, Col 1: Duration Settings -->
-                        <div class="flex items-start justify-center">
+                        <div class="flex items-center justify-center">
                             <div id="durationSettings"
                                 class="flex items-center bg-slate-800 rounded-full p-1.5 border border-slate-700">
                                 <button onclick="setDuration(5)"
@@ -200,33 +200,32 @@
                             </div>
                         </div>
 
-                        <!-- Row 2, Col 2: Action Buttons + Notification -->
-                        <div class="flex flex-col items-center justify-start gap-3">
-                            <div class="flex items-center gap-3">
-                                <button onclick="startTimer()" id="startBtn"
-                                    class="bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-indigo-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                                    <i class="fas fa-play"></i>
-                                    START LOGGING
-                                </button>
-                                <button onclick="stopTimer()" id="stopBtn"
-                                    class="hidden bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-purple-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                                    <i class="fas fa-exchange-alt"></i>
-                                    SWITCH ACTIVITY
-                                </button>
-                                <button onclick="skipTimer()" id="skipBtn"
-                                    class="hidden w-12 h-12 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all flex items-center justify-center border border-slate-700/50"
-                                    title="Skip Log">
-                                    <i class="fas fa-forward"></i>
-                                </button>
-                            </div>
-                            <!-- Notification Toggle -->
-                            <div class="flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
-                                <input type="checkbox" id="notifyToggle" checked
-                                    class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
-                                <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">Task
-                                    Completion Notification</label>
-                            </div>
+                        <!-- Row 2, Col 2: Action Buttons -->
+                        <div class="flex items-center justify-center gap-3">
+                            <button onclick="startTimer()" id="startBtn"
+                                class="bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 px-14 rounded-xl shadow-lg shadow-indigo-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i class="fas fa-play"></i>
+                                START LOGGING
+                            </button>
+                            <button onclick="stopTimer()" id="stopBtn"
+                                class="hidden bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-bold py-3 px-14 rounded-xl shadow-lg shadow-purple-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i class="fas fa-exchange-alt"></i>
+                                SWITCH ACTIVITY
+                            </button>
+                            <button onclick="skipTimer()" id="skipBtn"
+                                class="hidden w-12 h-12 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all flex items-center justify-center border border-slate-700/50"
+                                title="Skip Log">
+                                <i class="fas fa-forward"></i>
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Notification Toggle (Outside Grid) -->
+                    <div class="mt-16 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
+                        <input type="checkbox" id="notifyToggle" checked
+                            class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
+                        <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">Task
+                            Completion Notification</label>
                     </div>
                 </div>
 
@@ -1577,18 +1576,55 @@
                 titleInput.value = '';
                 durationInput.value = '25';
                 if (notesInput) notesInput.value = '';
+                if (startTimeInput) startTimeInput.value = '';
 
                 // Feedback
                 console.log('[LifeFlow] Quick log submitted:', title, duration, 'min, tag:', tag.name);
                 requestData(); // Refresh UI
-                alert('Activity Logged!');
+                showSuccessToast('Activity Logged!', `${duration} min recorded as ${tag.name}`);
             } catch (err) {
                 console.error('[LifeFlow] Quick Log Failed:', err);
-                alert('Failed to save log.');
+                showSuccessToast('Failed to save', err.message, 'error');
             }
         }
 
-        // Quick Log Tag Selector functions
+        function showSuccessToast(title, message = '', type = 'success') {
+            // Remove existing toast
+            const existing = document.getElementById('successToast');
+            if (existing) existing.remove();
+
+            const isError = type === 'error';
+            const bgColor = isError ? 'bg-red-600/90' : 'bg-emerald-600/90';
+            const icon = isError ? 'fa-exclamation-circle' : 'fa-check-circle';
+
+            const toast = document.createElement('div');
+            toast.id = 'successToast';
+            toast.className = `fixed top-6 left-1/2 -translate-x-1/2 ${bgColor} backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[1000] border border-white/10 transition-all duration-300 opacity-0 -translate-y-4`;
+            toast.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <i class="fas ${icon} text-xl"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-lg">${title}</div>
+                    ${message ? `<div class="text-sm text-white/80">${message}</div>` : ''}
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', '-translate-y-4');
+                toast.classList.add('opacity-100', 'translate-y-0');
+            });
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-4');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
         function toggleQuickLogTagMenu() {
             const menu = document.getElementById('quickLogTagMenu');
             if (menu) menu.classList.toggle('hidden');

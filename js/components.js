@@ -101,7 +101,7 @@ class LocalSidebar extends HTMLElement {
     highlightActiveLink() {
         const currentPath = window.location.pathname.split('/').pop() || 'index.html';
         const links = this.querySelectorAll('a, button[data-link]');
-        
+
         links.forEach(link => {
             const href = link.getAttribute('href') || link.getAttribute('data-link');
             if (href === currentPath) {
@@ -112,11 +112,11 @@ class LocalSidebar extends HTMLElement {
                     // Find the color class in the icon (e.g., group-hover:text-blue-400) and apply it
                     const colorClass = Array.from(icon.classList).find(c => c.startsWith('text-') && !c.includes('slate'));
                     if (!colorClass) {
-                         // Fallback: try to match from group-hover
-                         const hoverClass = Array.from(icon.classList).find(c => c.includes('group-hover:text-'));
-                         if (hoverClass) {
-                             icon.classList.add(hoverClass.replace('group-hover:', ''));
-                         }
+                        // Fallback: try to match from group-hover
+                        const hoverClass = Array.from(icon.classList).find(c => c.includes('group-hover:text-'));
+                        if (hoverClass) {
+                            icon.classList.add(hoverClass.replace('group-hover:', ''));
+                        }
                     }
                 }
             }
@@ -210,9 +210,9 @@ class LocalSidebar extends HTMLElement {
                      ${this.isCollapsed ? '<div class="h-px bg-slate-800 my-2 mx-4"></div>' : ''}
 
                     <li>
-                        <a href="pomodoro.html" class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
-                            <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-red-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">番茄钟</span>
+                        <a href="lifeflow.html" class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+                            <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-indigo-400 transition ${iconMargin}"></i>
+                            <span class="${hideTextClass}">LifeFlow</span>
                         </a>
                     </li>
                 </ul>
