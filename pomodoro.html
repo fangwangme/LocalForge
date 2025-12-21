@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>番茄钟 - LocalForge</title>
+    <title>LifeFlow | Personal Life Log</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -27,11 +27,30 @@
             width: 100%;
             aspect-ratio: 1;
             border-radius: 1px;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .pixel-filled {
-            box-shadow: 0 0 2px rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 6px rgba(244, 63, 94, 0.5);
+        }
+
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.4);
         }
 
         @keyframes pulse-yellow {
@@ -57,6 +76,36 @@
         .animate-pulse-yellow {
             animation: pulse-yellow 2s infinite;
         }
+
+        @keyframes breathing {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.95;
+            }
+
+            50% {
+                transform: scale(1.02);
+                opacity: 1;
+            }
+        }
+
+        .animate-breathing {
+            animation: breathing 3s ease-in-out infinite;
+        }
+
+        #digitalTimer {
+            transition: all 0.8s ease;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-approaching {
+            background: linear-gradient(135deg, #fff 0%, #fb7185 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(251, 113, 133, 0.2);
+        }
     </style>
 </head>
 
@@ -69,15 +118,16 @@
     <div class="flex-1 flex flex-col min-w-0 relative">
 
         <!-- Header -->
-        <local-header title="番茄钟">
+        <local-header title="LifeFlow">
             <i slot="icon" class="fas fa-clock text-rose-500"></i>
             <div slot="actions" class="flex items-center gap-4">
                 <div class="flex items-center gap-3">
                     <button onclick="openTagsManagement()" class="p-3 text-slate-400 hover:text-white transition"
-                        title="管理标签">
+                        title="Manage Tags">
                         <i class="fas fa-tags text-xl"></i>
                     </button>
-                    <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition" title="统计历史">
+                    <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition"
+                        title="View Stats">
                         <i class="fas fa-history text-xl"></i>
                     </button>
                 </div>
@@ -87,95 +137,168 @@
         <div class="flex-1 overflow-y-auto">
             <main class="max-w-4xl mx-auto px-4 py-8">
 
-                <!-- Timer View -->
-                <div id="timerView" class="flex flex-col items-center justify-center min-h-[60vh]">
-
-                    <!-- Digital Timer -->
-                    <div class="text-[8rem] font-bold font-mono tracking-tighter leading-none mb-4 tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400"
-                        id="digitalTimer">
-                        25:00
+                <!-- Tab Switcher -->
+                <div class="flex justify-center mb-12">
+                    <div
+                        class="flex p-1 bg-slate-800/80 backdrop-blur rounded-2xl border border-slate-700/50 shadow-xl">
+                        <button onclick="switchTab('timer')" id="tabBtnTimer"
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg">
+                            <i class="fas fa-clock"></i> Timer
+                        </button>
+                        <button onclick="switchTab('log')" id="tabBtnLog"
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+                            <i class="fas fa-edit"></i> Quick Log
+                        </button>
                     </div>
+                </div>
 
-                    <!-- Pixel Tomato -->
-                    <div class="w-full max-w-md mb-12">
-                        <div id="pixelGrid"
-                            class="pixel-grid bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                            <!-- Blocks injected here -->
-                        </div>
-                        <div class="text-center mt-2 text-xs text-slate-500">
-                            <span id="progressText">0 / 25 min</span>
-                        </div>
-                    </div>
-
-                    <!-- Controls -->
-                    <div class="flex items-center gap-6">
-                        <!-- Tag Selector (Hidden - now in save modal) -->
-                        <div class="relative group hidden" id="mainTagSelector">
-                            <button onclick="toggleTagMenu()" id="currentTagBtn"
-                                class="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 hover:border-slate-600 text-sm transition h-10">
-                                <span id="currentTagDot" class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                <span id="currentTagName">Default</span>
-                                <i class="fas fa-chevron-down text-xs text-slate-500"></i>
-                            </button>
-                            <div id="tagMenu"
-                                class="hidden absolute bottom-full left-0 mb-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-2 z-20">
-                                <div id="tagList" class="max-h-60 overflow-y-auto">
-                                    <!-- Tags rendered here -->
-                                </div>
-                                <div class="border-t border-slate-700 mt-1 pt-1 px-2">
-                                    <button onclick="openAddTagModal()"
-                                        class="w-full text-left px-2 py-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition flex items-center gap-2">
-                                        <i class="fas fa-plus"></i> 新建标签
-                                    </button>
-                                </div>
+                <!-- Timer Tab Content -->
+                <div id="tabContentTimer" class="flex items-center justify-center min-h-[60vh] py-8">
+                    <!-- Grid Layout: 2 columns, 2 rows -->
+                    <div class="grid grid-cols-2 gap-x-16 gap-y-8 items-center">
+                        <!-- Row 1, Col 1: Pixel Tomato -->
+                        <div class="flex flex-col items-center">
+                            <div id="pixelGrid"
+                                class="pixel-grid bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm w-[345px]">
+                                <!-- Blocks injected here -->
+                            </div>
+                            <div class="text-center mt-2 text-sm text-slate-500">
+                                <span id="progressText">0 / 25 min</span>
                             </div>
                         </div>
 
-                        <!-- Duration Settings (Only valid when stopped) -->
-                        <div id="durationSettings"
-                            class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700">
-                            <button onclick="setDuration(5)"
-                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                                data-min="5">5</button>
-                            <button onclick="setDuration(15)"
-                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                                data-min="15">15</button>
-                            <button onclick="setDuration(25)"
-                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
-                                data-min="25">25</button>
-                            <button onclick="setDuration(45)"
-                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                                data-min="45">45</button>
-                            <button onclick="setDuration(60)"
-                                class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
-                                data-min="60">60</button>
-                            <button onclick="askCustomDuration()"
-                                class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
-                                    class="fas fa-edit"></i></button>
+                        <!-- Row 1, Col 2: Digital Timer -->
+                        <div class="flex flex-col items-center">
+                            <div class="text-[10rem] font-bold font-mono tracking-tighter leading-none tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-2xl"
+                                id="digitalTimer">
+                                25:00
+                            </div>
                         </div>
 
-                        <!-- Main Action -->
-                        <button id="mainBtn" onclick="toggleTimer()"
-                            class="h-16 w-16 rounded-full bg-rose-500 hover:bg-rose-400 text-white text-2xl flex items-center justify-center shadow-lg shadow-rose-500/30 transition transform hover:scale-105 active:scale-95">
-                            <i class="fas fa-play ml-1"></i>
-                        </button>
+                        <!-- Row 2, Col 1: Duration Settings -->
+                        <div class="flex items-start justify-center">
+                            <div id="durationSettings"
+                                class="flex items-center bg-slate-800 rounded-full p-1.5 border border-slate-700">
+                                <button onclick="setDuration(5)"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    data-min="5">5</button>
+                                <button onclick="setDuration(15)"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    data-min="15">15</button>
+                                <button onclick="setDuration(25)"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
+                                    data-min="25">25</button>
+                                <button onclick="setDuration(45)"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    data-min="45">45</button>
+                                <button onclick="setDuration(60)"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    data-min="60">60</button>
+                                <button onclick="askCustomDuration()"
+                                    class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
+                                        class="fas fa-edit"></i></button>
+                            </div>
+                        </div>
 
-                        <!-- Stop Button (Hidden by default, shown when running) -->
-                        <button id="resetBtn" onclick="resetTimer()"
-                            class="hidden h-12 w-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center shadow-lg transition">
-                            <i class="fas fa-stop"></i>
-                        </button>
-
-
-
+                        <!-- Row 2, Col 2: Action Buttons + Notification -->
+                        <div class="flex flex-col items-center justify-start gap-3">
+                            <div class="flex items-center gap-3">
+                                <button onclick="startTimer()" id="startBtn"
+                                    class="bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-indigo-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas fa-play"></i>
+                                    START LOGGING
+                                </button>
+                                <button onclick="stopTimer()" id="stopBtn"
+                                    class="hidden bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg shadow-purple-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas fa-exchange-alt"></i>
+                                    SWITCH ACTIVITY
+                                </button>
+                                <button onclick="skipTimer()" id="skipBtn"
+                                    class="hidden w-12 h-12 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all flex items-center justify-center border border-slate-700/50"
+                                    title="Skip Log">
+                                    <i class="fas fa-forward"></i>
+                                </button>
+                            </div>
+                            <!-- Notification Toggle -->
+                            <div class="flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
+                                <input type="checkbox" id="notifyToggle" checked
+                                    class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
+                                <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">Task
+                                    Completion Notification</label>
+                            </div>
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Notification Toggle -->
-                    <div class="mt-8 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
-                        <input type="checkbox" id="notifyToggle" checked
-                            class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
-                        <label for="notifyToggle"
-                            class="text-sm text-slate-400 cursor-pointer select-none">任务结束通知</label>
+                <!-- Quick Log Tab Content -->
+                <div id="tabContentLog" class="hidden max-w-md mx-auto py-8">
+                    <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                <i class="fas fa-edit"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-white">Quick Activity Log</h3>
+                                <p class="text-xs text-slate-500">Record past activities manually</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- Tag Selector -->
+                            <div>
+                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Tag</label>
+                                <div class="relative" id="quickLogTagSelector">
+                                    <button type="button" onclick="toggleQuickLogTagMenu()" id="quickLogTagBtn"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white hover:border-slate-600 focus:border-indigo-500 outline-none transition text-left flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span id="quickLogTagDot"
+                                                class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                            <span id="quickLogTagName">Default</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+                                    </button>
+                                    <div id="quickLogTagMenu"
+                                        class="hidden absolute top-full left-0 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto mt-1">
+                                        <!-- Items rendered by JS -->
+                                    </div>
+                                    <input type="hidden" id="quickLogTagValue">
+                                </div>
+                            </div>
+                            <!-- Start DateTime -->
+                            <div>
+                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Start
+                                    Time</label>
+                                <input type="datetime-local" id="quickLogStartTime"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                            </div>
+                            <!-- Title -->
+                            <div>
+                                <label
+                                    class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Title</label>
+                                <input type="text" id="quickLogTitle" placeholder="What did you do?"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                            </div>
+                            <!-- Duration -->
+                            <div>
+                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Duration
+                                    (minutes)</label>
+                                <input type="number" id="quickLogDuration" value="25" min="1"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                            </div>
+                            <!-- Notes -->
+                            <div>
+                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Notes
+                                    (optional)</label>
+                                <textarea id="quickLogNotes" rows="2" placeholder="Additional notes..."
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition resize-none"></textarea>
+                            </div>
+                            <!-- Submit -->
+                            <button onclick="submitQuickLog()"
+                                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                CONFIRM LOG
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -193,19 +316,40 @@
             <div
                 class="sticky top-0 z-[70] bg-slate-900/95 backdrop-blur pt-8 pb-4 mb-6 flex justify-between items-center border-b border-slate-800/50">
                 <h2 class="text-2xl font-bold flex items-center gap-2">
-                    <i class="fas fa-chart-pie text-rose-500"></i> 数据概览
+                    <i class="fas fa-chart-pie text-indigo-500"></i> Data Overview
                 </h2>
-                <div class="flex items-center gap-4">
-                    <!-- Unified Time Range Toggle -->
-                    <div class="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
-                        <button onclick="setStatsTimeRange('today')" id="statsRangeToday"
-                            class="px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm">今天</button>
-                        <button onclick="setStatsTimeRange('week')" id="statsRangeWeek"
-                            class="px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Unified Time Range Selector -->
+                    <div class="flex items-center gap-2 bg-slate-800 rounded-xl p-1 border border-slate-700/50">
+                        <!-- Presets -->
+                        <div class="flex p-0.5 bg-slate-900/50 rounded-lg mr-1">
+                            <button onclick="setStatsRange('today')" id="rangeBtnToday"
+                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-white">Today</button>
+                            <button onclick="setStatsRange('last7')" id="rangeBtnLast7"
+                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-white">Last 7 Days</button>
+                        </div>
+
+                        <div class="w-px h-4 bg-slate-700 mx-1"></div>
+
+                        <!-- Custom Date -->
+                        <div class="flex items-center gap-1.5 px-2">
+                            <input type="date" id="statsDatePicker"
+                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1.5 text-white outline-none focus:border-rose-500 transition w-32"
+                                onchange="setStatsRange('customDay')">
+                            <div class="flex p-0.5 bg-slate-900/50 rounded-lg">
+                                <button onclick="setStatsRange('customDay')" id="rangeBtnCustomDay"
+                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-white"
+                                    title="Stats for selected day">Single Day</button>
+                                <button onclick="setStatsRange('customWeek')" id="rangeBtnCustomWeek"
+                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-white"
+                                    title="Stats for selected day and 7 days prior">7 Days</button>
+                            </div>
+                        </div>
                     </div>
+
                     <button onclick="closeStats()"
-                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
-                        关闭
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition text-sm font-medium">
+                        Close
                     </button>
                 </div>
             </div>
@@ -213,23 +357,23 @@
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">专注次数</div>
+                    <div class="text-slate-400 text-xs mb-1">Logged Events</div>
                     <div class="text-2xl font-bold text-white"><span id="statsFocusCount">0</span> <span
-                            class="text-sm font-normal text-slate-500">个番茄</span></div>
+                            class="text-sm font-normal text-slate-500">records</span></div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">总时长</div>
-                    <div class="text-xl font-bold text-blue-400" id="statsTotalTime">0分钟</div>
+                    <div class="text-slate-400 text-xs mb-1">Logged Today</div>
+                    <div class="text-xl font-bold text-indigo-400" id="statsTotalTime">0 minutes</div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">有效时长</div>
-                    <div class="text-xl font-bold text-emerald-400" id="statsEffectiveTime">0分钟</div>
-                    <div class="text-xs text-slate-500 mt-1">不含 Default</div>
+                    <div class="text-slate-400 text-xs mb-1">Active Activities</div>
+                    <div class="text-xl font-bold text-purple-400" id="statsEffectiveTime">0 minutes</div>
+                    <div class="text-xs text-slate-500 mt-1">Excluding Default</div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">标签数</div>
+                    <div class="text-slate-400 text-xs mb-1">Tags</div>
                     <div class="text-2xl font-bold text-amber-400"><span id="statsTagCount">0</span> <span
-                            class="text-sm font-normal text-slate-500">个</span></div>
+                            class="text-sm font-normal text-slate-500">tags</span></div>
                 </div>
             </div>
 
@@ -237,21 +381,21 @@
             <div class="grid md:grid-cols-3 gap-6 mb-8">
                 <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-medium text-slate-300">专注趋势</h3>
+                        <h3 class="text-sm font-medium text-slate-300">Activity Trend</h3>
                         <div class="flex items-center gap-4">
                             <button onclick="toggleFullView()" id="fullViewBtn"
                                 class="px-2 py-1 text-xs border border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400 transition">
-                                <i class="fas fa-expand"></i> 全景
+                                <i class="fas fa-expand"></i> Panorama
                             </button>
                             <button onclick="openExportPanoramaModal()"
                                 class="px-2 py-1 text-xs border border-emerald-600 rounded text-emerald-400 hover:text-white hover:border-emerald-400 hover:bg-emerald-600/20 transition">
-                                <i class="fas fa-image"></i> 导出
+                                <i class="fas fa-image"></i> Export
                             </button>
                             <div class="flex items-center gap-2 text-xs text-slate-400" id="sliderContainer">
                                 <button onclick="moveSlider(-1)" class="p-1 hover:text-white transition"><i
                                         class="fas fa-chevron-left"></i></button>
                                 <input type="range" id="chartSlider" min="0" max="20" step="1" value="0"
-                                    class="w-24 md:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                    class="w-24 md:w-32 h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                     oninput="onSliderChange(this.value)">
                                 <button onclick="moveSlider(1)" class="p-1 hover:text-white transition"><i
                                         class="fas fa-chevron-right"></i></button>
@@ -264,7 +408,7 @@
                 </div>
                 <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-medium text-slate-300">分布占比</h3>
+                        <h3 class="text-sm font-medium text-slate-300">Distribution</h3>
                     </div>
                     <div class="h-64 flex items-center justify-center">
                         <canvas id="distChart"></canvas>
@@ -277,35 +421,29 @@
                 <!-- Header with Filters -->
                 <div class="p-4 border-b border-slate-700">
                     <div class="flex flex-wrap gap-3 items-center justify-between">
-                        <h3 class="font-medium text-slate-300">详细记录</h3>
+                        <h3 class="font-medium text-slate-300">Detailed Records</h3>
                         <div class="flex flex-wrap gap-2 items-center">
-                            <!-- Quick Filters -->
-                            <div class="flex bg-slate-900 rounded-lg p-0.5">
-                                <button onclick="setHistoryFilter('today')" id="filterBtnToday"
-                                    class="px-3 py-1 text-xs rounded-md transition bg-blue-600 text-white">今天</button>
-                                <button onclick="setHistoryFilter('week')" id="filterBtnWeek"
-                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">本周</button>
-                                <button onclick="setHistoryFilter('all')" id="filterBtnAll"
-                                    class="px-3 py-1 text-xs rounded-md transition text-slate-400 hover:text-white">全部</button>
-                            </div>
-                            <div class="h-4 w-px bg-slate-600 hidden sm:block"></div>
-                            <!-- Date Picker -->
-                            <input type="date" id="historyDatePicker" onchange="setHistoryFilter('date')"
-                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1 text-white outline-none focus:border-blue-500">
+                            <!-- Statistics range is now unified at the top -->
                         </div>
                     </div>
                     <!-- Status & Export Controls -->
                     <div
                         class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
-                        <div id="historyStatus" class="text-xs text-slate-500">加载中...</div>
+                        <div id="historyStatus" class="text-xs text-slate-500">Loading...</div>
                         <div class="flex gap-2 items-center">
                             <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
                                 <input type="checkbox" id="exportExcludeRelax" class="rounded w-3 h-3">
-                                导出时排除休息
+                                Exclude breaks when exporting
                             </label>
                             <button onclick="exportCurrentList()"
-                                class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5">
-                                <i class="fas fa-copy"></i> 复制
+                                class="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition flex items-center gap-1.5"
+                                title="Copy current list to clipboard">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <button onclick="openExportRecordsModal()"
+                                class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5"
+                                title="Export daily Markdown report">
+                                <i class="fas fa-file-export"></i> Export MD
                             </button>
                         </div>
                     </div>
@@ -327,14 +465,14 @@
                     class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-3xl animate-bounce">
                     <i class="fas fa-check"></i>
                 </div>
-                <h3 class="text-2xl font-bold text-white mb-2">专注达成！</h3>
-                <p class="text-slate-400">刚刚完成了 <span id="saveDuration" class="text-white font-bold">25</span> 分钟的专注。
-                </p>
+                <h3 class="text-2xl font-bold text-white mb-2">Activity Logged!</h3>
+                <p class="text-slate-400 text-sm mb-6">Congratulations! You just recorded <span id="saveDuration"
+                        class="text-white font-bold">25</span> minutes of life.</p>
             </div>
 
             <div class="bg-slate-900/50 rounded-lg p-4 mb-6">
                 <div class="mb-3 relative">
-                    <label class="block text-xs text-slate-500 mb-1">标签</label>
+                    <label class="block text-xs text-slate-500 mb-1">Tag</label>
                     <div class="relative" id="saveTagCustomSelector">
                         <button type="button" onclick="toggleSaveTagMenu()" id="saveTagBtn"
                             class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white hover:border-slate-600 focus:border-rose-500 outline-none transition text-left flex items-center justify-between">
@@ -353,25 +491,21 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-xs text-slate-500 mb-1">标题</label>
-                    <input type="text" id="saveTitle" placeholder="做了什么？"
+                    <label class="block text-xs text-slate-500 mb-1">Title</label>
+                    <input type="text" id="saveTitle" placeholder="What did you do?"
                         class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">备注 (可选)</label>
-                    <textarea id="saveDescription" rows="2" placeholder="补充说明..."
+                    <label class="block text-xs text-slate-500 mb-1">Notes (Optional)</label>
+                    <textarea id="saveDescription" rows="2" placeholder="Additional notes..."
                         class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition resize-none"></textarea>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="discardSession()"
-                    class="py-3 rounded-xl border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">
-                    丢弃
-                </button>
+            <div class="flex justify-center">
                 <button onclick="confirmSaveSession()"
-                    class="py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-lg shadow-rose-600/20 transition">
-                    记录
+                    class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/20 transition">
+                    CONFIRM LOG
                 </button>
             </div>
         </div>
@@ -383,7 +517,7 @@
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-bold text-xl text-white flex items-center gap-2">
-                    <i class="fas fa-tags text-rose-500"></i> 标签管理
+                    <i class="fas fa-tags text-rose-500"></i> Tag Management
                 </h3>
                 <button onclick="closeTagsManagement()" class="text-slate-400 hover:text-white transition">
                     <i class="fas fa-times"></i>
@@ -393,7 +527,7 @@
             <div class="mb-4">
                 <button onclick="openAddTagModal()"
                     class="w-full py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 border-dashed text-slate-300 rounded-lg text-sm transition flex items-center justify-center gap-2">
-                    <i class="fas fa-plus"></i> 新建标签
+                    <i class="fas fa-plus"></i> New Tag
                 </button>
             </div>
 
@@ -404,7 +538,7 @@
             <div class="mt-6 flex justify-end">
                 <button onclick="closeTagsManagement()"
                     class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition">
-                    关闭
+                    Close
                 </button>
             </div>
         </div>
@@ -413,32 +547,33 @@
     <div id="addTagModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4" id="tagModalTitle">新建标签</h3>
+            <h3 class="font-bold text-lg mb-4" id="tagModalTitle">New Tag</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">名称</label>
-                    <input type="text" id="newTagName" placeholder="例如：Coding"
+                    <label class="block text-xs text-slate-400 mb-1">Name</label>
+                    <input type="text" id="newTagName" placeholder="e.g., Coding"
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">颜色</label>
+                    <label class="block text-xs text-slate-400 mb-1">Color</label>
                     <div class="flex items-center gap-3">
                         <input type="color" id="newTagColor" value="#3b82f6"
                             class="w-10 h-10 p-0 rounded border-none cursor-pointer bg-transparent">
-                        <span class="text-xs text-slate-500">点击色块选择颜色</span>
+                        <span class="text-xs text-slate-500">Click to choose color</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 pt-2">
                     <input type="checkbox" id="newTagDefault"
                         class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
-                    <label for="newTagDefault" class="text-xs text-slate-400 cursor-pointer select-none">设为默认标签</label>
+                    <label for="newTagDefault" class="text-xs text-slate-400 cursor-pointer select-none">Set as default
+                        tag</label>
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="document.getElementById('addTagModal').classList.add('hidden')"
-                    class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">取消</button>
+                    class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">Cancel</button>
                 <button onclick="confirmAddTag()"
-                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded">保存</button>
+                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded">Save</button>
             </div>
         </div>
     </div>
@@ -447,52 +582,52 @@
     <div id="editSessionModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4 text-white">编辑记录</h3>
+            <h3 class="font-bold text-lg mb-4 text-white">Edit Record</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">开始时间</label>
+                    <label class="block text-xs text-slate-400 mb-1">Start Time</label>
                     <input type="datetime-local" id="editStartTime"
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">结束时间</label>
+                    <label class="block text-xs text-slate-400 mb-1">End Time</label>
                     <input type="datetime-local" id="editEndTime"
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">标签</label>
+                        <label class="block text-xs text-slate-400 mb-1">Tag</label>
                         <select id="editTagSelect"
                             class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">状态</label>
+                        <label class="block text-xs text-slate-400 mb-1">Status</label>
                         <select id="editStatusSelect"
                             class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
-                            <option value="completed">✅ 已完成</option>
-                            <option value="aborted">⏹️ 中断</option>
-                            <option value="in_progress">⏳ 进行中</option>
+                            <option value="completed">✅ Completed</option>
+                            <option value="aborted">⏹️ Aborted</option>
+                            <option value="in_progress">⏳ In Progress</option>
                         </select>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">标题</label>
-                    <input type="text" id="editTitle" placeholder="事件名称"
+                    <label class="block text-xs text-slate-400 mb-1">Title</label>
+                    <input type="text" id="editTitle" placeholder="Event Name"
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">备注</label>
-                    <textarea id="editDescription" rows="2" placeholder="可选备注..."
+                    <label class="block text-xs text-slate-400 mb-1">Notes</label>
+                    <textarea id="editDescription" rows="2" placeholder="Optional notes..."
                         class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none resize-none"></textarea>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
                 <button onclick="closeEditSessionModal()"
-                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">取消</button>
+                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Cancel</button>
                 <button onclick="confirmEditSession()"
-                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">保存</button>
+                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">Save</button>
             </div>
         </div>
     </div>
@@ -501,7 +636,7 @@
     <div id="customDurationModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4 text-center">自定义时长</h3>
+            <h3 class="font-bold text-lg mb-4 text-center">Custom Duration</h3>
             <div class="space-y-4">
                 <div>
                     <div class="flex items-center justify-center gap-4 mb-4">
@@ -518,14 +653,14 @@
                     <input type="range" id="customInputRange" min="1" max="180" step="1" value="25"
                         class="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500 mb-2"
                         oninput="updateCustomDisplay(this.value)">
-                    <p class="text-center text-xs text-slate-500">分钟</p>
+                    <p class="text-center text-xs text-slate-500">minutes</p>
                 </div>
             </div>
             <div class="flex justify-between gap-3 mt-6">
                 <button onclick="closeCustomDuration()"
-                    class="flex-1 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">取消</button>
+                    class="flex-1 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Cancel</button>
                 <button onclick="confirmCustomDuration()"
-                    class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">确定</button>
+                    class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">Confirm</button>
             </div>
         </div>
     </div>
@@ -535,58 +670,70 @@
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-white flex items-center gap-2">
-                <i class="fas fa-file-export text-blue-400"></i> 导出记录
+                <i class="fas fa-file-export text-blue-400"></i> Export Records
                 <span id="exportDateLabel" class="text-sm font-normal text-slate-400 ml-auto"></span>
             </h3>
             <div class="space-y-4">
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" id="exportIncludeRelax"
-                        class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
-                    <label for="exportIncludeRelax"
-                        class="text-sm text-slate-300 cursor-pointer select-none">包含休息时段</label>
+                <div class="grid grid-cols-2 gap-3 pb-3 border-b border-slate-700/50">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Select
+                            Date</label>
+                        <input type="date" id="exportDatePicker" onchange="onExportDateChange()"
+                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition">
+                    </div>
+                    <div class="flex flex-col justify-end">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="checkbox" id="exportIncludeRelax" onchange="onExportDateChange()"
+                                class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 cursor-pointer accent-blue-500">
+                            <label for="exportIncludeRelax"
+                                class="text-sm text-slate-300 cursor-pointer select-none">Include Breaks</label>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Markdown 输出</label>
-                    <textarea id="exportRecordsOutput" rows="10" readonly
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 font-mono focus:border-blue-500 outline-none resize-none"></textarea>
+                <!-- Status Message -->
+                <div id="exportPreviewStatus" class="text-xs text-slate-500">Select a date to load data</div>
+                <div id="exportPreviewArea">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Markdown Output</label>
+                        <textarea id="exportRecordsOutput" rows="10" readonly
+                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 font-mono focus:border-blue-500 outline-none resize-none"></textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-6">
-                <button onclick="closeExportRecordsModal()"
-                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">关闭</button>
-                <button onclick="copyExportRecords()"
-                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2">
-                    <i class="fas fa-copy"></i> 复制
-                </button>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button onclick="closeExportRecordsModal()"
+                        class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Close</button>
+                    <button onclick="copyExportRecords()"
+                        class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Export Panorama Modal (7-Day PNG) -->
-    <div id="exportPanoramaModal" style="z-index: 100;"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center overflow-y-auto py-8">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl p-6 shadow-2xl my-auto">
-            <h3 class="font-bold text-lg mb-4 text-white flex items-center gap-2">
-                <i class="fas fa-image text-emerald-400"></i> 导出7日全景图
-            </h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">选择周起始日期（周一）</label>
-                    <input type="date" id="exportPanoramaDate"
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
-                </div>
-                <!-- Preview Container -->
-                <div id="panoramaPreview" class="bg-slate-900 rounded-lg p-4 border border-slate-700">
-                    <div class="text-center text-slate-500 py-8">选择日期后生成预览</div>
+    <div id="exportPanoramaModal" style="z-index: 200;"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center overflow-y-auto py-8">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-7xl p-8 shadow-2xl my-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    <i class="fas fa-image text-emerald-400"></i> Export 7-Day Panorama
+                </h3>
+                <div class="flex gap-3">
+                    <button onclick="closeExportPanoramaModal()"
+                        class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Close</button>
+                    <button onclick="downloadPanoramaPNG()"
+                        class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> Download PNG
+                    </button>
                 </div>
             </div>
-            <div class="flex justify-end gap-3 mt-6">
-                <button onclick="closeExportPanoramaModal()"
-                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">关闭</button>
-                <button onclick="downloadPanoramaPNG()"
-                    class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
-                    <i class="fas fa-download"></i> 下载 PNG
-                </button>
+            <div class="space-y-4">
+                <p id="exportPanoramaHeader" class="text-xs text-slate-400">Generated based on current stats range</p>
+                <!-- Preview Container -->
+                <div id="panoramaPreview" class="bg-slate-900 rounded-lg p-4 border border-slate-700 overflow-x-auto">
+                    <div class="text-center text-slate-500 py-8">Generating preview...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -594,10 +741,11 @@
     <script type="module">
         import { db } from './js/db-client.js';
 
-        console.log('[Pomodoro] Script starting...');
+        console.log('[LifeFlow] Script starting...');
 
         // === State ===
         let currentState = 'stopped'; // stopped, running
+        let currentMode = 'work'; // work, short_break, long_break
         let currentEditTagId = null; // null for add, id for edit
         let pendingAbort = false; // true if user clicked stop button (for save modal)
         let durationMinutes = 25;
@@ -609,22 +757,29 @@
         let currentTag = null; // Will be set on load
         let tags = [];
         let sessions = [];
-        let statsTimeRange = 'today'; // Unified time range for Summary Cards and Distribution Chart
+        let statsMode = 'today'; // Default to Today
+        let statsBaseDate = new Date();
+        let trendChart = null;
+        let distChart = null;
 
         // === Session Tracking ===
         let currentSessionId = null; // Track record ID in DB for early save/periodic update
         let lastSyncTime = 0;       // Last time we updated DB
         let lastUpdateCheckSecs = 0; // The timeLeft value at last DB update
+        let segmentStartTime = null; // Track segment start for session
+        let targetEndTime = null;    // Target end time for accurate countdown
 
         // === DOM Elements ===
         const els = {
             digital: document.getElementById('digitalTimer'),
             pixelGrid: document.getElementById('pixelGrid'),
-            mainBtn: document.getElementById('mainBtn'),
-            resetBtn: document.getElementById('resetBtn'),
+            startBtn: document.getElementById('startBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            skipBtn: document.getElementById('skipBtn'),
             durationBtns: document.querySelectorAll('.duration-btn'),
             statsOverlay: document.getElementById('statsOverlay'),
             saveModal: document.getElementById('saveModal'),
+            saveDuration: document.getElementById('saveDuration'), // Added for quick log
             tagMenu: document.getElementById('tagMenu'),
             tagList: document.getElementById('tagList'),
             currentTagName: document.getElementById('currentTagName'),
@@ -635,7 +790,7 @@
 
         // === Init ===
         async function init() {
-            console.log('[Pomodoro] init() called.');
+            console.log('[LifeFlow] init() called.');
 
             // 1. DB Init
             await initTables();
@@ -664,7 +819,7 @@
                             notifyToggle.parentElement.classList.remove('opacity-50');
                         } else if (Notification.permission === 'denied') {
                             notifyToggle.checked = false;
-                            alert('请在浏览器设置中允许通知权限。');
+                            alert('Please allow notification permissions in your browser settings.');
                         } else {
                             Notification.requestPermission().then(perm => {
                                 if (perm === 'granted') {
@@ -672,7 +827,7 @@
                                 } else {
                                     notifyToggle.checked = false;
                                     if (perm === 'denied') {
-                                        alert('请在浏览器设置中允许通知权限。');
+                                        alert('Please allow notification permissions in your browser settings.');
                                     }
                                 }
                             });
@@ -692,7 +847,7 @@
                 const menu = document.getElementById('tagMenu');
                 const btn = document.getElementById('currentTagBtn');
                 // If menu is open, and click is NOT on menu AND NOT on button, close it.
-                if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+                if (menu && btn && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
                     menu.classList.add('hidden');
                 }
 
@@ -701,6 +856,28 @@
                 // Check if elements exist (save modal might be hidden/inactive but elements are in DOM)
                 if (saveMenu && saveBtn && !saveMenu.classList.contains('hidden') && !saveMenu.contains(e.target) && !saveBtn.contains(e.target)) {
                     saveMenu.classList.add('hidden');
+                }
+            });
+
+            // 4. Keyboard Shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ignore if currently typing in an input or textarea
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                const key = e.key.toLowerCase();
+                if (key === 'escape') {
+                    // Close all modals
+                    document.querySelectorAll('[id$="Modal"], [id$="Overlay"]').forEach(el => {
+                        if (el.id === 'statsOverlay') {
+                            closeStats();
+                        } else {
+                            el.classList.add('hidden');
+                        }
+                    });
+                } else if (key === 's') {
+                    openStats();
+                } else if (key === 't') {
+                    openTagsManagement();
                 }
             });
         }
@@ -726,7 +903,7 @@
 
                 if (existing && existing[0] && existing[0].values.length > 0) {
                     currentSessionId = existing[0].values[0][0];
-                    console.log('[Pomodoro] Resumed existing record:', currentSessionId);
+                    console.log('[LifeFlow] Resumed existing record:', currentSessionId);
                     isUpserting = false;
                     return;
                 }
@@ -740,12 +917,105 @@
 
                 if (res && res.lastInsertRowid) {
                     currentSessionId = res.lastInsertRowid;
-                    console.log('[Pomodoro] Created early session record:', currentSessionId);
+                    localStorage.setItem('lifeflow_active_session_id', currentSessionId);
+                    localStorage.setItem('lifeflow_active_target_mins', durationMinutes);
+                    console.log('[LifeFlow] Created early session record:', currentSessionId);
                 }
             } catch (err) {
-                console.error('[Pomodoro] upsertSessionRecord failed:', err);
+                console.error('[LifeFlow] upsertSessionRecord failed:', err);
             } finally {
                 isUpserting = false;
+            }
+        }
+
+        async function checkSessionRecovery() {
+            try {
+                // Find most recent in_progress session
+                const res = await db.query(
+                    "SELECT id, start_time, tag_id FROM pomodoro_sessions WHERE status = 'in_progress' ORDER BY start_time DESC LIMIT 1"
+                );
+
+                if (res && res[0] && res[0].values.length > 0) {
+                    const [id, startIso, tagId] = res[0].values[0];
+                    const start = new Date(startIso);
+                    const now = new Date();
+
+                    // Only recover if within the last 4 hours
+                    if (now - start > 4 * 3600 * 1000) return;
+
+                    const targetMins = parseInt(localStorage.getItem('lifeflow_active_target_mins')) || 25;
+                    const elapsedSecs = Math.floor((now - start) / 1000);
+                    const totalSecs = targetMins * 60;
+
+                    if (elapsedSecs < totalSecs) {
+                        const remaining = totalSecs - elapsedSecs;
+                        if (confirm(`An interrupted activity log (${targetMins} minutes) was detected. Continue?`)) {
+                            // Resume
+                            currentSessionId = id;
+                            durationMinutes = targetMins;
+                            timeLeftSeconds = remaining;
+
+                            // Find tag
+                            const tag = tags.find(t => t.id === tagId);
+                            if (tag) currentTag = tag;
+
+                            // Start timer logic (mimic startTimer but with existing state)
+                            currentState = 'running';
+                            startTime = start; // Keep original start time
+                            targetEndTime = Date.now() + (timeLeftSeconds * 1000);
+                            lastUpdateCheckSecs = timeLeftSeconds;
+
+                            // UI
+                            els.startBtn.classList.add('hidden');
+                            els.stopBtn.classList.remove('hidden');
+                            els.skipBtn.classList.remove('hidden');
+                            els.digital.classList.add('animate-breathing');
+                            els.pixelGrid.classList.add('animate-breathing');
+
+                            updateDigitalDisplay();
+                            renderPixels();
+                            updatePixelDisplay();
+
+                            if (timerInterval) clearInterval(timerInterval);
+                            timerInterval = setInterval(() => {
+                                const now = Date.now();
+                                const diff = Math.ceil((targetEndTime - now) / 1000);
+
+                                if (diff > 0) {
+                                    if (timeLeftSeconds !== diff) {
+                                        timeLeftSeconds = diff;
+                                        updateDigitalDisplay();
+                                        if (timeLeftSeconds < 60) els.digital.classList.add('timer-approaching');
+
+                                        if (lastUpdateCheckSecs - timeLeftSeconds >= 30) {
+                                            updateActiveSessionProgress();
+                                        }
+                                        updatePixelDisplay();
+                                    }
+                                } else {
+                                    timeLeftSeconds = 0;
+                                    updateDigitalDisplay();
+                                    updatePixelDisplay();
+                                    completeSession();
+                                }
+                            }, 200);
+
+                            console.log('[LifeFlow] Session recovered:', id);
+                        } else {
+                            // Mark as aborted
+                            await db.execute("UPDATE pomodoro_sessions SET status = 'aborted' WHERE id = ?", [id]);
+                            localStorage.removeItem('lifeflow_active_session_id');
+                            localStorage.removeItem('lifeflow_active_target_mins');
+                        }
+                    } else {
+                        // Mark as aborted if time is up but it was never completed
+                        // But we don't know if the user was actually focused. 
+                        // Let's mark as aborted to be safe for life-log accuracy.
+                        await db.execute("UPDATE pomodoro_sessions SET status = 'aborted' WHERE id = ?", [id]);
+                    }
+                }
+            } catch (err) {
+                console.error('[LifeFlow] Recovery failed:', err);
             }
         }
 
@@ -762,9 +1032,9 @@
                 );
                 lastSyncTime = Date.now();
                 lastUpdateCheckSecs = timeLeftSeconds;
-                console.log('[Pomodoro] Session progress synced:', elapsedMinutes, 'mins');
+                console.log('[LifeFlow] Session progress synced:', elapsedMinutes, 'mins');
             } catch (err) {
-                console.error('[Pomodoro] updateActiveSessionProgress failed:', err);
+                console.error('[LifeFlow] updateActiveSessionProgress failed:', err);
             }
         }
 
@@ -787,6 +1057,7 @@
                 }
             });
         }
+        window.setDuration = setDuration; // Immediate export for onclick
 
         function askCustomDuration() {
             if (currentState === 'running') return;
@@ -822,16 +1093,47 @@
             closeCustomDuration();
         }
 
-        async function toggleTimer() {
-            // Only start if stopped - there's no pause, only stop (reset button)
-            if (currentState === 'stopped') {
-                await startTimer();
-            }
-            // When running, user can only use reset button to stop
-        }
+        // setMode function is no longer needed as break buttons are removed.
+        // Keeping it commented out for reference if needed later.
+        /*
+        function setMode(mode) {
+            if (currentState === 'running') return;
+            currentMode = mode;
 
-        let targetEndTime = null;
-        let segmentStartTime = null; // Track when current segment started
+            // UI Update
+            const btnWork = document.getElementById('modeWork');
+            const btnShort = document.getElementById('modeShortBreak');
+            const btnLong = document.getElementById('modeLongBreak');
+
+            [btnWork, btnShort, btnLong].forEach(btn => {
+                btn.className = 'px-6 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white';
+            });
+
+            if (mode === 'work') {
+                btnWork.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-rose-500 text-white shadow-lg shadow-rose-500/20';
+                setDuration(25);
+                // Reset to default tag for work
+                resetTimerToDefaultTag();
+            } else if (mode === 'short_break') {
+                btnShort.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/20';
+                setDuration(5);
+                setBreakTag();
+            } else if (mode === 'long_break') {
+                btnLong.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-blue-500 text-white shadow-lg shadow-blue-500/20';
+                setDuration(15);
+                setBreakTag();
+            }
+        }
+        */
+
+        function setBreakTag() {
+            const breakTag = tags.find(t => t.name === 'Relax' || t.name === 'Break' || t.name === 'Rest' || t.name === 'Relaxing');
+            if (breakTag) {
+                currentTag = breakTag;
+                els.currentTagName.innerText = breakTag.name;
+                els.currentTagDot.style.backgroundColor = breakTag.color;
+            }
+        }
 
         async function startTimer() {
             if (currentState === 'running') return;
@@ -853,15 +1155,13 @@
             targetEndTime = Date.now() + (timeLeftSeconds * 1000);
 
             // UI Adjustments
-            els.mainBtn.classList.add('hidden');
-            els.currentTagBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            els.tagMenu.classList.add('hidden');
-
-            els.resetBtn.classList.remove('hidden');
-            els.resetBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-            els.resetBtn.classList.add('opacity-100', 'cursor-pointer', 'bg-red-500', 'hover:bg-red-600');
-            els.resetBtn.onclick = resetTimer;
-            els.resetBtn.innerHTML = '<i class="fas fa-stop"></i>';
+            els.startBtn.classList.add('hidden');
+            els.stopBtn.classList.remove('hidden');
+            els.skipBtn.classList.remove('hidden');
+            if (els.tagMenu) els.tagMenu.classList.add('hidden');
+            if (els.currentTagBtn) els.currentTagBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            els.digital.classList.add('animate-breathing');
+            els.pixelGrid.classList.add('animate-breathing');
 
             // Early save to prevent data loss - Await to ensure ID is set before interval or save actions
             await upsertSessionRecord();
@@ -876,12 +1176,20 @@
                     if (timeLeftSeconds !== diff) {
                         timeLeftSeconds = diff;
                         updateDigitalDisplay();
-                        updatePixelDisplay();
+
+                        // Visual cue for last minute
+                        if (timeLeftSeconds < 60) {
+                            els.digital.classList.add('timer-approaching');
+                        } else {
+                            els.digital.classList.remove('timer-approaching');
+                        }
 
                         // Periodic Sync every 30 seconds
                         if (lastUpdateCheckSecs - timeLeftSeconds >= 30) {
                             updateActiveSessionProgress();
                         }
+
+                        updatePixelDisplay();
                     }
                 } else {
                     timeLeftSeconds = 0;
@@ -894,7 +1202,7 @@
 
         // pauseTimer removed - no pause functionality
 
-        async function resetTimer() {
+        async function stopTimer() {
             // Stop timer and show save modal with abort status
             currentState = 'stopped';
             clearInterval(timerInterval);
@@ -904,18 +1212,52 @@
 
             // Show Modal (same as completeSession, but status will be 'aborted')
             const elapsedMinutes = Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60));
-            document.getElementById('saveDuration').innerText = elapsedMinutes;
+            openSaveModal(elapsedMinutes, 'aborted');
+        }
+
+        async function skipTimer() {
+            // This is essentially discarding the current session without saving it.
+            // It will reset the timer and UI.
+            currentState = 'stopped';
+            clearInterval(timerInterval);
+            currentSessionId = null; // Clear tracking
+            resetTimerUI();
+            console.log('[LifeFlow] Timer skipped, session discarded.');
+        }
+
+        // Immediate exports for timer control onclick handlers
+        window.startTimer = startTimer;
+        window.stopTimer = stopTimer;
+        window.skipTimer = skipTimer;
+
+        function openSaveModal(duration = durationMinutes, status = 'completed') {
+            // Auto-tagging logic
+            const tagName = duration <= 15 ? 'Relax' : 'Default';
+            const tag = tags.find(t => t.name === tagName) || tags[0];
+
+            document.getElementById('saveDuration').innerText = duration;
             renderSaveModalTagOptions(); // Populate tag dropdown
+
+            // Set auto-selected tag in UI
+            if (tag) {
+                selectSaveTag(tag.id);
+            }
+
             document.getElementById('saveTitle').value = '';
             document.getElementById('saveDescription').value = '';
 
             const modal = els.saveModal;
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-90');
-                modal.querySelector('div').classList.add('scale-100');
-            }, 10);
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    const innerDiv = modal.querySelector('div');
+                    if (innerDiv) {
+                        innerDiv.classList.remove('scale-90');
+                        innerDiv.classList.add('scale-100');
+                    }
+                }, 10);
+            }
         }
 
         async function completeSession() {
@@ -929,46 +1271,28 @@
 
             // System Notification
             const notifyToggle = document.getElementById('notifyToggle');
-            console.log('[Pomodoro] Notification check:', {
-                checked: notifyToggle?.checked,
-                permission: typeof Notification !== 'undefined' ? Notification.permission : 'N/A'
-            });
-
             if (notifyToggle && notifyToggle.checked) {
                 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                     try {
-                        const n = new Notification('专注完成！', {
-                            body: `恭喜！你刚刚完成了 ${durationMinutes} 分钟的专注。`,
+                        const n = new Notification('Activity Logged!', {
+                            body: `Congratulations! You just recorded ${durationMinutes} minutes of life.`,
                             icon: 'favicon.png',
-                            tag: 'pomodoro-complete'
+                            tag: 'lifeflow-complete'
                         });
-                        console.log('[Pomodoro] Notification sent:', n);
+                        console.log('[LifeFlow] Notification sent:', n);
                     } catch (e) {
-                        console.error('[Pomodoro] Notify Error:', e);
+                        console.error('[LifeFlow] Notify Error:', e);
                     }
                 } else {
-                    console.log('[Pomodoro] Notification permission not granted, requesting...');
                     Notification.requestPermission();
                 }
             }
 
-
-            // Show Modal
-            document.getElementById('saveDuration').innerText = durationMinutes;
-            renderSaveModalTagOptions(); // Populate tag dropdown
-            document.getElementById('saveTitle').value = ''; // Clear previous input
-            document.getElementById('saveDescription').value = ''; // Clear previous input
-
-            const modal = els.saveModal;
-            modal.classList.remove('hidden');
-            // Trigger animation
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-90');
-                modal.querySelector('div').classList.add('scale-100');
-            }, 10);
+            openSaveModal(durationMinutes, 'completed');
         }
 
+        // discardSession function is no longer needed as the "Discard" button is removed.
+        /*
         async function discardSession() {
             // Get selected tag from modal dropdown (in case user selected one before discarding)
             const selectedTagId = parseInt(document.getElementById('saveTagValue').value);
@@ -1007,14 +1331,15 @@
                         );
                     }
                 }
-                console.log('[Pomodoro] Discarded session saved as aborted');
+                console.log('[LifeFlow] Discarded session saved as aborted');
             } catch (err) {
-                console.error('[Pomodoro] Failed to save aborted session:', err);
+                console.error('[LifeFlow] Failed to save aborted session:', err);
             }
 
             currentSessionId = null; // Clear tracking
             resetTimerUI();
         }
+        */
 
         // === Save Modal Tag Logic ===
         function toggleSaveTagMenu() {
@@ -1062,15 +1387,17 @@
             updateDigitalDisplay();
             renderPixels();
 
+            // Reset animations
+            els.digital.classList.remove('animate-breathing', 'timer-approaching');
+            els.pixelGrid.classList.remove('animate-breathing');
+
             // Enable tag selection
-            els.currentTagBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (els.currentTagBtn) els.currentTagBtn.classList.remove('opacity-50', 'cursor-not-allowed');
 
             // Show main button again
-            els.mainBtn.classList.remove('hidden');
-            els.mainBtn.innerHTML = '<i class="fas fa-play ml-1"></i>';
-
-            // Hide reset button when stopped (only show when running as stop button)
-            els.resetBtn.classList.add('hidden');
+            els.startBtn.classList.remove('hidden');
+            els.stopBtn.classList.add('hidden');
+            els.skipBtn.classList.add('hidden');
 
             resetTimerToDefaultTag();
         }
@@ -1079,12 +1406,12 @@
             const defaultTag = tags.find(t => t.isDefault) || tags[0];
             if (defaultTag) {
                 currentTag = defaultTag;
-                els.currentTagName.innerText = defaultTag.name;
-                els.currentTagDot.style.backgroundColor = defaultTag.color;
+                if (els.currentTagName) els.currentTagName.innerText = defaultTag.name;
+                if (els.currentTagDot) els.currentTagDot.style.backgroundColor = defaultTag.color;
             }
         }
 
-        let pomosCompleted = 0;
+        let activitiesCompleted = 0;
         let lastWorkTagId = null;
 
         async function confirmSaveSession() {
@@ -1109,7 +1436,7 @@
                 ? Math.max(1, Math.round((durationMinutes * 60 - timeLeftSeconds) / 60))
                 : durationMinutes;
 
-            console.log('[Pomodoro] confirmSaveSession called, id:', currentSessionId, 'tag:', selectedTag.name, 'status:', status);
+            console.log('[LifeFlow] confirmSaveSession called, id:', currentSessionId, 'tag:', selectedTag.name, 'status:', status);
 
             try {
                 // Check if cross day
@@ -1167,15 +1494,143 @@
             currentSessionId = null; // Clear tracking
             closeSaveModal();
             resetTimerUI();
-            handleAutoFlow();
+
+            // Auto-flow logic removed as per new design
+            /*
+            if (status === 'completed' && currentMode === 'work') {
+                // Determine if it should be long break or short break
+                // For simplicity, alternating or just short break for now
+                if (confirm('🎉 Great job! Start a 5-minute short break?')) {
+                    setMode('short_break');
+                }
+            } else if (status === 'completed' && currentMode.includes('break')) {
+                if (confirm('☕ Break over. Ready for another 25-minute life log?')) {
+                    setMode('work');
+                }
+            }
+            */
         }
 
         function handleAutoFlow() {
             // Simply reset UI, user manually chooses next action
-            pomosCompleted++;
+            activitiesCompleted++;
             resetTimerUI();
         }
 
+        function switchTab(tab) {
+            const timerView = document.getElementById('tabContentTimer');
+            const logView = document.getElementById('tabContentLog');
+            const timerBtn = document.getElementById('tabBtnTimer');
+            const logBtn = document.getElementById('tabBtnLog');
+
+            if (tab === 'timer') {
+                timerView.classList.remove('hidden');
+                logView.classList.add('hidden');
+                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg';
+                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white';
+            } else {
+                timerView.classList.add('hidden');
+                logView.classList.remove('hidden');
+                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white';
+                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg';
+            }
+        }
+
+        async function submitQuickLog() {
+            const titleInput = document.getElementById('quickLogTitle');
+            const durationInput = document.getElementById('quickLogDuration');
+            const notesInput = document.getElementById('quickLogNotes');
+            const tagValueInput = document.getElementById('quickLogTagValue');
+            const startTimeInput = document.getElementById('quickLogStartTime');
+
+            const title = titleInput.value.trim();
+            const duration = parseInt(durationInput.value);
+            const notes = notesInput ? notesInput.value.trim() : '';
+
+            if (!duration || duration <= 0) {
+                alert('Please enter a valid duration.');
+                return;
+            }
+
+            // Get selected tag or default
+            const selectedTagId = parseInt(tagValueInput?.value);
+            const tag = tags.find(t => t.id === selectedTagId) || tags.find(t => t.isDefault) || tags[0];
+
+            // Calculate start and end times
+            let start, end;
+            if (startTimeInput && startTimeInput.value) {
+                start = new Date(startTimeInput.value);
+                end = new Date(start.getTime() + duration * 60000);
+            } else {
+                // Default: end is now, start is now - duration
+                end = new Date();
+                start = new Date(end.getTime() - duration * 60000);
+            }
+
+            try {
+                await db.execute(
+                    `INSERT INTO pomodoro_sessions (start_time, end_time, duration_minutes, tag_id, status, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [start.toISOString(), end.toISOString(), duration, tag.id, 'completed', title, notes, new Date().toISOString()]
+                );
+
+                // Reset fields
+                titleInput.value = '';
+                durationInput.value = '25';
+                if (notesInput) notesInput.value = '';
+
+                // Feedback
+                console.log('[LifeFlow] Quick log submitted:', title, duration, 'min, tag:', tag.name);
+                requestData(); // Refresh UI
+                alert('Activity Logged!');
+            } catch (err) {
+                console.error('[LifeFlow] Quick Log Failed:', err);
+                alert('Failed to save log.');
+            }
+        }
+
+        // Quick Log Tag Selector functions
+        function toggleQuickLogTagMenu() {
+            const menu = document.getElementById('quickLogTagMenu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        function selectQuickLogTag(id) {
+            const t = tags.find(tag => tag.id === id);
+            if (t) {
+                const nameEl = document.getElementById('quickLogTagName');
+                const dotEl = document.getElementById('quickLogTagDot');
+                const valueEl = document.getElementById('quickLogTagValue');
+                if (nameEl) nameEl.innerText = t.name;
+                if (dotEl) dotEl.style.backgroundColor = t.color;
+                if (valueEl) valueEl.value = t.id;
+            }
+            const menu = document.getElementById('quickLogTagMenu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        function renderQuickLogTagOptions() {
+            const menu = document.getElementById('quickLogTagMenu');
+            if (!menu) return;
+
+            menu.innerHTML = tags.map(t => `
+                <button type="button" onclick="selectQuickLogTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-700 transition flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
+                    <span class="text-sm text-slate-300 hover:text-white">${t.name}</span>
+                </button>
+            `).join('');
+
+            // Set default selection
+            const defaultTag = tags.find(t => t.isDefault) || tags[0];
+            if (defaultTag) {
+                selectQuickLogTag(defaultTag.id);
+            }
+        }
+
+        // Immediately export tab functions for onclick handlers
+        window.switchTab = switchTab;
+        window.submitQuickLog = submitQuickLog;
+        window.toggleQuickLogTagMenu = toggleQuickLogTagMenu;
+        window.selectQuickLogTag = selectQuickLogTag;
 
 
         function closeSaveModal() {
@@ -1183,6 +1638,11 @@
             modal.classList.add('opacity-0');
             modal.querySelector('div').classList.add('scale-90');
             modal.querySelector('div').classList.remove('scale-100');
+
+            // Clear recovery storage
+            localStorage.removeItem('lifeflow_active_session_id');
+            localStorage.removeItem('lifeflow_active_target_mins');
+
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 300);
@@ -1251,9 +1711,13 @@
             const mins = Math.floor(timeLeftSeconds / 60);
             const secs = timeLeftSeconds % 60;
             const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            els.digital.innerText = timeStr;
+
+            if (els.digital) {
+                els.digital.innerText = timeStr;
+            }
+
             const tagName = currentTag?.name || '';
-            document.title = tagName ? `${timeStr} - ${tagName} - 番茄钟` : `${timeStr} - 番茄钟`;
+            document.title = tagName ? `${timeStr} - ${tagName} - LifeFlow` : `${timeStr} - LifeFlow`;
         }
 
         // Smoother, rounder tomato shape
@@ -1316,20 +1780,23 @@
             fillablePixels.forEach((block, i) => {
                 const type = block.dataset.type;
                 if (i < countToFill) {
-                    if (type === '2') {
-                        block.style.backgroundColor = '#4ade80'; // Green stem
-                    } else {
-                        block.style.backgroundColor = '#f43f5e'; // Rose-500 (Redder Tomato)
+                    if (!block.classList.contains('pixel-filled')) {
+                        if (type === '2') {
+                            block.style.backgroundColor = '#4ade80'; // Green stem
+                        } else {
+                            block.style.backgroundColor = '#f43f5e'; // Rose-500
+                        }
+                        block.classList.add('pixel-filled');
+                        block.style.filter = 'brightness(1.2)';
                     }
-                    block.classList.add('shadow-[0_0_5px_rgba(0,0,0,0.5)]');
-                    // Add a slight "lit" effect override opacity/brightness if needed
-                    block.style.filter = 'brightness(1.2)';
                 } else {
-                    block.style.backgroundColor = ''; // Revert to slate-800
-                    block.classList.remove('bg-slate-800'); // Wait, we need base color
-                    block.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
-                    block.style.filter = '';
-                    block.style.boxShadow = '';
+                    if (block.classList.contains('pixel-filled')) {
+                        block.style.backgroundColor = '';
+                        block.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
+                        block.style.filter = '';
+                        block.style.boxShadow = '';
+                        block.classList.remove('pixel-filled');
+                    }
                 }
             });
         }
@@ -1337,17 +1804,17 @@
         // === Tag Logic ===
         function toggleTagMenu() {
             if (currentState === 'running') return;
-            els.tagMenu.classList.toggle('hidden');
+            if (els.tagMenu) els.tagMenu.classList.toggle('hidden');
         }
 
         function selectTag(id) {
             const t = tags.find(tag => tag.id === id);
             if (t) {
                 currentTag = t;
-                els.currentTagName.innerText = t.name;
-                els.currentTagDot.style.backgroundColor = t.color;
+                if (els.currentTagName) els.currentTagName.innerText = t.name;
+                if (els.currentTagDot) els.currentTagDot.style.backgroundColor = t.color;
             }
-            els.tagMenu.classList.add('hidden');
+            if (els.tagMenu) els.tagMenu.classList.add('hidden');
         }
 
         function renderTags(tagList, showActions = true) {
@@ -1363,13 +1830,13 @@
                 tags.sort((a, b) => {
                     if (a.isDefault && !b.isDefault) return -1;
                     if (!a.isDefault && b.isDefault) return 1;
-                    return a.name.localeCompare(b.name, 'zh-CN');
+                    return a.name.localeCompare(b.name, 'en');
                 });
             }
 
             if (tags.length === 0) {
                 // No tags found? Create defaults.
-                console.log('[Pomodoro] No tags found, creating defaults...');
+                console.log('[LifeFlow] No tags found, creating defaults...');
                 createDefaultTags();
                 return;
             }
@@ -1395,11 +1862,12 @@
                 try {
                     els.currentTagName.innerText = currentTag.name;
                     els.currentTagDot.style.backgroundColor = currentTag.color;
-                    checkSkipButton();
+                    // checkSkipButton(); // This function is not defined in the provided code.
                 } catch (e) { }
             }
 
-            els.tagList.innerHTML = tags.map(t => `
+            if (els.tagList) {
+                els.tagList.innerHTML = tags.map(t => `
                 <div class="w-full px-3 py-1 hover:bg-slate-700/50 transition flex items-center justify-between group">
                     <button onclick="selectTag(${t.id})" class="flex-1 flex items-center gap-2 py-1.5 text-left">
                         <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
@@ -1407,11 +1875,11 @@
                     </button>
                     ${showActions ? `
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <button onclick="editTag(${t.id})" class="p-1.5 text-slate-500 hover:text-blue-400" title="编辑">
+                        <button onclick="editTag(${t.id})" class="p-1.5 text-slate-500 hover:text-blue-400" title="Edit">
                             <i class="fas fa-edit text-xs"></i>
                         </button>
                         ${!t.isDefault ? `
-                        <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-500 hover:text-rose-400" title="删除">
+                        <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-500 hover:text-rose-400" title="Delete">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
                         ` : ''}
@@ -1419,6 +1887,7 @@
                     ` : (currentTag && t.id === currentTag.id ? '<i class="fas fa-check text-xs text-blue-500"></i>' : '')}
                 </div>
             `).join('');
+            }
 
             // Also update the list in Tags Management modal
             const manageList = document.getElementById('manageTagList');
@@ -1429,7 +1898,7 @@
                             <div class="w-4 h-4 rounded-full shadow-sm" style="background-color: ${t.color}"></div>
                             <div>
                                 <div class="text-sm font-medium text-slate-200">${t.name}</div>
-                                ${t.isDefault ? '<div class="text-[10px] text-slate-500 uppercase tracking-wider">默认标签</div>' : ''}
+                                ${t.isDefault ? '<div class="text-[10px] text-slate-500 uppercase tracking-wider">Default Tag</div>' : ''}
                             </div>
                         </div>
                         <div class="flex items-center gap-1">
@@ -1445,6 +1914,9 @@
                     </div>
                 `).join('');
             }
+
+            // Also render Quick Log tag options
+            renderQuickLogTagOptions();
         }
 
         function openTagsManagement() {
@@ -1457,17 +1929,19 @@
 
         async function createDefaultTags() {
             const defaults = [
-                { name: 'Default', color: '#e2e8f0', is_default: 1 }  // slate-200 柔和浅灰
+                { name: 'Default', color: '#818cf8', is_default: 1 }, // Indigo for general activities
+                { name: 'Relax', color: '#f472b6', is_default: 0 }    // Pink/Rose for relax
             ];
 
             for (const d of defaults) {
                 try {
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, ?)", [d.name, d.color, d.is_default]);
-                } catch (e) { }
+                    await db.execute(
+                        "INSERT INTO pomodoro_tags (name, color, is_default) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM pomodoro_tags WHERE name = ?)",
+                        [d.name, d.color, d.is_default, d.name]
+                    );
+                } catch (e) { console.error('Create Default Tag Failed:', d.name, e); }
             }
-
-            // Reload after short delay (or wait for event)
-            setTimeout(requestData, 500); // reuse requestData which loads tags
+            setTimeout(requestData, 500);
         }
 
         // Add Tag color picker
@@ -1475,7 +1949,7 @@
         function openAddTagModal() {
             els.tagMenu.classList.add('hidden');
             currentEditTagId = null;
-            document.getElementById('tagModalTitle').innerText = '新建标签';
+            document.getElementById('tagModalTitle').innerText = 'New Tag';
             document.getElementById('newTagName').value = '';
             document.getElementById('newTagColor').value = '#3b82f6';
             document.getElementById('newTagDefault').checked = false;
@@ -1491,7 +1965,7 @@
             if (!tag) return;
 
             currentEditTagId = id;
-            document.getElementById('tagModalTitle').innerText = '编辑标签';
+            document.getElementById('tagModalTitle').innerText = 'Edit Tag';
             document.getElementById('newTagName').value = tag.name;
             document.getElementById('newTagColor').value = tag.color;
             document.getElementById('newTagDefault').checked = tag.isDefault;
@@ -1499,7 +1973,7 @@
         }
 
         async function confirmDeleteTag(id, name) {
-            if (confirm(`确定要删除标签 "${name}" 吗？\n相关的所有历史记录仍会保留，但标签将显示为“未知”。`)) {
+            if (confirm(`Are you sure you want to delete tag "${name}"? All sessions under this tag will be moved to Default.`)) {
                 try {
                     await db.execute("DELETE FROM pomodoro_tags WHERE id = ?", [id]);
                 } catch (e) { console.error('Delete Tag Failed:', e); }
@@ -1546,15 +2020,12 @@
         function openStats() {
             els.statsOverlay.classList.remove('translate-y-full');
 
-            // Set date picker to today
-            const datePicker = document.getElementById('exportDatePicker');
-            if (datePicker) {
-                const today = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                datePicker.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            const picker = document.getElementById('statsDatePicker');
+            if (picker && !picker.value) {
+                picker.valueAsDate = new Date();
             }
 
-            // Load stats data
+            setStatsRange(statsMode);
             requestData();
         }
 
@@ -1571,7 +2042,7 @@
                     const toast = document.createElement('div');
                     toast.id = 'db-warning-toast';
                     toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full shadow-lg z-50 animate-bounce';
-                    toast.innerText = '请先在主页打开数据库 / Please open database in Dashboard';
+                    toast.innerText = 'Please open database in Dashboard';
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
                 }
@@ -1579,46 +2050,40 @@
             }
 
             if (!tablesInitialized) {
-                console.log('[Pomodoro] Waiting for tables initialization...');
+                console.log('[LifeFlow] Waiting for tables initialization...');
                 return;
             }
 
-            // Calculate Start of Week (Monday)
-            const now = new Date();
-            const day = now.getDay() || 7;
-            if (day !== 1 || now.getHours() !== 0 || now.getMinutes() !== 0 || now.getSeconds() !== 0 || now.getMilliseconds() !== 0) {
-                now.setHours(0, 0, 0, 0);
-                now.setDate(now.getDate() - (day - 1));
-            }
-            const startOfWeek = now.toISOString();
+            // Load all sessions to support historical stats and comparisons
+            // Optimized: We fetch everything since stats are local and records are few.
 
             try {
                 // 1. Get Tags
-                console.log('[Pomodoro] Querying tags...');
+                console.log('[LifeFlow] Querying tags...');
                 const tagsResult = await db.query("SELECT id, name, color, is_default FROM pomodoro_tags");
-                console.log('[Pomodoro] Tags result:', tagsResult);
+                console.log('[LifeFlow] Tags result:', tagsResult);
                 if (tagsResult && tagsResult.length > 0) {
                     const formattedTags = tagsResult[0].values.map(v => ({ values: v }));
-                    console.log('[Pomodoro] Formatted tags:', formattedTags);
+                    console.log('[LifeFlow] Formatted tags:', formattedTags);
                     renderTags(formattedTags);
                 } else {
-                    console.log('[Pomodoro] No tags found in database');
+                    console.log('[LifeFlow] No tags found in database');
                 }
 
                 // 2. Get Sessions
-                console.log('[Pomodoro] Querying sessions from', startOfWeek);
-                const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description FROM pomodoro_sessions WHERE start_time >= ? ORDER BY start_time DESC", [startOfWeek]);
-                console.log('[Pomodoro] Sessions result:', sessionsResult);
+                console.log('[LifeFlow] Querying all sessions...');
+                const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description FROM pomodoro_sessions ORDER BY start_time DESC");
+                console.log('[LifeFlow] Sessions result:', sessionsResult);
 
                 if (sessionsResult && sessionsResult.length > 0) {
                     const raw = sessionsResult[0].values;
                     sessions = raw.map(r => ({
                         id: r[0], startTime: r[1], endTime: r[2], duration: r[3], tagId: r[4], status: r[5], title: r[6] || '', description: r[7] || ''
                     }));
-                    console.log('[Pomodoro] Parsed sessions:', sessions.length);
+                    console.log('[LifeFlow] Parsed sessions:', sessions.length);
                 } else {
                     sessions = [];
-                    console.log('[Pomodoro] No sessions found');
+                    console.log('[LifeFlow] No sessions found');
                 }
 
                 if (!els.statsOverlay.classList.contains('translate-y-full')) {
@@ -1626,52 +2091,98 @@
                 }
 
             } catch (err) {
-                console.error('[Pomodoro] Data Load Error:', err);
+                console.error('[LifeFlow] Data Load Error:', err);
             }
         }
 
         // Listen for updates (reload data + save to IDB)
         db.on('db_updated', () => {
-            console.log('[Pomodoro] DB Updated, reloading...');
+            console.log('[LifeFlow] DB Updated, reloading...');
             requestData();
             // Note: saveSnapshotToIDB is registered separately below
         });
 
 
-        let trendChart = null;
-        let distChart = null;
+        function setStatsRange(mode) {
+            statsMode = mode;
+            const picker = document.getElementById('statsDatePicker');
+
+            if (mode.startsWith('custom') && picker.value) {
+                statsBaseDate = new Date(picker.value + 'T00:00:00');
+            } else {
+                statsBaseDate = new Date();
+                statsBaseDate.setHours(0, 0, 0, 0);
+            }
+
+            // Update UI Button Styles
+            const buttons = {
+                'today': 'rangeBtnToday',
+                'last7': 'rangeBtnLast7',
+                'customDay': 'rangeBtnCustomDay',
+                'customWeek': 'rangeBtnCustomWeek'
+            };
+
+            const activeClass = 'bg-rose-600 text-white shadow-sm';
+            const inactiveClass = 'text-slate-400 hover:text-white';
+
+            Object.entries(buttons).forEach(([m, id]) => {
+                const btn = document.getElementById(id);
+                if (btn) btn.className = `px-3 py-1.5 text-xs rounded-md transition ${m === statsMode ? activeClass : inactiveClass}`;
+            });
+
+            updateStatsUI();
+        }
+        window.setStatsRange = setStatsRange; // Immediate export for onclick
 
         function updateStatsUI() {
-            // Helper: get tag
+            const now = new Date();
+            let startDate, endDate;
+
+            // 1. Calculate Unified Range
+            if (statsMode === 'today') {
+                startDate = new Date(now);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 1);
+            } else if (statsMode === 'last7') {
+                endDate = new Date(now);
+                endDate.setHours(0, 0, 0, 0);
+                endDate.setDate(endDate.getDate() + 1);
+                startDate = new Date(endDate);
+                startDate.setDate(startDate.getDate() - 7);
+            } else if (statsMode === 'customDay') {
+                startDate = new Date(statsBaseDate);
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 1);
+            } else if (statsMode === 'customWeek') {
+                endDate = new Date(statsBaseDate);
+                endDate.setDate(endDate.getDate() + 1);
+                startDate = new Date(endDate);
+                startDate.setDate(startDate.getDate() - 7);
+            }
+
+            // Trend baseDate for chart labels (start of the 7-day period)
+            const trendStartDate = new Date(endDate);
+            trendStartDate.setDate(trendStartDate.getDate() - 7);
+
+            // Helpers
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
             const isRelax = (s) => getTag(s.tagId).name === 'Relax';
             const isDefault = (s) => getTag(s.tagId).name === 'Default';
 
-            const now = new Date();
+            // Filter Activity Sessions (exclude Relax if needed, but for Life Log we show all)
+            const activitySessions = sessions;
 
-            // Filter out Relax for ALL summary metrics
-            const focusSessions = sessions.filter(s => !isRelax(s));
-
-            // Calculate week start (Monday)
-            const weekStartDate = new Date(now);
-            const dayOfWeek = weekStartDate.getDay();
-            const diffToMonday = weekStartDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            weekStartDate.setDate(diffToMonday);
-            weekStartDate.setHours(0, 0, 0, 0);
-
-            // Filter sessions based on statsTimeRange
-            let rangedSessions;
-            if (statsTimeRange === 'today') {
-                rangedSessions = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
-            } else {
-                rangedSessions = focusSessions.filter(s => new Date(s.startTime) >= weekStartDate);
-            }
+            // Filter for Summary & Distribution
+            const rangedSessions = activitySessions.filter(s => {
+                const st = new Date(s.startTime);
+                return st >= startDate && st < endDate;
+            });
 
             // Calculate metrics for ranged sessions
-            const focusCount = rangedSessions.length;
+            const recordCount = rangedSessions.length;
             const totalMins = rangedSessions.reduce((sum, s) => sum + s.duration, 0);
-
-            // Effective = exclude Default tag
+            const activeMins = rangedSessions.filter(s => !isRelax(s)).reduce((sum, s) => sum + s.duration, 0);
             const effectiveSessions = rangedSessions.filter(s => !isDefault(s));
             const effectiveMins = effectiveSessions.reduce((sum, s) => sum + s.duration, 0);
 
@@ -1688,9 +2199,9 @@
             }
 
             // Update Summary Cards
-            document.getElementById('statsFocusCount').innerText = focusCount;
+            document.getElementById('statsFocusCount').innerText = recordCount;
             document.getElementById('statsTotalTime').innerText = formatDuration(totalMins);
-            document.getElementById('statsEffectiveTime').innerText = formatDuration(effectiveMins);
+            document.getElementById('statsEffectiveTime').innerText = formatDuration(activeMins);
             document.getElementById('statsTagCount').innerText = tagCount;
 
             // 2. Charts
@@ -1702,20 +2213,20 @@
             const timelineColors = [];
             const dayLabels = [];
 
-            // 1. Generate last 7 days labels (Y-axis categories)
+            // 1. Generate 7 days labels starting from trendStartDate
             for (let i = 0; i < 7; i++) {
-                const d = new Date(now);
-                d.setDate(d.getDate() - i);
-                const dayStr = d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }); // e.g. 12/13
-                dayLabels.unshift(dayStr);
+                const d = new Date(trendStartDate);
+                d.setDate(d.getDate() + i);
+                const dayStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+                dayLabels.push(dayStr);
             }
 
             // 2. Map sessions to timeline bars
             sessions.forEach(s => {
                 const sDate = new Date(s.startTime);
-                const dayStr = sDate.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                const dayStr = sDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
 
-                // Only include if this day is in our last 7 days
+                // Only include if this day is in our generated labels
                 const dayIndex = dayLabels.indexOf(dayStr);
                 if (dayIndex !== -1) {
                     const startDisp = sDate.getHours() + sDate.getMinutes() / 60;
@@ -1739,7 +2250,7 @@
                 data: {
                     labels: dayLabels,
                     datasets: [{
-                        label: '专注记录',
+                        label: 'Activity Minutes',
                         data: timelineData,
                         backgroundColor: timelineColors,
                         borderWidth: 0,
@@ -1763,11 +2274,11 @@
 
                                     let durationStr = '';
                                     if (totalMins < 60) {
-                                        durationStr = `${totalMins}分钟`;
+                                        durationStr = `${totalMins} minutes`;
                                     } else {
                                         const h = Math.floor(totalMins / 60);
                                         const m = totalMins % 60;
-                                        durationStr = m > 0 ? `${h}小时${m}分钟` : `${h}小时`;
+                                        durationStr = m > 0 ? `${h}h ${m}m` : `${h}h`;
                                     }
                                     return `${raw.y} · ${raw.tag} · ${durationStr}`;
                                 },
@@ -1778,7 +2289,7 @@
                                     const itemDuration = raw.x[1] - raw.x[0];
                                     const ed = new Date(st.getTime() + itemDuration * 3600000);
 
-                                    const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                                    const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                                     return `${formatTime(st)} - ${formatTime(ed)}`;
                                 }
                             }
@@ -1807,11 +2318,11 @@
 
 
 
-            // 3. Distribution Chart (Rendered separately)
-            renderDistChart();
+            // 3. Distribution Chart
+            renderDistChart(rangedSessions);
 
             // 4. History List
-            renderHistoryList();
+            loadHistorySessions(startDate, endDate);
 
             // 4. Set Initial Slider Position (Center on Now)
             const currentHour = new Date().getHours();
@@ -1844,7 +2355,7 @@
 
                 btn.classList.add('bg-blue-600', 'border-blue-500', 'text-white');
                 btn.classList.remove('text-slate-400', 'border-slate-600');
-                btn.innerHTML = '<i class="fas fa-compress"></i> 退出';
+                btn.innerHTML = '<i class="fas fa-compress"></i> Exit';
 
                 sliderContainer.classList.add('opacity-50', 'pointer-events-none');
                 slider.disabled = true;
@@ -1857,7 +2368,7 @@
 
                 btn.classList.remove('bg-blue-600', 'border-blue-500', 'text-white');
                 btn.classList.add('text-slate-400', 'border-slate-600');
-                btn.innerHTML = '<i class="fas fa-expand"></i> 全景';
+                btn.innerHTML = '<i class="fas fa-expand"></i> Full View';
 
                 sliderContainer.classList.remove('opacity-50', 'pointer-events-none');
                 slider.disabled = false;
@@ -1885,48 +2396,12 @@
             }
         }
 
-        function setStatsTimeRange(mode) {
-            statsTimeRange = mode;
-            // Update Toggle UI
-            const btnToday = document.getElementById('statsRangeToday');
-            const btnWeek = document.getElementById('statsRangeWeek');
-
-            if (mode === 'today') {
-                btnToday.className = 'px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm';
-                btnWeek.className = 'px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white';
-            } else {
-                btnToday.className = 'px-3 py-1.5 text-xs rounded-md transition text-slate-400 hover:text-white';
-                btnWeek.className = 'px-3 py-1.5 text-xs rounded-md transition bg-rose-600 text-white shadow-sm';
-            }
-
-            // Re-render both Summary Cards and Distribution Chart
-            updateStatsUI();
-        }
-
-        function renderDistChart() {
+        function renderDistChart(rangedSessions) {
             const ctxDist = document.getElementById('distChart').getContext('2d');
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
-            const isRelax = (s) => getTag(s.tagId).name === 'Relax';
-
-            // Filter Sessions based on statsTimeRange (same as Summary Cards)
-            const focusSessions = sessions.filter(s => !isRelax(s));
-            const now = new Date();
-            let distSource = [];
-
-            if (statsTimeRange === 'today') {
-                distSource = focusSessions.filter(s => new Date(s.startTime).toDateString() === now.toDateString());
-            } else {
-                // Week
-                const d = new Date(now);
-                const day = d.getDay();
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                const weekStart = new Date(d.setDate(diff));
-                weekStart.setHours(0, 0, 0, 0);
-                distSource = focusSessions.filter(s => new Date(s.startTime) >= weekStart);
-            }
 
             const tagStats = {};
-            distSource.forEach(s => {
+            rangedSessions.forEach(s => {
                 const t = getTag(s.tagId);
                 tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
             });
@@ -1965,7 +2440,7 @@
                                     const value = context.raw || 0;
                                     const total = context.chart._metasets[context.datasetIndex].total;
                                     const percentage = ((value / total) * 100).toFixed(1) + '%';
-                                    return `${label}: ${value}分钟 (${percentage})`;
+                                    return `${label}: ${value} minutes (${percentage})`;
                                 }
                             }
                         }
@@ -1974,76 +2449,22 @@
             });
         }
 
-        // === Unified History Filter State ===
-        let currentHistoryFilter = 'today'; // 'today', 'week', 'all', 'date'
+        // History Filter logic is now merged into loadHistorySessions
         let currentHistorySessions = []; // Currently displayed sessions (for export)
 
-        function setHistoryFilter(filter) {
-            currentHistoryFilter = filter;
-
-            // Update button states
-            const btnToday = document.getElementById('filterBtnToday');
-            const btnWeek = document.getElementById('filterBtnWeek');
-            const btnAll = document.getElementById('filterBtnAll');
-            const datePicker = document.getElementById('historyDatePicker');
-
-            const activeClass = 'bg-blue-600 text-white';
-            const inactiveClass = 'text-slate-400 hover:text-white';
-
-            [btnToday, btnWeek, btnAll].forEach(btn => {
-                btn.className = `px-3 py-1 text-xs rounded-md transition ${inactiveClass}`;
-            });
-
-            if (filter === 'today') {
-                btnToday.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
-            } else if (filter === 'week') {
-                btnWeek.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
-            } else if (filter === 'all') {
-                btnAll.className = `px-3 py-1 text-xs rounded-md transition ${activeClass}`;
-            }
-            // 'date' filter doesn't highlight any button, just uses date picker
-
-            loadHistorySessions();
-        }
-
-        async function loadHistorySessions() {
+        async function loadHistorySessions(startDate, endDate) {
             const list = document.getElementById('historyList');
             const statusEl = document.getElementById('historyStatus');
-            const datePicker = document.getElementById('historyDatePicker');
-            const now = new Date();
 
-            let startDate, endDate;
-            let filterLabel = '';
-
-            if (currentHistoryFilter === 'today') {
-                startDate = new Date(now);
-                startDate.setHours(0, 0, 0, 0);
-                endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + 1);
-                filterLabel = '今天';
-            } else if (currentHistoryFilter === 'week') {
-                const d = new Date(now);
-                const day = d.getDay();
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                startDate = new Date(d.setDate(diff));
-                startDate.setHours(0, 0, 0, 0);
-                endDate = new Date();
-                endDate.setDate(endDate.getDate() + 1);
-                filterLabel = '本周';
-            } else if (currentHistoryFilter === 'date' && datePicker.value) {
-                startDate = new Date(datePicker.value + 'T00:00:00');
-                endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + 1);
-                filterLabel = datePicker.value;
-            } else {
-                // 'all' - use sessions already loaded
+            if (!startDate || !endDate) {
+                // Default fallback if called without direct range (shouldn't happen with unified logic)
                 currentHistorySessions = [...sessions];
                 renderHistoryItems();
                 return;
             }
 
             // Query from database
-            statusEl.textContent = '加载中...';
+            statusEl.textContent = 'Loading...';
             statusEl.className = 'text-xs text-amber-400';
 
             try {
@@ -2064,7 +2485,7 @@
                 }
             } catch (err) {
                 console.error('[Pomodoro] Load History Failed:', err);
-                statusEl.textContent = '加载失败';
+                statusEl.textContent = 'Load Failed';
                 statusEl.className = 'text-xs text-rose-400';
                 return;
             }
@@ -2082,11 +2503,11 @@
             const mins = totalMins % 60;
             const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 
-            statusEl.textContent = `${currentHistorySessions.length} 条记录，共 ${timeStr}`;
+            statusEl.textContent = `${currentHistorySessions.length} records, total ${timeStr}`;
             statusEl.className = 'text-xs text-emerald-400';
 
             if (currentHistorySessions.length === 0) {
-                list.innerHTML = '<div class="p-8 text-center text-slate-500">暂无记录</div>';
+                list.innerHTML = '<div class="p-8 text-center text-slate-500">No records found</div>';
                 return;
             }
 
@@ -2095,19 +2516,19 @@
             list.innerHTML = currentHistorySessions.map(s => {
                 const tag = getTag(s.tagId);
                 const date = new Date(s.startTime);
-                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
                 // Status badge
                 let statusBadge = '';
                 let statusBorder = '';
                 if (s.status === 'completed') {
-                    statusBadge = '<span class="text-emerald-400 text-xs ml-1" title="已完成"><i class="fas fa-check-circle"></i></span>';
+                    statusBadge = '<span class="text-emerald-400 text-xs ml-1" title="Completed"><i class="fas fa-check-circle"></i></span>';
                     statusBorder = 'border-l-2 border-emerald-500';
                 } else if (s.status === 'in_progress' || s.status === 'running') {
-                    statusBadge = '<span class="text-yellow-400 text-[10px] ml-1 flex items-center justify-center animate-pulse-yellow" title="进行中"><i class="fas fa-circle"></i></span>';
+                    statusBadge = '<span class="text-yellow-400 text-[10px] ml-1 flex items-center justify-center animate-pulse-yellow" title="In Progress"><i class="fas fa-circle"></i></span>';
                     statusBorder = 'border-l-2 border-yellow-500';
                 } else if (s.status === 'aborted') {
-                    statusBadge = '<span class="text-rose-400 text-xs ml-1" title="已中止"><i class="fas fa-times-circle"></i></span>';
+                    statusBadge = '<span class="text-rose-400 text-xs ml-1" title="Aborted"><i class="fas fa-times-circle"></i></span>';
                     statusBorder = 'border-l-2 border-rose-500';
                 }
 
@@ -2129,10 +2550,10 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                            <button onclick="editSession(${s.id})" class="text-slate-500 hover:text-blue-500 p-2" title="编辑">
+                            <button onclick="editSession(${s.id})" class="text-slate-500 hover:text-blue-500 p-2" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteSession(${s.id})" class="text-slate-500 hover:text-rose-500 p-2" title="删除">
+                            <button onclick="deleteSession(${s.id})" class="text-slate-500 hover:text-rose-500 p-2" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -2165,7 +2586,7 @@
             sessionsToExport.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
             if (sessionsToExport.length === 0) {
-                alert('没有可导出的记录');
+                alert('No records to export');
                 return;
             }
 
@@ -2202,7 +2623,7 @@
                 const btn = document.querySelector('button[onclick="exportCurrentList()"]');
                 if (!btn) return;
                 const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
                 btn.classList.add('bg-emerald-600');
                 setTimeout(() => {
@@ -2211,7 +2632,7 @@
                     btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
                 }, 1500);
             }).catch(err => {
-                alert('复制失败：' + err);
+                alert('Failed to copy: ' + err);
             });
         }
 
@@ -2245,10 +2666,10 @@
                     <div class="w-8 h-8 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center">
                         <i class="fas fa-trash-alt text-sm"></i>
                     </div>
-                    <span class="text-sm font-medium">已删除一条专注记录</span>
+                    <span class="text-sm font-medium">Activity log deleted</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="undoDelete()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all active:scale-95">撤销</button>
+                    <button onclick="undoDelete()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all active:scale-95">Undo</button>
                     <button onclick="this.parentElement.parentElement.remove()" class="p-2 text-slate-500 hover:text-white transition">
                         <i class="fas fa-times"></i>
                     </button>
@@ -2296,13 +2717,13 @@
             const previewArea = document.getElementById('exportPreviewArea');
 
             if (!datePicker.value) {
-                statusEl.textContent = '请选择日期加载数据';
+                statusEl.textContent = 'Please select a date to load data';
                 statusEl.className = 'text-xs text-slate-500 mb-2';
                 previewArea.classList.add('hidden');
                 return;
             }
 
-            statusEl.textContent = '正在加载...';
+            statusEl.textContent = 'Loading...';
             statusEl.className = 'text-xs text-amber-400 mb-2';
 
             await generateDailyMarkdown();
@@ -2310,11 +2731,26 @@
 
         // Keep for backward compatibility
         async function openExportRecordsModal() {
-            // Just trigger date change if date is already set
+            console.log('[Pomodoro] openExportRecordsModal called');
+            const modal = document.getElementById('exportRecordsModal');
             const datePicker = document.getElementById('exportDatePicker');
-            if (datePicker.value) {
-                await onExportDateChange();
+            const statsPicker = document.getElementById('statsDatePicker');
+
+            if (!modal || !datePicker) {
+                console.error('[Pomodoro] Export modal elements not found');
+                return;
             }
+
+            // Sync with current stats view date if available
+            if (statsPicker && statsPicker.value) {
+                datePicker.value = statsPicker.value;
+            } else if (!datePicker.value) {
+                datePicker.valueAsDate = new Date();
+            }
+
+            modal.classList.remove('hidden');
+            console.log('[Pomodoro] Export records modal visible');
+            await onExportDateChange();
         }
 
         function closeExportRecordsModal() {
@@ -2329,7 +2765,7 @@
             const previewArea = document.getElementById('exportPreviewArea');
 
             if (!datePicker.value) {
-                statusEl.textContent = '请先选择日期';
+                statusEl.textContent = 'Please select a date first';
                 statusEl.className = 'text-xs text-slate-500 mb-2';
                 previewArea.classList.add('hidden');
                 return;
@@ -2357,7 +2793,7 @@
                 }
             } catch (err) {
                 console.error('[Pomodoro] Query failed:', err);
-                statusEl.textContent = '查询失败：' + err.message;
+                statusEl.textContent = 'Query failed: ' + err.message;
                 statusEl.className = 'text-xs text-rose-400 mb-2';
                 previewArea.classList.add('hidden');
                 return;
@@ -2373,7 +2809,7 @@
             }
 
             if (daySessions.length === 0) {
-                statusEl.textContent = '该日期没有记录';
+                statusEl.textContent = 'No records for this date';
                 statusEl.className = 'text-xs text-slate-500 mb-2';
                 previewArea.classList.add('hidden');
                 return;
@@ -2411,7 +2847,7 @@
             output.value = lines.join('\n');
 
             // Update status and show preview
-            statusEl.textContent = `已加载 ${daySessions.length} 条记录，共 ${totalMins} 分钟`;
+            statusEl.textContent = `Loaded ${daySessions.length} records, total ${totalMins} minutes`;
             statusEl.className = 'text-xs text-emerald-400 mb-2';
             previewArea.classList.remove('hidden');
         }
@@ -2420,10 +2856,10 @@
             const output = document.getElementById('exportRecordsOutput');
             navigator.clipboard.writeText(output.value).then(() => {
                 // Show feedback
-                const btn = document.querySelector('#exportPreviewArea button[onclick="copyExportRecords()"]');
+                const btn = document.querySelector('#exportRecordsModal button[onclick="copyExportRecords()"]');
                 if (!btn) return;
                 const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
                 btn.classList.add('bg-emerald-600');
                 setTimeout(() => {
@@ -2432,31 +2868,15 @@
                     btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
                 }, 1500);
             }).catch(err => {
-                alert('复制失败：' + err);
+                alert('Failed to copy: ' + err);
             });
         }
 
-        // === 7-Day Panorama Export (PNG) ===
         function openExportPanoramaModal() {
             const modal = document.getElementById('exportPanoramaModal');
-            const dateInput = document.getElementById('exportPanoramaDate');
-
-            // Set default to current week's Monday
-            const now = new Date();
-            const day = now.getDay() || 7;
-            const monday = new Date(now);
-            monday.setDate(now.getDate() - (day - 1));
-
-            const pad = (n) => String(n).padStart(2, '0');
-            dateInput.value = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
-
-            // Generate initial preview
-            generatePanoramaPreview();
-
-            // Add event listener for live update
-            dateInput.onchange = generatePanoramaPreview;
-
+            if (!modal) return;
             modal.classList.remove('hidden');
+            generatePanoramaPreview();
         }
 
         function closeExportPanoramaModal() {
@@ -2464,12 +2884,25 @@
         }
 
         function generatePanoramaPreview() {
-            const dateInput = document.getElementById('exportPanoramaDate');
             const preview = document.getElementById('panoramaPreview');
+            const headerInfo = document.getElementById('exportPanoramaHeader');
 
-            const startDate = new Date(dateInput.value + 'T00:00:00');
-            const endDate = new Date(startDate);
-            endDate.setDate(endDate.getDate() + 7);
+            if (!preview) return;
+
+            // Panorama is always a 7-day view. 
+            // Calculated as the week ending at statsBaseDate (inclusive)
+            const endDate = new Date(statsBaseDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 6);
+            startDate.setHours(0, 0, 0, 0);
+
+            if (headerInfo) {
+                headerInfo.textContent = `Current export range: ${startDate.toLocaleDateString('en-US')} - ${endDate.toLocaleDateString('en-US')}`;
+            }
+
+            console.log('[Pomodoro] Generating panorama for range:', startDate, 'to', endDate);
 
             // Get all sessions in this week
             const weekSessions = sessions.filter(s => {
@@ -2478,138 +2911,173 @@
             });
 
             if (weekSessions.length === 0) {
-                preview.innerHTML = '<div class="text-center text-slate-500 py-8">该周没有记录</div>';
+                preview.innerHTML = '<div class="text-center text-slate-500 py-12 bg-slate-900 border border-dashed border-slate-700 rounded-lg">No activity logs for this week</div>';
                 return;
             }
 
-            // Calculate stats by category
+            // Calculate stats
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#94a3b8' };
             const stats = {};
             let totalMins = 0;
+            let dayFocusCounts = [0, 0, 0, 0, 0, 0, 0];
 
             weekSessions.forEach(s => {
                 const tag = getTag(s.tagId);
+                // Exclude Relax from main category stats for focus panorama
+                if (tag.name === 'Relax' || tag.name === 'Break') return;
+
                 if (!stats[tag.name]) {
                     stats[tag.name] = { mins: 0, color: tag.color };
                 }
                 stats[tag.name].mins += s.duration;
                 totalMins += s.duration;
+
+                const dayIdx = Math.floor((new Date(s.startTime) - startDate) / (86400000));
+                if (dayIdx >= 0 && dayIdx < 7) dayFocusCounts[dayIdx]++;
             });
 
-            // Generate day labels
-            const dayLabels = [];
-            for (let i = 0; i < 7; i++) {
-                const d = new Date(startDate);
-                d.setDate(d.getDate() + i);
-                dayLabels.push(d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', weekday: 'short' }));
-            }
-
-            // Build preview HTML
+            // Build Preview HTML with refined styling
             let html = `
-                <div style="background: #0f172a; padding: 20px; border-radius: 8px; font-family: system-ui, sans-serif;">
-                    <h2 style="color: white; font-size: 18px; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
-                        <span style="color: #f43f5e;">🍅</span> 7日专注全景图
-                        <span style="color: #64748b; font-size: 12px; font-weight: normal; margin-left: auto;">
-                            ${startDate.toLocaleDateString('zh-CN')} - ${new Date(endDate.getTime() - 86400000).toLocaleDateString('zh-CN')}
-                        </span>
-                    </h2>
-                    
-                    <!-- Timeline Grid -->
-                    <div style="background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                        <div style="display: grid; gap: 8px;">
-            `;
-
-            // Render each day
-            dayLabels.forEach((dayLabel, dayIndex) => {
-                const dayStart = new Date(startDate);
-                dayStart.setDate(dayStart.getDate() + dayIndex);
-                const dayStr = dayStart.toDateString();
-
-                const daySessions = weekSessions.filter(s => new Date(s.startTime).toDateString() === dayStr);
-
-                html += `
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 80px; color: #94a3b8; font-size: 12px; flex-shrink: 0;">${dayLabel}</div>
-                        <div style="flex: 1; height: 24px; background: #334155; border-radius: 4px; position: relative; overflow: hidden;">
-                `;
-
-                // Render session bars
-                daySessions.forEach(s => {
-                    const sDate = new Date(s.startTime);
-                    const startHour = sDate.getHours() + sDate.getMinutes() / 60;
-                    const durationHours = s.duration / 60;
-                    const leftPct = (startHour / 24) * 100;
-                    const widthPct = (durationHours / 24) * 100;
-                    const tag = getTag(s.tagId);
-
-                    html += `<div style="position: absolute; left: ${leftPct}%; width: ${Math.max(widthPct, 0.5)}%; height: 100%; background: ${tag.color}; border-radius: 2px;" title="${tag.name}: ${s.duration}分钟"></div>`;
-                });
-
-                html += `
-                        </div>
+            <div id="panorama-container" style="background: #0f172a; padding: 48px; border-radius: 16px; font-family: 'Inter', system-ui, -apple-system, sans-serif; min-width: 1200px; color: #f8fafc; border: 1px solid #1e293b; line-height: 1.5;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 32px;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 32px; font-weight: 800; color: #818cf8;">7-Day Activity Flow</h2>
+                        <p style="margin: 8px 0 0 0; color: #64748b; font-size: 16px;">${startDate.toLocaleDateString('en-US')} - ${new Date(endDate.getTime() - 86400000).toLocaleDateString('en-US')}</p>
                     </div>
-                `;
-            });
-
-            // Time axis
-            html += `
-                    </div>
-                    <div style="display: flex; margin-top: 8px; padding-left: 92px;">
-                        <div style="flex: 1; color: #64748b; font-size: 10px;">0:00</div>
-                        <div style="flex: 1; color: #64748b; font-size: 10px; text-align: center;">6:00</div>
-                        <div style="flex: 1; color: #64748b; font-size: 10px; text-align: center;">12:00</div>
-                        <div style="flex: 1; color: #64748b; font-size: 10px; text-align: center;">18:00</div>
-                        <div style="color: #64748b; font-size: 10px;">24:00</div>
+                    <div style="margin-left: auto; text-align: right;">
+                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; display: block; margin-bottom: 4px;">Weekly Continuity</span>
+                        <div style="font-size: 24px; font-weight: 800; color: #f8fafc;">${((totalMins / (7 * 24 * 60)) * 100).toFixed(1)}%</div>
                     </div>
                 </div>
-                
-                <!-- Stats & Legend -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <!-- Category Distribution -->
-                    <div style="background: #1e293b; border-radius: 8px; padding: 16px;">
-                        <h3 style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px 0;">分布占比</h3>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
+
+                <!-- 7-Day Matrix / Heatmap styled Timeline -->
+                <div style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 24px; position: relative; border: 1px solid #334155;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
             `;
 
-            // Sort by time descending
-            const sortedStats = Object.entries(stats).sort((a, b) => b[1].mins - a[1].mins);
+            for (let i = 0; i < 7; i++) {
+                const currentDay = new Date(startDate);
+                currentDay.setDate(currentDay.getDate() + i);
+                const dayLabel = currentDay.toLocaleDateString('en-US', { weekday: 'short' });
+                const dateLabel = currentDay.getDate();
+                const dayStr = currentDay.toDateString();
 
-            sortedStats.forEach(([name, data]) => {
-                const pct = totalMins > 0 ? ((data.mins / totalMins) * 100).toFixed(1) : 0;
-                const hours = Math.floor(data.mins / 60);
-                const mins = data.mins % 60;
-                const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                const daySessions = weekSessions.filter(s => new Date(s.startTime).toDateString() === dayStr);
+                const isToday = new Date().toDateString() === dayStr;
 
                 html += `
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 12px; height: 12px; border-radius: 3px; background: ${data.color}; flex-shrink: 0;"></div>
-                        <div style="color: #e2e8f0; font-size: 13px; flex: 1;">${name}</div>
-                        <div style="color: #94a3b8; font-size: 12px;">${timeStr}</div>
-                        <div style="color: #64748b; font-size: 12px; width: 45px; text-align: right;">${pct}%</div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 45px; flex-shrink: 0; text-align: center;">
+                        <div style="font-size: 10px; color: ${isToday ? '#f43f5e' : '#64748b'}; text-transform: uppercase; font-weight: ${isToday ? 'bold' : 'normal'}">${dayLabel}</div>
+                        <div style="font-size: 14px; font-weight: bold; color: ${isToday ? '#f8fafc' : '#94a3b8'}">${dateLabel}</div>
                     </div>
+                    <div style="flex: 1; height: 32px; background: #0f172a; border-radius: 6px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                `;
+
+                // Sub-grid for hours
+                for (let h = 1; h < 24; h++) {
+                    const left = (h / 24) * 100;
+                    html += `<div style="position: absolute; left: ${left}%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.03);"></div>`;
+                }
+
+                daySessions.forEach(s => {
+                    const sDate = new Date(s.startTime);
+                    const startPos = (sDate.getHours() + sDate.getMinutes() / 60) / 24 * 100;
+                    const widthPos = (s.duration / 60) / 24 * 100;
+                    const tag = getTag(s.tagId);
+                    const isRelax = tag.name === 'Relax' || tag.name === 'Break';
+                    const color = isRelax ? 'rgba(71, 85, 105, 0.3)' : tag.color;
+
+                    html += `
+                    <div style="position: absolute; left: ${startPos}%; width: ${Math.max(widthPos, 0.4)}%; height: 100%; background: ${color}; border-radius: 1px; opacity: 1; ${isRelax ? '' : 'box-shadow: 0 0 8px ' + color + '44;'}"></div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            }
+
+            html += `
+                    </div>
+                    <!-- Time Markers -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-left: 61px; color: #475569; font-size: 10px; font-weight: 500;">
+                        <span>0:00</span>
+                        <span>4:00</span>
+                        <span>8:00</span>
+                        <span>12:00</span>
+                        <span>16:00</span>
+                        <span>20:00</span>
+                        <span>24:00</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+                    <!-- Distribution -->
+                    <div style="background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 20px; border: 1px solid #334155;">
+                        <h3 style="margin: 0 0 16px 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Project Distribution</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+            `;
+
+            // Calculate Conic Gradient for Pie Chart (INCLUDE ALL CATEGORIES)
+            const sortedStats = Object.entries(stats).sort((a, b) => b[1].mins - a[1].mins);
+            let cumulativePct = 0;
+            const gradientParts = [];
+
+            sortedStats.forEach(([name, data]) => {
+                const pct = totalMins > 0 ? (data.mins / totalMins * 100) : 0;
+                if (pct > 0) {
+                    gradientParts.push(`${data.color} ${cumulativePct}% ${cumulativePct + pct}%`);
+                    cumulativePct += pct;
+                }
+            });
+
+            // Re-render Distribution Section as a Pie Chart + Legend
+            html += `
+                <div style="display: grid; grid-template-columns: 240px 1fr; gap: 48px; align-items: center; background: rgba(30, 41, 59, 0.5); border-radius: 12px; padding: 40px; border: 1px solid #334155;">
+                    <!-- Pie Chart -->
+                    <div style="width: 240px; height: 240px; border-radius: 50%; background: conic-gradient(${gradientParts.join(', ')}); position: relative; box-shadow: 0 0 32px rgba(0,0,0,0.4);">
+                        <!-- Inner Doughnut Hole -->
+                    <div style="position: absolute; inset: 50px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 1px solid #1e293b;">
+                        <div style="font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px;">Logged Life</div>
+                        <div style="font-size: 24px; font-weight: 800; color: #f8fafc;">${(totalMins / 60).toFixed(1)}h</div>
+                    </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div style="display: flex; flex-direction: column; gap: 14px; max-height: 400px; overflow-y: visible;">
+                        <h3 style="margin: 0 0 4px 0; font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Activity Distribution Stats</h3>
+            `;
+
+            sortedStats.forEach(([name, data]) => {
+                const pct = totalMins > 0 ? (data.mins / totalMins * 100).toFixed(0) : 0;
+                const hours = (data.mins / 60).toFixed(1);
+                html += `
+                <div style="display: flex; align-items: center; gap: 16px; overflow: visible;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: ${data.color}; flex-shrink: 0; box-shadow: 0 0 8px ${data.color}44;"></div>
+                    <div style="flex: 1; font-size: 15px; color: #cbd5e1; white-space: nowrap; line-height: 1; display: flex; align-items: center; overflow: visible;">
+                         <span style="display: inline-flex; align-items: center;">${name}</span>
+                    </div>
+                    <div style="font-size: 14px; color: #64748b; font-weight: 600; min-width: 45px; text-align: right; line-height: 1;">${hours}h</div>
+                    <div style="font-size: 14px; color: #475569; font-weight: 500; width: 45px; text-align: right; line-height: 1;">${pct}%</div>
+                    <div style="width: 140px; height: 6px; background: #0f172a; border-radius: 3px; overflow: hidden; flex-shrink: 0;">
+                        <div style="width: ${pct}%; height: 100%; background: ${data.color};"></div>
+                    </div>
+                </div>
                 `;
             });
 
             html += `
                         </div>
                     </div>
-                    
-                    <!-- Total Stats -->
-                    <div style="background: #1e293b; border-radius: 8px; padding: 16px;">
-                        <h3 style="color: #cbd5e1; font-size: 14px; margin: 0 0 12px 0;">总计统计</h3>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <div>
-                                <div style="color: #64748b; font-size: 11px; margin-bottom: 4px;">总专注时长</div>
-                                <div style="color: #fbbf24; font-size: 24px; font-weight: bold;">${(totalMins / 60).toFixed(1)} <span style="font-size: 14px; font-weight: normal;">小时</span></div>
-                            </div>
-                            <div>
-                                <div style="color: #64748b; font-size: 11px; margin-bottom: 4px;">番茄数量</div>
-                                <div style="color: #f43f5e; font-size: 24px; font-weight: bold;">${weekSessions.length} <span style="font-size: 14px; font-weight: normal;">个</span></div>
-                            </div>
-                            <div>
-                                <div style="color: #64748b; font-size: 11px; margin-bottom: 4px;">日均时长</div>
-                                <div style="color: #3b82f6; font-size: 24px; font-weight: bold;">${(totalMins / 7 / 60).toFixed(1)} <span style="font-size: 14px; font-weight: normal;">小时</span></div>
-                            </div>
+
+                    <!-- Summary -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">Logged Events</div>
+                        <div style="font-size: 28px; font-weight: 800; color: #818cf8;">${weekSessions.length}</div>
+                    </div>
+                        <div style="background: #1e293b; border-radius: 12px; padding: 24px; border: 1px solid #334155; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">Avg. Daily Duration</div>
+                            <div style="font-size: 28px; font-weight: 800; color: #3b82f6;">${(totalMins / 7 / 60).toFixed(1)}<span style="font-size: 14px; margin-left:4px; font-weight: normal; color: #64748b;">h</span></div>
                         </div>
                     </div>
                 </div>
@@ -2619,26 +3087,49 @@
             preview.innerHTML = html;
         }
 
-        function downloadPanoramaPNG() {
-            const preview = document.getElementById('panoramaPreview');
-            const dateInput = document.getElementById('exportPanoramaDate');
+        async function downloadPanoramaPNG() {
+            const btn = document.querySelector('button[onclick="downloadPanoramaPNG()"]');
+            const preview = document.getElementById('panorama-container'); // Capture the rendered container specifically
 
-            if (!preview.firstElementChild) {
-                alert('请先选择日期生成预览');
+            if (!preview) {
+                alert('Please wait for preview to generate');
                 return;
             }
 
-            html2canvas(preview.firstElementChild, {
-                backgroundColor: '#0f172a',
-                scale: 2 // Higher quality
-            }).then(canvas => {
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+
+            try {
+                const canvas = await html2canvas(preview, {
+                    backgroundColor: '#0f172a',
+                    scale: 2,
+                    useCORS: true, // In case of external fonts/images
+                    logging: false
+                });
+
                 const link = document.createElement('a');
-                link.download = `pomodoro_week_${dateInput.value}.png`;
+                // Use formatted date for filename
+                const pad = (n) => String(n).padStart(2, '0');
+                const d = statsBaseDate || new Date();
+                const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                link.download = `lifeflow_panorama_${dateStr}_${statsMode}.png`;
                 link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link); // Ensure link is in DOM for some browsers
                 link.click();
-            }).catch(err => {
-                alert('导出失败：' + err);
-            });
+                document.body.removeChild(link);
+
+                btn.innerHTML = '<i class="fas fa-check"></i> 已下载';
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                }, 2000);
+            } catch (err) {
+                console.error('Panorama export error:', err);
+                alert('导出失败：' + err.message);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
         }
 
 
@@ -2759,7 +3250,10 @@
                 `);
 
                 tablesInitialized = true;
-                console.log('[Pomodoro] Tables initialized');
+                console.log('[LifeFlow] Tables initialized');
+
+                // Ensure default tags exist
+                await createDefaultTags();
 
             } catch (err) {
                 console.error('Init Tables Failed:', err);
@@ -2933,22 +3427,17 @@
         window.confirmEditSession = confirmEditSession;
         window.deleteSession = deleteSession;
         window.undoDelete = undoDelete;
-        window.toggleTimer = toggleTimer;
-        window.resetTimer = resetTimer;
         window.askCustomDuration = askCustomDuration;
         window.closeCustomDuration = closeCustomDuration;
         window.adjustCustomInput = adjustCustomInput;
         window.confirmCustomDuration = confirmCustomDuration;
         window.confirmSaveSession = confirmSaveSession;
-        window.discardSession = discardSession;
         window.openTagsManagement = openTagsManagement;
         window.closeTagsManagement = closeTagsManagement;
         window.editTag = editTag;
         window.confirmDeleteTag = confirmDeleteTag;
         window.setDuration = setDuration;
-        window.setStatsTimeRange = setStatsTimeRange;
-        window.renderHistoryList = renderHistoryList;
-        window.setHistoryFilter = setHistoryFilter;
+        window.setStatsRange = setStatsRange;
         window.exportCurrentList = exportCurrentList;
         window.moveSlider = moveSlider;
         window.openExportRecordsModal = openExportRecordsModal;
@@ -2958,6 +3447,8 @@
         window.openExportPanoramaModal = openExportPanoramaModal;
         window.closeExportPanoramaModal = closeExportPanoramaModal;
         window.downloadPanoramaPNG = downloadPanoramaPNG;
+        window.switchTab = switchTab;
+        window.submitQuickLog = submitQuickLog;
 
         // === Immediate UI Init ===
         console.log('[Pomodoro] Executing immediate UI init...');

@@ -6,9 +6,28 @@ LOG_DIR="/usr/local/var/log"
 LOG_FILE="$LOG_DIR/localforge.log"
 PID_FILE="$PROJECT_DIR/.server.pid"
 PORT=8092
+DEBUG_PORT=8093
+DEBUG_MODE=false
 
 # 确保日志目录存在
 mkdir -p "$LOG_DIR" 2>/dev/null
+
+# Parse debug flag
+for arg in "$@"; do
+    case $arg in
+        --debug|-d)
+            DEBUG_MODE=true
+            PORT=$DEBUG_PORT
+            shift
+            ;;
+    esac
+done
+
+# Update PID file for debug mode to allow running both
+if [ "$DEBUG_MODE" = true ]; then
+    PID_FILE="$PROJECT_DIR/.server.debug.pid"
+    LOG_FILE="$LOG_DIR/localforge.debug.log"
+fi
 
 start_server() {
     # 检查是否已经在运行
@@ -21,7 +40,11 @@ start_server() {
     cd "$PROJECT_DIR"
 
     echo "=================================================="
-    echo " Starting LocalForge Server..."
+    if [ "$DEBUG_MODE" = true ]; then
+        echo " Starting LocalForge Server (DEBUG MODE)..."
+    else
+        echo " Starting LocalForge Server..."
+    fi
     echo " Project Path: $PROJECT_DIR"
     echo " URL: http://localhost:$PORT"
     echo " Log File: $LOG_FILE"
@@ -68,7 +91,8 @@ status_server() {
 }
 
 # 命令行参数处理
-case "${1:-start}" in
+CMD="${1:-start}"
+case "$CMD" in
     start)
         start_server
         ;;
@@ -84,7 +108,10 @@ case "${1:-start}" in
         status_server
         ;;
     *)
-        echo "Usage: $0 {start|stop|restart|status}"
+        echo "Usage: $0 [--debug|-d] {start|stop|restart|status}"
+        echo ""
+        echo "Options:"
+        echo "  --debug, -d    Run server on port $DEBUG_PORT for debugging"
         exit 1
         ;;
 esac
