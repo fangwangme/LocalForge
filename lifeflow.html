@@ -3360,8 +3360,12 @@
                         console.log('[Pomodoro] ✅ Synced to file:', snapshot.handle.name);
                         updateSyncStatus(true);
                     } else {
-                        console.warn('[Pomodoro] File permission not granted');
-                        updateSyncStatus(false, '文件权限已丢失');
+                        // Permission requires user gesture - this is expected during auto-sync
+                        // Data is still saved to IndexedDB, just not synced to file
+                        if (!window._filePermWarnShown) {
+                            console.log('[Pomodoro] File sync paused (requires user interaction to grant permission)');
+                            window._filePermWarnShown = true;
+                        }
                     }
                 }
             } catch (err) {
