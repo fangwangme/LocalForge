@@ -153,8 +153,8 @@
                                 <span class="text-xs text-slate-400">格式</span>
                                 <select id="sel-format"
                                     class="bg-slate-800 border border-slate-600 text-xs text-white rounded px-2 py-1 outline-none focus:border-blue-500">
+                                    <option value="image/png" selected>PNG (无损)</option>
                                     <option value="image/jpeg">JPEG (体积小)</option>
-                                    <option value="image/png">PNG (无损)</option>
                                 </select>
                             </div>
                             <div id="quality-wrapper" class="space-y-1">
@@ -209,7 +209,7 @@
             currentFileName: '', // 当前文件名
             isSingleFileMode: false, // 单文件模式
             mode: 'pad', // 'pad' or 'crop'
-            outputFormat: 'image/jpeg',
+            outputFormat: 'image/png',
             outputQuality: 0.95,
             cropRect: { x: 0, y: 0, w: 0, h: 0 }, // 裁剪模式下的选框
             // 去水印单框模式
@@ -247,6 +247,10 @@
         };
 
         // === 0. 输出设置 ===
+        // PNG 是默认格式，初始化时禁用质量滑块
+        els.qualityWrapper.style.opacity = '0.5';
+        els.qualityWrapper.style.pointerEvents = 'none';
+
         els.selFormat.onchange = (e) => {
             state.outputFormat = e.target.value;
             // PNG 无损，不需要质量滑块
