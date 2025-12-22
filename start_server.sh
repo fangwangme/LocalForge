@@ -57,7 +57,8 @@ start_server() {
     echo "Server started with PID: $(cat $PID_FILE)"
 
     # 尝试打开默认浏览器 (macOS 使用 open 命令)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Debug mode 不自动打开浏览器
+    if [[ "$OSTYPE" == "darwin"* ]] && [ "$DEBUG_MODE" = false ]; then
         sleep 1
         open "http://localhost:$PORT"
     fi

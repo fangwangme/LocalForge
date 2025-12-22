@@ -1983,7 +1983,7 @@
         // Add Tag color picker
 
         function openAddTagModal() {
-            els.tagMenu.classList.add('hidden');
+            if (els.tagMenu) els.tagMenu.classList.add('hidden');
             currentEditTagId = null;
             document.getElementById('tagModalTitle').innerText = 'New Tag';
             document.getElementById('newTagName').value = '';
