@@ -267,8 +267,15 @@
                             <div>
                                 <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Start
                                     Time</label>
-                                <input type="datetime-local" id="quickLogStartTime"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                                <div class="flex gap-2">
+                                    <input type="datetime-local" id="quickLogStartTime"
+                                        class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                                    <button type="button"
+                                        onclick="(() => { const d = new Date(); const pad = n => String(n).padStart(2,'0'); document.getElementById('quickLogStartTime').value = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); })()"
+                                        class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-xl border border-slate-600 transition">
+                                        Now
+                                    </button>
+                                </div>
                             </div>
                             <!-- Title -->
                             <div>
@@ -2538,25 +2545,24 @@
 
             list.innerHTML = currentHistorySessions.map(s => {
                 const tag = getTag(s.tagId);
-                const date = new Date(s.startTime);
-                const dateStr = date.toLocaleDateString('en-US') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const startDate = new Date(s.startTime);
+                const endDate = new Date(s.endTime);
+                const dateStr = startDate.toLocaleDateString('en-US');
+                const startTimeStr = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-                // Status badge
+                // Status badge (icon only, no border)
                 let statusBadge = '';
-                let statusBorder = '';
                 if (s.status === 'completed') {
                     statusBadge = '<span class="text-emerald-400 text-xs ml-1" title="Completed"><i class="fas fa-check-circle"></i></span>';
-                    statusBorder = 'border-l-2 border-emerald-500';
                 } else if (s.status === 'in_progress' || s.status === 'running') {
                     statusBadge = '<span class="text-yellow-400 text-[10px] ml-1 flex items-center justify-center animate-pulse-yellow" title="In Progress"><i class="fas fa-circle"></i></span>';
-                    statusBorder = 'border-l-2 border-yellow-500';
                 } else if (s.status === 'aborted') {
                     statusBadge = '<span class="text-rose-400 text-xs ml-1" title="Aborted"><i class="fas fa-times-circle"></i></span>';
-                    statusBorder = 'border-l-2 border-rose-500';
                 }
 
                 return `
-                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group ${statusBorder}">
+                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold shrink-0">
                                 ${s.duration}
@@ -2569,7 +2575,7 @@
                                 </div>
                                 ${s.title ? `<div class="text-sm text-white mb-1 break-words">${escapeHtml(s.title)}</div>` : ''}
                                 ${s.description ? `<div class="text-xs text-slate-400 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
-                                <div class="text-xs text-slate-500">${dateStr}</div>
+                                <div class="text-xs text-slate-500">${dateStr} ${startTimeStr} - ${endTimeStr}</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
