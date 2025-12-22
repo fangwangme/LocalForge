@@ -374,7 +374,7 @@
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
                     <div class="text-slate-400 text-xs mb-1">Active Activities</div>
                     <div class="text-xl font-bold text-purple-400" id="statsEffectiveTime">0 minutes</div>
-                    <div class="text-xs text-slate-500 mt-1">Excluding Default</div>
+                    <div class="text-xs text-slate-500 mt-1">Excluding Default & Relax</div>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
                     <div class="text-slate-400 text-xs mb-1">Tags</div>
@@ -427,7 +427,10 @@
                 <!-- Header with Filters -->
                 <div class="p-4 border-b border-slate-700">
                     <div class="flex flex-wrap gap-3 items-center justify-between">
-                        <h3 class="font-medium text-slate-300">Detailed Records</h3>
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-medium text-slate-300">Detailed Records</h3>
+                            <div id="historyFilterIndicator" class="hidden"></div>
+                        </div>
                         <div class="flex flex-wrap gap-2 items-center">
                             <!-- Statistics range is now unified at the top -->
                         </div>
@@ -2213,7 +2216,7 @@
             const recordCount = rangedSessions.length;
             const totalMins = rangedSessions.reduce((sum, s) => sum + s.duration, 0);
             const activeMins = rangedSessions.filter(s => !isRelax(s)).reduce((sum, s) => sum + s.duration, 0);
-            const effectiveSessions = rangedSessions.filter(s => !isDefault(s));
+            const effectiveSessions = rangedSessions.filter(s => !isDefault(s) && !isRelax(s));
             const effectiveMins = effectiveSessions.reduce((sum, s) => sum + s.duration, 0);
 
             // Unique tags used in ranged sessions
@@ -2351,7 +2354,9 @@
             // 3. Distribution Chart
             renderDistChart(rangedSessions);
 
-            // 4. History List
+            // 4. History List (clear filter when changing date range)
+            historyTagFilter = null;
+            updateHistoryFilterUI();
             loadHistorySessions(startDate, endDate);
 
             // 4. Set Initial Slider Position (Center on Now)
@@ -2474,9 +2479,54 @@
                                 }
                             }
                         }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const tagName = distLabels[index];
+                            setHistoryTagFilter(tagName);
+                        }
                     }
                 }
             });
+        }
+
+        // Tag filter for history list
+        let historyTagFilter = null;
+
+        function setHistoryTagFilter(tagName) {
+            historyTagFilter = tagName;
+            renderHistoryItems();
+            updateHistoryFilterUI();
+        }
+
+        function clearHistoryTagFilter() {
+            historyTagFilter = null;
+            renderHistoryItems();
+            updateHistoryFilterUI();
+        }
+
+        function updateHistoryFilterUI() {
+            const filterEl = document.getElementById('historyFilterIndicator');
+            if (!filterEl) return;
+
+            if (historyTagFilter) {
+                const tag = tags.find(t => t.name === historyTagFilter);
+                const color = tag?.color || '#94a3b8';
+                filterEl.innerHTML = `
+                    <span class="flex items-center gap-1.5 px-2 py-1 bg-slate-700 rounded-lg text-xs">
+                        <span class="w-2 h-2 rounded-full" style="background: ${color}"></span>
+                        <span class="text-slate-300">${historyTagFilter}</span>
+                        <button onclick="clearHistoryTagFilter()" class="ml-1 text-slate-400 hover:text-white transition">
+                            <i class="fas fa-times text-[10px]"></i>
+                        </button>
+                    </span>
+                `;
+                filterEl.classList.remove('hidden');
+            } else {
+                filterEl.innerHTML = '';
+                filterEl.classList.add('hidden');
+            }
         }
 
         // History Filter logic is now merged into loadHistorySessions
@@ -2526,24 +2576,29 @@
         function renderHistoryItems() {
             const list = document.getElementById('historyList');
             const statusEl = document.getElementById('historyStatus');
+            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
+
+            // Apply tag filter if set
+            let sessionsToRender = currentHistorySessions;
+            if (historyTagFilter) {
+                sessionsToRender = currentHistorySessions.filter(s => getTag(s.tagId).name === historyTagFilter);
+            }
 
             // Calculate stats
-            const totalMins = currentHistorySessions.reduce((sum, s) => sum + s.duration, 0);
+            const totalMins = sessionsToRender.reduce((sum, s) => sum + s.duration, 0);
             const hrs = Math.floor(totalMins / 60);
             const mins = totalMins % 60;
             const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 
-            statusEl.textContent = `${currentHistorySessions.length} records, total ${timeStr}`;
+            statusEl.textContent = `${sessionsToRender.length} records, total ${timeStr}`;
             statusEl.className = 'text-xs text-emerald-400';
 
-            if (currentHistorySessions.length === 0) {
+            if (sessionsToRender.length === 0) {
                 list.innerHTML = '<div class="p-8 text-center text-slate-500">No records found</div>';
                 return;
             }
 
-            const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
-
-            list.innerHTML = currentHistorySessions.map(s => {
+            list.innerHTML = sessionsToRender.map(s => {
                 const tag = getTag(s.tagId);
                 const startDate = new Date(s.startTime);
                 const endDate = new Date(s.endTime);
@@ -3472,6 +3527,8 @@
         window.setDuration = setDuration;
         window.setStatsRange = setStatsRange;
         window.exportCurrentList = exportCurrentList;
+        window.clearHistoryTagFilter = clearHistoryTagFilter;
+        window.setHistoryTagFilter = setHistoryTagFilter;
         window.moveSlider = moveSlider;
         window.openExportRecordsModal = openExportRecordsModal;
         window.onExportDateChange = onExportDateChange;
