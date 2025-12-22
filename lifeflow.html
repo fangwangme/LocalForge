@@ -221,7 +221,7 @@
                     </div>
 
                     <!-- Notification Toggle (Outside Grid) -->
-                    <div class="mt-16 flex items-center gap-2 opacity-50 hover:opacity-100 transition duration-300">
+                    <div class="mt-16 flex items-center gap-2 opacity-30 hover:opacity-100 transition duration-300">
                         <input type="checkbox" id="notifyToggle" checked
                             class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
                         <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">Task
@@ -806,23 +806,23 @@
 
                 // Sync initial UI state with permission
                 if (notifyToggle.checked && Notification.permission === 'granted') {
-                    notifyToggle.parentElement.classList.remove('opacity-50');
+                    notifyToggle.parentElement.classList.remove('opacity-30');
                 } else {
-                    notifyToggle.parentElement.classList.add('opacity-50');
+                    notifyToggle.parentElement.classList.add('opacity-30');
                 }
 
                 // Handle User Click - request permission when checked
                 notifyToggle.addEventListener('change', (e) => {
                     if (notifyToggle.checked) {
                         if (Notification.permission === 'granted') {
-                            notifyToggle.parentElement.classList.remove('opacity-50');
+                            notifyToggle.parentElement.classList.remove('opacity-30');
                         } else if (Notification.permission === 'denied') {
                             notifyToggle.checked = false;
                             alert('Please allow notification permissions in your browser settings.');
                         } else {
                             Notification.requestPermission().then(perm => {
                                 if (perm === 'granted') {
-                                    notifyToggle.parentElement.classList.remove('opacity-50');
+                                    notifyToggle.parentElement.classList.remove('opacity-30');
                                 } else {
                                     notifyToggle.checked = false;
                                     if (perm === 'denied') {
@@ -832,11 +832,11 @@
                             });
                         }
                     } else {
-                        notifyToggle.parentElement.classList.add('opacity-50');
+                        notifyToggle.parentElement.classList.add('opacity-30');
                     }
                 });
             } else {
-                notifyToggle.parentElement.classList.add('opacity-50');
+                notifyToggle.parentElement.classList.add('opacity-30');
                 notifyToggle.checked = false;
                 notifyToggle.disabled = true;
             }
