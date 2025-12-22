@@ -29,34 +29,117 @@
 
         /* 脉冲动画 - 用于准备阶段 */
         @keyframes pulse-text {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(0.95); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(0.95);
+            }
         }
 
         .animate-pulse-custom {
             animation: pulse-text 1.5s infinite;
         }
 
+        /* 当前活动段 - 绿色发光 */
         .active-segment-glow {
-            box-shadow: 0 0 30px rgba(163, 230, 53, 0.8); /* Neon Lime glow */
+            box-shadow: 0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.4), inset 0 0 12px rgba(255, 255, 255, 0.25);
             z-index: 20;
-            transform: scaleY(1.2);
+            transform: scaleY(1.25);
+            border-color: rgba(34, 197, 94, 1) !important;
+            background-color: rgba(34, 197, 94, 0.15) !important;
+        }
+
+        /* 已完成段 - 纯绿色填充 */
+        .segment-completed {
+            opacity: 1 !important;
+            background: linear-gradient(180deg, rgba(34, 197, 94, 0.7) 0%, rgba(22, 163, 74, 0.6) 100%) !important;
+            border-color: rgba(34, 197, 94, 0.8) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 8px rgba(34, 197, 94, 0.3);
+        }
+
+        /* 未开始的段 - 深灰低调 */
+        .segment-pending {
+            opacity: 0.3;
+            background-color: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.06) !important;
         }
 
         @keyframes segment-pulse {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(1.5); }
+
+            0%,
+            100% {
+                filter: brightness(1) drop-shadow(0 0 12px rgba(34, 197, 94, 0.8));
+            }
+
+            50% {
+                filter: brightness(1.25) drop-shadow(0 0 20px rgba(34, 197, 94, 1));
+            }
         }
-        
+
         .segment-pulsing {
-            animation: segment-pulse 0.4s ease-in-out infinite;
+            animation: segment-pulse 0.6s ease-in-out infinite;
+        }
+
+        /* 段内倒计时数字 - 当前段 */
+        .segment-countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow:
+                -1px -1px 0 #0f172a,
+                1px -1px 0 #0f172a,
+                -1px 1px 0 #0f172a,
+                1px 1px 0 #0f172a,
+                0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .active-segment-glow .segment-countdown {
+            opacity: 1;
+        }
+
+        /* 已完成段的勾号 */
+        .segment-completed .segment-countdown {
+            font-size: 0.85rem;
+            color: rgba(52, 211, 153, 1);
+            text-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+            opacity: 1;
         }
 
         /* 柔和的背景色定义 */
-        .bg-phase-setup { background-color: #0f172a; } /* Slate 900 */
-        .bg-phase-work { background-color: #1e1b4b; }  /* Indigo 950 */
-        .bg-phase-rest { background-color: #064e3b; }  /* Emerald 950/Teal */
-        .bg-phase-ready { background-color: #431407; } /* Orange 950/Rust */
+        .bg-phase-setup {
+            background-color: #0f172a;
+        }
+
+        /* Slate 900 */
+        .bg-phase-work {
+            background-color: #1e1b4b;
+        }
+
+        /* Indigo 950 */
+        .bg-phase-rest {
+            background-color: #064e3b;
+        }
+
+        /* Emerald 950/Teal */
+        .bg-phase-ready {
+            background-color: #431407;
+        }
+
+        /* Orange 950/Rust */
     </style>
 </head>
 
@@ -94,16 +177,23 @@
                     <div class="space-y-4">
                         <!-- 运动时间 -->
                         <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
-                            <label class="flex justify-between text-indigo-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                            <label
+                                class="flex justify-between text-indigo-300 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-fire-alt mr-2"></i>Jump Interval</span>
-                                <span id="workDisplay" class="bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-400">60s</span>
+                                <span id="workDisplay"
+                                    class="bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-400">60s</span>
                             </label>
                             <div class="flex items-center gap-4">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="workInput" data-delta="-5">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="workInput" data-delta="-5">
                                     <i class="fas fa-minus"></i>
                                 </button>
-                                <input type="range" id="workInput" min="30" max="90" step="5" value="60" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="workInput" data-delta="5">
+                                <input type="range" id="workInput" min="30" max="90" step="5" value="60"
+                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="workInput" data-delta="5">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -111,16 +201,23 @@
 
                         <!-- 休息时间 -->
                         <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
-                            <label class="flex justify-between text-emerald-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                            <label
+                                class="flex justify-between text-emerald-300 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-coffee mr-2"></i>Rest Interval</span>
-                                <span id="restDisplay" class="bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-400">45s</span>
+                                <span id="restDisplay"
+                                    class="bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-400">45s</span>
                             </label>
                             <div class="flex items-center gap-4">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="restInput" data-delta="-5">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="restInput" data-delta="-5">
                                     <i class="fas fa-minus"></i>
                                 </button>
-                                <input type="range" id="restInput" min="30" max="90" step="5" value="45" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="restInput" data-delta="5">
+                                <input type="range" id="restInput" min="30" max="90" step="5" value="45"
+                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="restInput" data-delta="5">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -129,13 +226,18 @@
                         <div class="grid grid-cols-2 gap-4">
                             <!-- 轮数 -->
                             <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
-                                <label class="block text-blue-300 font-bold mb-3 uppercase text-xs tracking-wider">Rounds</label>
+                                <label
+                                    class="block text-blue-300 font-bold mb-3 uppercase text-xs tracking-wider">Rounds</label>
                                 <div class="flex items-center justify-between">
-                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="roundsInput" data-delta="-1">
+                                    <button type="button"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        data-target="roundsInput" data-delta="-1">
                                         <i class="fas fa-minus text-xs"></i>
                                     </button>
                                     <span id="roundsDisplay" class="text-xl font-black">7</span>
-                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="roundsInput" data-delta="1">
+                                    <button type="button"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        data-target="roundsInput" data-delta="1">
                                         <i class="fas fa-plus text-xs"></i>
                                     </button>
                                 </div>
@@ -143,32 +245,46 @@
                             </div>
                             <!-- 体重 -->
                             <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
-                                <label class="block text-purple-300 font-bold mb-3 uppercase text-xs tracking-wider">Weight</label>
+                                <label
+                                    class="block text-purple-300 font-bold mb-3 uppercase text-xs tracking-wider">Weight</label>
                                 <div class="flex items-center justify-between">
-                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="weightInput" data-delta="-1">
+                                    <button type="button"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        data-target="weightInput" data-delta="-1">
                                         <i class="fas fa-minus text-xs"></i>
                                     </button>
-                                    <span id="weightDisplay" class="text-lg font-black">70<span class="text-xs ml-0.5">kg</span></span>
-                                    <button type="button" class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center" data-target="weightInput" data-delta="1">
+                                    <span id="weightDisplay" class="text-lg font-black">70<span
+                                            class="text-xs ml-0.5">kg</span></span>
+                                    <button type="button"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        data-target="weightInput" data-delta="1">
                                         <i class="fas fa-plus text-xs"></i>
                                     </button>
                                 </div>
-                                <input type="range" id="weightInput" min="40" max="120" step="1" value="70" class="hidden">
+                                <input type="range" id="weightInput" min="40" max="120" step="1" value="70"
+                                    class="hidden">
                             </div>
                         </div>
 
                         <!-- 目标配速 (Pace) -->
                         <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
-                            <label class="flex justify-between text-lime-400 font-bold mb-3 uppercase text-xs tracking-wider">
+                            <label
+                                class="flex justify-between text-lime-400 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-tachometer-alt mr-2"></i>Target Pace (Jumps/Min)</span>
-                                <span id="paceDisplay" class="bg-lime-500/20 px-2 py-0.5 rounded text-lime-400">140 JPM</span>
+                                <span id="paceDisplay" class="bg-lime-500/20 px-2 py-0.5 rounded text-lime-400">140
+                                    JPM</span>
                             </label>
                             <div class="flex items-center gap-4">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="paceInput" data-delta="-5">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="paceInput" data-delta="-10">
                                     <i class="fas fa-minus"></i>
                                 </button>
-                                <input type="range" id="paceInput" min="100" max="180" step="5" value="140" class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-500">
-                                <button type="button" class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition" data-target="paceInput" data-delta="5">
+                                <input type="range" id="paceInput" min="100" max="180" step="10" value="140"
+                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-500">
+                                <button type="button"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    data-target="paceInput" data-delta="10">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
@@ -180,7 +296,9 @@
                             class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl shadow-2xl transform transition active:scale-[0.98] text-xl uppercase tracking-widest">
                             Start Session
                         </button>
-                        <p class="text-center text-[10px] text-slate-500 mt-4 uppercase tracking-[0.2em]">Est. Duration: <span id="totalTimeDisplay">08:00</span></p>
+                        <p class="text-center text-[10px] text-slate-500 mt-4 uppercase tracking-[0.2em]">Est. Duration:
+                            <span id="totalTimeDisplay">08:00</span>
+                        </p>
                     </div>
                 </div>
 
@@ -190,26 +308,35 @@
 
                     <!-- 状态标签 -->
                     <div class="absolute top-4 text-center z-10">
-                        <div id="phaseText" class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl">GET READY</div>
+                        <div id="phaseText" class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl">GET
+                            READY</div>
                         <div class="text-sm font-bold opacity-60 mt-2 uppercase tracking-widest">
-                            Round <span id="currentRoundDisplay" class="text-white">1</span> of <span id="totalRoundsDisplay">8</span>
+                            Round <span id="currentRoundDisplay" class="text-white">1</span> of <span
+                                id="totalRoundsDisplay">8</span>
                         </div>
                     </div>
 
                     <!-- 闪烁背景层 -->
-                    <div id="flashOverlay" class="fixed inset-0 bg-white/20 opacity-0 pointer-events-none z-[5] transition-opacity duration-75"></div>
+                    <div id="flashOverlay"
+                        class="fixed inset-0 bg-white/20 opacity-0 pointer-events-none z-[5] transition-opacity duration-75">
+                    </div>
 
                     <!-- 圆形进度条容器 -->
                     <div class="relative w-80 h-80 flex items-center justify-center z-10">
                         <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
-                            <circle class="text-white/5" stroke-width="6" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60" />
-                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60" cy="60" />
+                            <circle class="text-white/5" stroke-width="6" stroke="currentColor" fill="transparent"
+                                r="54" cx="60" cy="60" />
+                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="6"
+                                stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60"
+                                cy="60" />
                         </svg>
 
                         <!-- 中间的大数字 -->
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span id="timerDisplay" class="text-8xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl">00:00</span>
-                            <button id="toggleBtn" class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full w-14 h-14 flex items-center justify-center transition active:scale-90">
+                            <span id="timerDisplay"
+                                class="text-8xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl">00:00</span>
+                            <button id="toggleBtn"
+                                class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full w-14 h-14 flex items-center justify-center transition active:scale-90">
                                 <i id="toggleIcon" class="fas fa-pause text-xl"></i>
                             </button>
                         </div>
@@ -264,12 +391,15 @@
         </div>
 
         <!-- 配速进度条 (Pace Progress) - Move to main wrapper, absolute positioning -->
-        <div id="paceContainer" class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-white/10 p-4 pb-8 hidden z-50 animate-slide-up">
+        <div id="paceContainer"
+            class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl border-t border-white/10 p-4 pb-8 hidden z-50 animate-slide-up">
             <div class="w-full">
                 <div class="flex justify-between items-end mb-3 px-2">
                     <div class="space-y-0.5">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-lime-400">Rhythm Pacer</span>
-                        <p class="text-xs text-white/50">Maintain <span id="segmentSeconds" class="text-lime-400 font-bold">0.0</span>s per 10 jumps</p>
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-lime-400">Rhythm
+                            Pacer</span>
+                        <p class="text-xs text-white/50">Maintain <span id="segmentSeconds"
+                                class="text-lime-400 font-bold">0.0</span>s per 10 jumps</p>
                     </div>
                     <div class="text-right">
                         <span id="paceJumpCount" class="text-4xl font-black text-white leading-none">0</span>
@@ -602,51 +732,86 @@
             }
             els.paceContainer.classList.remove('hidden');
             els.paceSegments.innerHTML = '';
-            
+
             const segmentDuration = 600 / state.pace;
             els.segmentSeconds.innerText = segmentDuration.toFixed(1);
 
             // 计算总共需要跳多少个10次
             const totalSegments = Math.floor(state.workTime * (state.pace / 60) / 10);
-            
+
             for (let i = 0; i < totalSegments; i++) {
                 const segment = document.createElement('div');
-                segment.className = 'flex-1 bg-white/5 rounded-lg overflow-hidden relative border border-white/5';
+                segment.className = 'flex-1 bg-white/10 rounded-lg overflow-hidden relative border border-white/15 transition-all duration-300 segment-pending';
+                segment.id = `pace-segment-${i}`;
+
                 const progress = document.createElement('div');
-                progress.className = 'absolute inset-0 bg-gradient-to-r from-lime-500 to-lime-300 w-0 transition-all duration-100 shadow-[0_0_20px_rgba(163,230,53,0.4)]';
+                progress.className = 'absolute inset-0 bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 w-0 transition-all duration-100 shadow-[0_0_20px_rgba(34,197,94,0.5)]';
                 progress.id = `pace-seg-progress-${i}`;
                 segment.appendChild(progress);
+
+                // 添加倒计时数字显示
+                const countdown = document.createElement('span');
+                countdown.className = 'segment-countdown';
+                countdown.id = `pace-seg-countdown-${i}`;
+                countdown.innerText = '';
+                segment.appendChild(countdown);
+
                 els.paceSegments.appendChild(segment);
             }
-            
+
             state.paceTimeElapsed = 0;
             state.currentPaceSegment = 0;
+            state.segmentDuration = segmentDuration; // 保存以便在updatePaceProgress中使用
             els.paceJumpCount.innerText = '0';
         };
 
         const updatePaceProgress = (delta) => {
             if (state.pace <= 0) return;
-            
-            const segmentDuration = 600 / state.pace; // 每10次的秒数
+
+            const segmentDuration = state.segmentDuration || (600 / state.pace); // 每10次的秒数
             state.paceTimeElapsed += delta;
-            
+
             const currentSegment = Math.floor(state.paceTimeElapsed / segmentDuration);
-            const segmentProgress = (state.paceTimeElapsed % segmentDuration) / segmentDuration;
-            
+            const segmentTimeElapsed = state.paceTimeElapsed % segmentDuration;
+            const segmentProgress = segmentTimeElapsed / segmentDuration;
+            const segmentTimeRemaining = segmentDuration - segmentTimeElapsed;
+
             // 更新当前段的进度和效果
+            const segmentEl = document.getElementById(`pace-segment-${currentSegment}`);
             const progressEl = document.getElementById(`pace-seg-progress-${currentSegment}`);
+            const countdownEl = document.getElementById(`pace-seg-countdown-${currentSegment}`);
+
             if (progressEl) {
                 progressEl.style.width = `${segmentProgress * 100}%`;
-                progressEl.parentElement.classList.add('active-segment-glow', 'segment-pulsing');
             }
-            
-            // 将之前的所有段填满并移除动画
+            if (segmentEl) {
+                segmentEl.classList.add('active-segment-glow', 'segment-pulsing');
+                segmentEl.classList.remove('segment-completed', 'segment-pending');
+            }
+            // 显示倒计时数字: 10-8-6-4-2 (双数变化，基于进度百分比)
+            if (countdownEl) {
+                // 计算剩余跳绳数: 10 → 0，只显示双数 10,8,6,4,2
+                const remainingJumps = Math.ceil((1 - segmentProgress) * 10);
+                // 向上取到最近的双数
+                const displayNumber = remainingJumps % 2 === 0 ? remainingJumps : remainingJumps + 1;
+                countdownEl.innerText = Math.min(10, Math.max(0, displayNumber));
+            }
+
+            // 将之前的所有段填满并标记为已完成（变暗）
             for (let i = 0; i < currentSegment; i++) {
-                const prevEl = document.getElementById(`pace-seg-progress-${i}`);
-                if (prevEl) {
-                    if (prevEl.style.width !== '100%') prevEl.style.width = '100%';
-                    prevEl.parentElement.classList.remove('active-segment-glow', 'segment-pulsing');
-                    prevEl.parentElement.classList.add('border-lime-500/50');
+                const prevSegment = document.getElementById(`pace-segment-${i}`);
+                const prevProgressEl = document.getElementById(`pace-seg-progress-${i}`);
+                const prevCountdown = document.getElementById(`pace-seg-countdown-${i}`);
+
+                if (prevProgressEl && prevProgressEl.style.width !== '100%') {
+                    prevProgressEl.style.width = '100%';
+                }
+                if (prevSegment) {
+                    prevSegment.classList.remove('active-segment-glow', 'segment-pulsing');
+                    prevSegment.classList.add('segment-completed');
+                }
+                if (prevCountdown) {
+                    prevCountdown.innerText = '✓'; // 已完成标记
                 }
             }
 
@@ -842,6 +1007,7 @@
             els.completeScreen.classList.add('hidden');
             els.completeScreen.classList.remove('flex');
             els.resetBtn.classList.add('hidden');
+            els.paceContainer.classList.add('hidden'); // 隐藏配速进度条
         };
 
         const togglePause = () => {
@@ -1198,12 +1364,12 @@
             // Find session data for undo
             let query = `SELECT id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time, start_time, end_time FROM workouts WHERE id = ?`;
             let result = await executeQueryResult(query, [id]);
-            
+
             if (!result || !result[0] || !result[0].values[0]) return;
-            
+
             const row = result[0].values[0];
             const session = {
-                id: row[0], date: row[1], rounds: row[2], workTime: row[3], restTime: row[4], 
+                id: row[0], date: row[1], rounds: row[2], workTime: row[3], restTime: row[4],
                 totalWorkTime: row[5], calories: row[6], weight: row[7], totalTime: row[8],
                 startTime: row[9], endTime: row[10]
             };
@@ -1250,7 +1416,7 @@
             }, 5000);
         }
 
-        window.undoDeleteWorkout = async function() {
+        window.undoDeleteWorkout = async function () {
             const s = window._deletedWorkout;
             if (!s) return;
 
