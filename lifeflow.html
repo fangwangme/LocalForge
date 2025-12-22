@@ -804,26 +804,15 @@
                 // Always default to checked as requested
                 notifyToggle.checked = true;
 
-                // Sync initial UI state with permission
-                if (notifyToggle.checked && Notification.permission === 'granted') {
-                    notifyToggle.parentElement.classList.remove('opacity-30');
-                } else {
-                    notifyToggle.parentElement.classList.add('opacity-30');
-                }
-
                 // Handle User Click - request permission when checked
                 notifyToggle.addEventListener('change', (e) => {
                     if (notifyToggle.checked) {
-                        if (Notification.permission === 'granted') {
-                            notifyToggle.parentElement.classList.remove('opacity-30');
-                        } else if (Notification.permission === 'denied') {
+                        if (Notification.permission === 'denied') {
                             notifyToggle.checked = false;
                             alert('Please allow notification permissions in your browser settings.');
-                        } else {
+                        } else if (Notification.permission !== 'granted') {
                             Notification.requestPermission().then(perm => {
-                                if (perm === 'granted') {
-                                    notifyToggle.parentElement.classList.remove('opacity-30');
-                                } else {
+                                if (perm !== 'granted') {
                                     notifyToggle.checked = false;
                                     if (perm === 'denied') {
                                         alert('Please allow notification permissions in your browser settings.');
@@ -831,12 +820,10 @@
                                 }
                             });
                         }
-                    } else {
-                        notifyToggle.parentElement.classList.add('opacity-30');
                     }
                 });
             } else {
-                notifyToggle.parentElement.classList.add('opacity-30');
+                // Notifications not supported - disable the toggle
                 notifyToggle.checked = false;
                 notifyToggle.disabled = true;
             }
