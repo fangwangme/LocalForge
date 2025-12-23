@@ -220,26 +220,26 @@
     <input type="file" id="fallback-dir" style="display: none;" webkitdirectory directory multiple>
 
     <script>
-        // === 状态管理 ===
+        // === State Management ===
         const state = {
             inputHandle: null,
             outputHandle: null,
             files: [], // { name, handle }
             currentIndex: -1,
             currentImage: null, // Image Object
-            currentFileName: '', // 当前文件名
-            isSingleFileMode: false, // 单文件模式
+            currentFileName: '', // Current filename
+            isSingleFileMode: false, // Single file mode
             mode: 'pad', // 'pad' or 'crop'
             outputFormat: 'image/png',
             outputQuality: 0.95,
-            cropRect: { x: 0, y: 0, w: 0, h: 0 }, // 裁剪模式下的选框
-            // 去水印单框模式
-            watermarkRect: null, // { x, y, w, h } - 归一化坐标 (0-1)
+            cropRect: { x: 0, y: 0, w: 0, h: 0 }, // Crop rect
+            // Watermark single mask mode
+            watermarkRect: null, // { x, y, w, h } - Normalized coordinates (0-1)
             isDrawingRect: false,
             rectStart: { x: 0, y: 0 },
         };
 
-        // DOM 元素
+        // DOM Elements
         const els = {
             singleBtn: document.getElementById('btn-single'),
             inputBtn: document.getElementById('btn-input'),
@@ -269,14 +269,14 @@
             outputInfo: document.getElementById('output-info')
         };
 
-        // === 0. 输出设置 ===
-        // PNG 是默认格式，初始化时禁用质量滑块
+        // === 0. Output Settings ===
+        // PNG is default, disable quality slider
         els.qualityWrapper.style.opacity = '0.5';
         els.qualityWrapper.style.pointerEvents = 'none';
 
         els.selFormat.onchange = (e) => {
             state.outputFormat = e.target.value;
-            // PNG 无损，不需要质量滑块
+            // PNG is lossless, no quality slider needed
             if (state.outputFormat === 'image/png') {
                 els.qualityWrapper.style.opacity = '0.5';
                 els.qualityWrapper.style.pointerEvents = 'none';
@@ -292,9 +292,9 @@
             state.outputQuality = val / 100;
         };
 
-        // === 1. 文件系统操作与兼容性处理 ===
+        // === 1. File System & Compatibility ===
 
-        // 单文件模式点击
+        // Single file mode click
         els.singleBtn.onclick = async () => {
             if ('showOpenFilePicker' in window) {
                 try {
@@ -315,12 +315,12 @@
                     }
                 }
             } else {
-                // 回退模式
+                // Fallback mode
                 els.fallbackFile.click();
             }
         };
 
-        // 目录模式点击
+        // Directory mode click
         els.inputBtn.onclick = async () => {
             if ('showDirectoryPicker' in window) {
                 try {
@@ -336,13 +336,13 @@
                     }
                 }
             } else {
-                // 回退模式
+                // Fallback mode
                 els.fallbackDir.click();
             }
         };
 
         els.outputBtn.onclick = async () => {
-            // 输出目录必须使用 API (fallback 模式下不支持指定目录)
+            // Output directory requires API (Not supported in fallback mode)
             try {
                 const handle = await window.showDirectoryPicker();
                 state.outputHandle = handle;
@@ -351,36 +351,36 @@
                 showToast("Output folder set");
             } catch (err) {
                 if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
-                    // 权限被拒绝或被 iframe 策略阻止
-                    const msg = "⚠️ 系统提示：无法选择自定义文件夹\n\n" +
-                        "原因：当前运行环境（如 VS Code 预览窗口）因安全策略禁止了此功能。\n\n" +
-                        "👉 解决方法：请在 Chrome 或 Edge 浏览器中直接打开此 .html 文件，即可解除限制。\n\n" +
-                        "（当前文件将自动保存到您的默认【下载】文件夹）";
+                    // Permission denied or blocked by iframe policy
+                    const msg = "⚠️ System Notification: Cannot select custom folder\n\n" +
+                        "Reason: The current environment (e.g., VS Code preview) blocks this feature due to security policies.\n\n" +
+                        "👉 Solution: Open this .html file directly in Chrome or Edge to remove the restriction.\n\n" +
+                        "(Current files will be automatically saved to your default 'Downloads' folder)";
                     alert(msg);
 
-                    // 隐藏按钮以避免再次报错
+                    // Hide button to avoid further errors
                     els.outputBtn.style.display = 'none';
-                    els.outputInfo.textContent = '保存位置：浏览器默认 Downloads (环境限制)';
-                    state.outputHandle = null; // 确保清除
+                    els.outputInfo.textContent = 'Save location: Browser Downloads (Env restricted)';
+                    state.outputHandle = null; // Ensure cleared
                 } else if (err.name !== 'AbortError') {
                     console.error(err);
                 }
             }
         };
 
-        // 监听回退输入框变化
+        // Listen for fallback input changes
         els.fallbackFile.onchange = (e) => {
             const file = e.target.files[0];
             if (file) loadSingleFile(file);
-            e.target.value = ''; // 重置以便重复选择
+            e.target.value = ''; // Reset for re-selection
         };
 
         els.fallbackDir.onchange = (e) => {
             if (e.target.files && e.target.files.length > 0) {
-                // 将 FileList 转为数组存储
+                // Store FileList as array
                 state.inputHandle = Array.from(e.target.files);
                 setupBatchModeUI();
-                loadFileList(); // 加载列表
+                loadFileList(); // Load list
             }
             e.target.value = '';
         };
@@ -388,52 +388,52 @@
         function setupBatchModeUI() {
             state.isSingleFileMode = false;
 
-            // 检查是否支持 DirectoryPicker 以决定是否显示选择输出目录按钮
+            // Check DirectoryPicker support to toggle output btn visibility
             const supportDirPicker = 'showDirectoryPicker' in window;
 
             if (supportDirPicker) {
                 els.outputBtn.style.display = 'block';
                 if (state.outputHandle) {
-                    els.outputInfo.textContent = `输出目录: ${state.outputHandle.name}`;
+                    els.outputInfo.textContent = `Output: ${state.outputHandle.name}`;
                 } else {
-                    els.outputInfo.textContent = '默认保存位置：Downloads (可点击上方按钮修改)';
+                    els.outputInfo.textContent = 'Default: Downloads (Click button above to change)';
                 }
             } else {
                 els.outputBtn.style.display = 'none';
-                els.outputInfo.textContent = '保存位置：浏览器默认 Downloads (系统限制无法修改)';
+                els.outputInfo.textContent = 'Save location: Browser Downloads (System restricted)';
             }
 
             els.downloadBtn.style.display = 'none';
-            els.saveBtn.textContent = '保存并下一张 (S)';
+            els.saveBtn.textContent = 'Save & Next (S)';
         }
 
-        // 加载单个文件 (支持 Handle 或 File)
+        // Load single file (Supports Handle or File)
         async function loadSingleFile(fileOrHandle) {
             state.isSingleFileMode = true;
             state.files = [{
                 name: fileOrHandle.name,
-                handle: fileOrHandle // 可能是 File 对象或 FileSystemFileHandle
+                handle: fileOrHandle // May be File object or FileSystemFileHandle
             }];
             state.currentIndex = 0;
             state.currentFileName = fileOrHandle.name;
             updateFilenameDisplay();
 
-            // 更新 UI
+            // Update UI
             els.downloadBtn.style.display = 'block';
-            els.saveBtn.textContent = '保存 (S)';
-            els.outputInfo.textContent = '单文件模式：保存到 Downloads';
+            els.saveBtn.textContent = 'Save (S)';
+            els.outputInfo.textContent = 'Single File Mode: Save to Downloads';
 
             els.fileList.innerHTML = '';
             const li = document.createElement('li');
             li.textContent = fileOrHandle.name;
             li.classList.add('active');
             els.fileList.appendChild(li);
-            els.fileCount.textContent = '单文件模式';
+            els.fileCount.textContent = 'Single File Mode';
 
-            // 读取
+            // Read
             await loadFileContent(fileOrHandle);
 
-            // 重置选框
+            // Reset selection
             if (!els.persistChk.checked) {
                 resetWatermark();
             }
@@ -442,7 +442,7 @@
             render();
         }
 
-        // 统一读取文件内容
+        // Unified file content loading
         async function loadFileContent(fileOrHandle) {
             let file;
             if (fileOrHandle.getFile) {
@@ -468,23 +468,23 @@
             const isApiMode = state.inputHandle && !Array.isArray(state.inputHandle);
 
             if (isApiMode) {
-                // API 模式: 遍历 DirectoryHandle
+                // API Mode: Iterate DirectoryHandle
                 for await (const entry of state.inputHandle.values()) {
                     if (entry.kind === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(entry.name)) {
                         state.files.push({ name: entry.name, handle: entry });
                     }
                 }
             } else {
-                // 回退模式: state.inputHandle 是 File 数组
+                // Fallback Mode: state.inputHandle is File array
                 state.files = state.inputHandle
                     .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f.name))
                     .map(f => ({ name: f.name, handle: f }));
             }
 
-            // 排序
+            // Sort
             state.files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
-            // 渲染列表
+            // Render list
             state.files.forEach((f, i) => {
                 const li = document.createElement('li');
                 li.textContent = f.name;
@@ -493,14 +493,14 @@
                 els.fileList.appendChild(li);
             });
 
-            els.fileCount.textContent = `${state.files.length} 张图片`;
+            els.fileCount.textContent = `${state.files.length} images`;
             if (state.files.length > 0) loadFile(0);
         }
 
         async function loadFile(index) {
             if (index < 0 || index >= state.files.length) return;
 
-            // UI 更新
+            // UI Update
             const items = els.fileList.children;
             if (state.currentIndex >= 0 && items[state.currentIndex]) {
                 const prev = items[state.currentIndex];
@@ -516,16 +516,16 @@
             state.currentFileName = state.files[index].name;
             updateFilenameDisplay();
 
-            // 读取文件
+            // Read file
             await loadFileContent(state.files[index].handle);
 
-            // 遮罩处理
+            // Mask handling
             if (!els.persistChk.checked) {
                 resetWatermark();
             }
             updateWatermarkStatus();
 
-            // 初始化裁剪框
+            // Initialize crop rect
             initCropRect();
 
             render();
@@ -536,8 +536,8 @@
             const imgW = state.currentImage.width;
             const imgH = state.currentImage.height;
 
-            // 目标是 16:9
-            // 如果是裁剪模式，初始化一个最大的 16:9 框
+            // Target 16:9
+            // If crop mode, init max 16:9 rect
             let targetW = imgW;
             let targetH = targetW * (9 / 16);
             if (targetH > imgH) {
@@ -553,9 +553,9 @@
             };
         }
 
-        // === 2. 渲染逻辑 ===
+        // === 2. Render Logic ===
 
-        // 监听模式切换
+        // Listen for mode change
         els.radioModes.forEach(r => r.addEventListener('change', (e) => {
             state.mode = e.target.value;
             render();
@@ -564,13 +564,13 @@
         function render() {
             if (!state.currentImage) return;
 
-            // 1. 设置画布尺寸
-            // 这里的逻辑是：MainCanvas 始终作为"最终输出预览"
-            // Pad 模式下：MainCanvas 是 16:9 的扩充图
-            // Crop 模式下：MainCanvas 显示原图，用 InteractionLayer 显示裁剪框
-            // 为了简化统一，我们在 MainCanvas 上总是绘制"所见即所得"的结果不太容易，
-            // 策略：MainCanvas 绘制底图（原图），我们在保存时再做真正的裁切/填充。
-            // 只有这样，去水印的笔刷坐标才能统一对应到原图上。
+            // 1. Set canvas dimensions
+            // Logic: MainCanvas is always "Final Preview"
+            // Pad Mode: MainCanvas is expanded 16:9
+            // Crop Mode: MainCanvas shows original, InteractionLayer shows crop rect
+            // To simplify, we rely on MainCanvas showing the original base image,
+            // and we do the actual crop/pad only when saving.
+            // This ensures inpainting coordinates match the original image.
 
             const img = state.currentImage;
             els.mainCanvas.width = img.width;
@@ -578,25 +578,25 @@
             els.layerCanvas.width = img.width;
             els.layerCanvas.height = img.height;
 
-            // 绘制原图
+            // Draw original image
             els.ctxMain.drawImage(img, 0, 0);
 
-            // 2. 应用去水印 (简单的周围填充算法)
+            // 2. Apply inpainting (Simple surrounding fill algorithm)
             applyInpainting();
 
-            // 3. 绘制交互层 (裁剪框)
+            // 3. Draw interaction layer (Crop rect)
             drawOverlay();
         }
 
         function applyInpainting() {
-            // 菱形渐变填充：从菱形边缘采样，使用双线性插值渐变填充菱形区域
+            // Diamond gradient fill: Sample from diamond edges, use bilinear interpolation to fill
             if (!state.watermarkRect) return;
 
             const ctx = els.ctxMain;
             const imgW = els.mainCanvas.width;
             const imgH = els.mainCanvas.height;
 
-            // 还原水印框坐标（归一化 -> 像素）
+            // Restore watermark rect coords (Normalized -> Pixel)
             const rect = {
                 x: Math.floor(state.watermarkRect.x * imgW),
                 y: Math.floor(state.watermarkRect.y * imgH),
@@ -604,27 +604,27 @@
                 h: Math.floor(state.watermarkRect.h * imgH)
             };
 
-            // 边界检查
+            // Boundary check
             if (rect.w <= 0 || rect.h <= 0) return;
             if (rect.x < 0 || rect.y < 0 || rect.x + rect.w > imgW || rect.y + rect.h > imgH) return;
 
-            // 菱形中心和半径
+            // Diamond center and radius
             const cx = rect.x + rect.w / 2;
             const cy = rect.y + rect.h / 2;
-            const rx = rect.w / 2; // 水平半径
-            const ry = rect.h / 2; // 垂直半径
+            const rx = rect.w / 2; // Horizontal radius
+            const ry = rect.h / 2; // Vertical radius
 
-            // 采样边距（向外扩展采样）
+            // Sampling margin (Expand outward)
             const margin = 5;
 
-            // 判断点是否在菱形内
+            // Check if point inside diamond
             function isInsideDiamond(px, py) {
                 const dx = Math.abs(px - cx) / rx;
                 const dy = Math.abs(py - cy) / ry;
                 return (dx + dy) <= 1.0;
             }
 
-            // 从菱形四个顶点外侧采样颜色
+            // Sample color from outside diamond vertices
             function sampleDiamondVertexColor(vertex, offsetX, offsetY) {
                 const sx = Math.max(0, Math.min(imgW - 1, Math.floor(vertex.x + offsetX)));
                 const sy = Math.max(0, Math.min(imgH - 1, Math.floor(vertex.y + offsetY)));
@@ -632,48 +632,48 @@
                 return { r: pixel[0], g: pixel[1], b: pixel[2] };
             }
 
-            // 菱形四个顶点
+            // Diamond vertices
             const topVertex = { x: cx, y: rect.y };
             const bottomVertex = { x: cx, y: rect.y + rect.h };
             const leftVertex = { x: rect.x, y: cy };
             const rightVertex = { x: rect.x + rect.w, y: cy };
 
-            // 从顶点外侧采样颜色
+            // Sample colors from vertices
             const topColor = sampleDiamondVertexColor(topVertex, 0, -margin);
             const bottomColor = sampleDiamondVertexColor(bottomVertex, 0, margin);
             const leftColor = sampleDiamondVertexColor(leftVertex, -margin, 0);
             const rightColor = sampleDiamondVertexColor(rightVertex, margin, 0);
 
-            // 使用 ImageData 进行高效像素操作
+            // Use ImageData for efficient pixel manipulation
             const imageData = ctx.getImageData(rect.x, rect.y, rect.w, rect.h);
             const data = imageData.data;
 
-            // 渐变填充菱形区域
+            // Gradient fill diamond area
             for (let py = 0; py < rect.h; py++) {
                 for (let px = 0; px < rect.w; px++) {
                     const absX = rect.x + px;
                     const absY = rect.y + py;
 
-                    // 只填充菱形内部的像素
+                    // Fill only pixels inside diamond
                     if (!isInsideDiamond(absX, absY)) continue;
 
-                    // 计算相对于菱形中心的归一化位置
-                    const tx = rx > 0 ? (px - rx) / rx : 0; // -1 到 1
-                    const ty = ry > 0 ? (py - ry) / ry : 0; // -1 到 1
+                    // Calculate normalized position relative to center
+                    const tx = rx > 0 ? (px - rx) / rx : 0; // -1 to 1
+                    const ty = ry > 0 ? (py - ry) / ry : 0; // -1 to 1
 
-                    // 基于位置，计算四个顶点颜色的权重
-                    // 上/下权重
+                    // Calculate weights based on position
+                    // Top/Bottom weights
                     const topWeight = Math.max(0, -ty);
                     const bottomWeight = Math.max(0, ty);
-                    // 左/右权重
+                    // Left/Right weights
                     const leftWeight = Math.max(0, -tx);
                     const rightWeight = Math.max(0, tx);
 
-                    // 归一化权重
+                    // Normalize weights
                     let totalWeight = topWeight + bottomWeight + leftWeight + rightWeight;
                     if (totalWeight === 0) totalWeight = 1;
 
-                    // 加权混合颜色
+                    // Weighted color blending
                     const finalR = (topColor.r * topWeight + bottomColor.r * bottomWeight +
                         leftColor.r * leftWeight + rightColor.r * rightWeight) / totalWeight;
                     const finalG = (topColor.g * topWeight + bottomColor.g * bottomWeight +
@@ -681,7 +681,7 @@
                     const finalB = (topColor.b * topWeight + bottomColor.b * bottomWeight +
                         leftColor.b * leftWeight + rightColor.b * rightWeight) / totalWeight;
 
-                    // 添加微小噪点模拟自然纹理
+                    // Add subtle noise for natural texture
                     const noise = (Math.random() - 0.5) * 4;
 
                     const idx = (py * rect.w + px) * 4;
@@ -815,21 +815,21 @@
         // Main function: Apply Gemini watermark removal
         async function applyGeminiWatermarkRemoval() {
             if (!state.currentImage) {
-                showToast('请先加载图片');
+                showToast('Please load an image first');
                 return;
             }
 
             // Show status
             els.geminiWatermarkStatus.classList.remove('hidden');
-            els.geminiWatermarkStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 正在初始化...';
+            els.geminiWatermarkStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Initializing...';
 
             // Initialize if needed
             if (!await initGeminiWatermark()) {
-                els.geminiWatermarkStatus.innerHTML = '<span class="text-red-400">❌ 加载水印资源失败</span>';
+                els.geminiWatermarkStatus.innerHTML = '<span class="text-red-400">❌ Failed to load watermark resources</span>';
                 return;
             }
 
-            els.geminiWatermarkStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 正在处理...';
+            els.geminiWatermarkStatus.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
 
             // Get image dimensions from canvas
             const imgW = els.mainCanvas.width;
@@ -849,8 +849,8 @@
             ctx.putImageData(imageData, 0, 0);
 
             // Update status
-            els.geminiWatermarkStatus.innerHTML = `<span class="text-emerald-400">✓ 水印已移除</span> <span class="text-slate-500">(${config.logoSize}×${config.logoSize})</span>`;
-            showToast(`Gemini 水印已移除 (${config.logoSize}×${config.logoSize})`);
+            els.geminiWatermarkStatus.innerHTML = `<span class="text-emerald-400">✓ Watermark removed</span> <span class="text-slate-500">(${config.logoSize}×${config.logoSize})</span>`;
+            showToast(`Gemini Watermark removed (${config.logoSize}×${config.logoSize})`);
         }
 
         // Button event handler
@@ -860,21 +860,21 @@
             const ctx = els.ctxLayer;
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-            // 裁剪模式下绘制遮罩
+            // Draw mask in crop mode
             if (state.mode === 'crop') {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-                // 挖空选中区域
+                // Hollow out selected area
                 const { x, y, w, h } = state.cropRect;
                 ctx.clearRect(x, y, w, h);
 
-                // 绘制边框
+                // Draw border
                 ctx.strokeStyle = '#4a90e2';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x, y, w, h);
 
-                // 绘制三分线 (辅助构图)
+                // Draw rule of thirds (Composition aid)
                 ctx.beginPath();
                 ctx.moveTo(x + w / 3, y); ctx.lineTo(x + w / 3, y + h);
                 ctx.moveTo(x + 2 * w / 3, y); ctx.lineTo(x + 2 * w / 3, y + h);
@@ -883,39 +883,39 @@
                 ctx.strokeStyle = 'rgba(255,255,255,0.3)';
                 ctx.stroke();
             } else {
-                // Pad 模式下，提示最终范围（虽然是全图，但给个边框提示）
-                // Pad 模式其实不需要 overlay，除非我们想预览填充后的效果
-                // 简单起见，Pad 模式不显示特殊 Overlay，只显示笔刷
+                // In Pad mode...
+                // Pad mode doesn't strictly need overlay...
+                // For simplicity...
             }
 
-            // 绘制笔刷光标 (如果鼠标在画布上)
-            // (由 mousemove 处理)
+            // Draw brush cursor...
+            // (Handled by mousemove)
         }
 
 
-        // === 3. 交互逻辑 (单框去水印 + 裁剪) ===
+        // === 3. Interaction Logic ===
 
-        // 更新去水印状态提示
+        // Update watermark status indicator
         function updateWatermarkStatus() {
             if (!els.watermarkStatus) return;
             if (state.watermarkRect) {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-emerald-400 font-bold">✓ 菱形去水印已完成</span>';
+                els.watermarkStatus.innerHTML = 'Status: <span class="text-emerald-400 font-bold">✓ Diamond Mask Ready</span>';
             } else {
-                els.watermarkStatus.innerHTML = '当前状态：<span class="text-blue-400 font-bold">请绘制菱形</span>（框选水印区域）';
+                els.watermarkStatus.innerHTML = 'Status: <span class="text-blue-400 font-bold">Draw Diamond</span> (Select Watermark)';
             }
         }
 
-        // 清除选框
+        // Clear selection
         els.clearMaskBtn.onclick = () => {
             state.watermarkRect = null;
             updateWatermarkStatus();
             render();
         };
 
-        // 鼠标事件
+        // Mouse events
         let isDraggingCrop = false;
         let lastMouse = { x: 0, y: 0 };
-        let tempRect = null; // 临时绘制的选框
+        let tempRect = null; // Temp selection rect
 
         els.layerCanvas.addEventListener('mousedown', (e) => {
             const rect = els.layerCanvas.getBoundingClientRect();
@@ -925,14 +925,14 @@
             const my = (e.clientY - rect.top) * scaleY;
 
             if (state.mode === 'crop') {
-                // 裁剪模式：拖动选框
+                // Crop mode: Drag selection
                 if (mx >= state.cropRect.x && mx <= state.cropRect.x + state.cropRect.w &&
                     my >= state.cropRect.y && my <= state.cropRect.y + state.cropRect.h) {
                     isDraggingCrop = true;
                     lastMouse = { x: mx, y: my };
                 }
             } else {
-                // Pad 模式：单框去水印
+                // Pad mode: Single mask watermark
                 state.isDrawingRect = true;
                 state.rectStart = { x: mx, y: my };
                 tempRect = { x: mx, y: my, w: 0, h: 0 };
@@ -946,7 +946,7 @@
             const mx = (e.clientX - rect.left) * scaleX;
             const my = (e.clientY - rect.top) * scaleY;
 
-            // 重绘交互层
+            // Redraw interaction layer
             drawOverlay();
             const ctx = els.ctxLayer;
 
@@ -956,7 +956,7 @@
                 state.cropRect.x += dx;
                 state.cropRect.y += dy;
 
-                // 限制边界
+                // Limit boundaries
                 const cw = els.layerCanvas.width;
                 const ch = els.layerCanvas.height;
                 if (state.cropRect.x < 0) state.cropRect.x = 0;
@@ -966,7 +966,7 @@
                 lastMouse = { x: mx, y: my };
                 drawOverlay();
             } else if (state.isDrawingRect && state.mode === 'pad') {
-                // 绘制临时选框预览
+                // Draw temporary rect preview
                 tempRect = {
                     x: Math.min(state.rectStart.x, mx),
                     y: Math.min(state.rectStart.y, my),
@@ -974,7 +974,7 @@
                     h: Math.abs(my - state.rectStart.y)
                 };
 
-                // 绘制临时菱形选框
+                // Draw temporary diamond rect
                 ctx.strokeStyle = '#10b981'; // emerald color
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
@@ -982,7 +982,7 @@
                 ctx.setLineDash([]);
             }
 
-            // 绘制已有的选框
+            // Draw existing selection
             drawWatermarkRects(ctx);
         });
 
@@ -990,7 +990,7 @@
             if (state.isDrawingRect && tempRect && tempRect.w > 5 && tempRect.h > 5) {
                 const img = state.currentImage;
                 if (img) {
-                    // 归一化存储 - 单框模式
+                    // Normalize storage - Single mask mode
                     state.watermarkRect = {
                         x: tempRect.x / img.width,
                         y: tempRect.y / img.height,
@@ -1007,25 +1007,25 @@
             if (state.currentImage) render();
         });
 
-        // 绘制菱形辅助函数
+        // Helper to clean diamond
         function drawDiamond(ctx, x, y, w, h) {
             const cx = x + w / 2;
             const cy = y + h / 2;
             ctx.beginPath();
-            ctx.moveTo(cx, y);           // 上顶点
-            ctx.lineTo(x + w, cy);       // 右顶点
-            ctx.lineTo(cx, y + h);       // 下顶点
-            ctx.lineTo(x, cy);           // 左顶点
+            ctx.moveTo(cx, y);           // Top vertex
+            ctx.lineTo(x + w, cy);       // Right vertex
+            ctx.lineTo(cx, y + h);       // Bottom vertex
+            ctx.lineTo(x, cy);           // Left vertex
             ctx.closePath();
             ctx.stroke();
         }
 
-        // 绘制已存在的去水印菱形选框 (单框模式)
+        // Draw existing diamond mask
         function drawWatermarkRects(ctx) {
             const img = state.currentImage;
             if (!img || !state.watermarkRect) return;
 
-            // 绘制水印菱形框（绿色）
+            // Draw watermark diamond (green)
             const rect = {
                 x: state.watermarkRect.x * img.width,
                 y: state.watermarkRect.y * img.height,
@@ -1036,21 +1036,21 @@
             ctx.lineWidth = 2;
             drawDiamond(ctx, rect.x, rect.y, rect.w, rect.h);
 
-            // 标注 - 放在菱形中心上方
+            // Label - above diamond center
             ctx.fillStyle = '#10b981';
             ctx.font = '14px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('Watermark Area', rect.x + rect.w / 2, rect.y + rect.h / 2 - 5);
-            ctx.textAlign = 'left'; // 重置
+            ctx.textAlign = 'left'; // Reset
         }
 
 
-        // === 4. 保存逻辑 ===
+        // === 4. Save Logic ===
 
         els.saveBtn.onclick = processAndSave;
         els.downloadBtn.onclick = downloadToLocal;
 
-        // 生成处理后的图像（共用逻辑）
+        // Generate processed image (Shared logic)
         function generateProcessedImage() {
             if (!state.currentImage) return null;
 
@@ -1092,7 +1092,7 @@
             return offCanvas;
         }
 
-        // 下载到本地（单文件模式）
+        // Download to local (Single file mode)
         async function downloadToLocal() {
             const offCanvas = generateProcessedImage();
             if (!offCanvas) return;
@@ -1100,11 +1100,11 @@
             try {
                 const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
 
-                // 根据格式修改扩展名
+                // Update extension based on format
                 const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
                 const filename = state.currentFileName.replace(/\.[^.]+$/, `_processed${ext}`);
 
-                // 创建下载链接
+                // Create download link
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -1121,7 +1121,7 @@
             }
         }
 
-        // 检测输出目录中的重复文件
+        // Check for duplicates in output dir
         async function scanOutputDirectory() {
             if (!state.outputHandle) return new Set();
 
@@ -1129,7 +1129,7 @@
             try {
                 for await (const entry of state.outputHandle.values()) {
                     if (entry.kind === 'file') {
-                        // 存储不带扩展名的文件名，以便匹配不同格式
+                        // Store basename...
                         const baseName = entry.name.replace(/\.[^.]+$/, '');
                         existingFiles.add(baseName);
                     }
@@ -1140,7 +1140,7 @@
             return existingFiles;
         }
 
-        // 更新文件列表显示（标记已处理的文件）
+        // Update file list display...
         async function updateFileListWithDuplicates() {
             const existingFiles = await scanOutputDirectory();
             state.processedFiles = existingFiles;
@@ -1150,7 +1150,7 @@
                 const baseName = state.files[i].name.replace(/\.[^.]+$/, '');
                 const li = items[i];
                 if (li && existingFiles.has(baseName)) {
-                    // 标记为已处理
+                    // Mark as processed
                     if (!li.querySelector('.duplicate-mark')) {
                         const mark = document.createElement('span');
                         mark.className = 'duplicate-mark text-emerald-400 ml-1';
@@ -1164,9 +1164,9 @@
             return existingFiles;
         }
 
-        // 保存到输出目录（批量模式）
+        // Save to output dir (Batch mode)
         async function processAndSave() {
-            // 单文件模式直接下载
+            // Single file mode downloads directly
             if (state.isSingleFileMode) {
                 await downloadToLocal();
                 return;
@@ -1174,10 +1174,10 @@
 
             if (!state.currentImage) return;
 
-            // 如果没有输出目录Handle，则使用下载模式
+            // Use download mode if no output handle
             if (!state.outputHandle) {
                 await downloadToLocal();
-                // 批量模式下自动切到下一张
+                // Auto switch to next in batch mode
                 if (!state.isSingleFileMode) {
                     if (state.currentIndex < state.files.length - 1) {
                         loadFile(state.currentIndex + 1);
@@ -1188,7 +1188,7 @@
                 return;
             }
 
-            // 这里不需要再强行拦截 outputHandle，因为已经允许为空了
+            // No need to block outputHandle...
 
             const offCanvas = generateProcessedImage();
             if (!offCanvas) return;
@@ -1196,9 +1196,9 @@
             try {
                 const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
 
-                // 根据格式修改扩展名
+                // Update extension based on format
                 const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
-                // 批量保存通常保持原文件名，但可能需要改后缀
+                // Batch save keeps filename...
                 let filename = state.files[state.currentIndex].name;
                 if (!filename.endsWith(ext)) {
                     filename = filename.replace(/\.[^.]+$/, ext);
@@ -1222,7 +1222,7 @@
             }
         }
 
-        // === 辅助 ===
+        // === Helpers ===
 
         function showToast(msg) {
             // Update to use flex/hidden instead of display block
@@ -1239,20 +1239,20 @@
             if (e.key.toLowerCase() === 'o') saveOriginal();
             if (e.key.toLowerCase() === 'g') applyGeminiWatermarkRemoval();
             if (e.key.toLowerCase() === 'c') {
-                // 快捷键清除选框
+                // Shortcut to clear selection
                 state.watermarkRect = null;
                 updateWatermarkStatus();
                 render();
             }
         });
 
-        // 保存原图（跳过处理）
+        // Save original (Skip processing)
         els.saveOriginalBtn.onclick = saveOriginal;
 
         async function saveOriginal() {
             if (!state.currentImage) return;
 
-            // 创建一个临时画布绘制原图（不应用去水印）
+            // Create temp canvas...
             const img = state.currentImage;
             const offCanvas = document.createElement('canvas');
             const offCtx = offCanvas.getContext('2d');
@@ -1270,7 +1270,7 @@
                 offCanvas.width = finalW;
                 offCanvas.height = finalH;
 
-                // 从原图左上角采样背景色
+                // Sample background color from top-left
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = img.width;
                 tempCanvas.height = img.height;
@@ -1299,7 +1299,7 @@
                 );
             }
 
-            // 保存
+            // Save
             try {
                 const blob = await new Promise(r => offCanvas.toBlob(r, state.outputFormat, state.outputQuality));
                 const ext = state.outputFormat === 'image/png' ? '.png' : '.jpg';
@@ -1312,7 +1312,7 @@
                     await writable.close();
                     showToast(`Saved Original: ${filename}`);
                 } else {
-                    // 下载模式
+                    // Download mode
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -1324,7 +1324,7 @@
                     showToast(`Downloaded Original: ${filename}`);
                 }
 
-                // 切换到下一张
+                // Switch to next image
                 if (!state.isSingleFileMode && state.currentIndex < state.files.length - 1) {
                     loadFile(state.currentIndex + 1);
                 } else if (!state.isSingleFileMode) {
@@ -1336,13 +1336,13 @@
             }
         }
 
-        // 更新文件名显示
+        // Update filename display
         function updateFilenameDisplay() {
             const el = document.getElementById('current-filename');
             if (el && state.currentFileName) {
                 el.textContent = state.currentFileName;
             } else if (el) {
-                el.textContent = '未选择文件';
+                el.textContent = 'No file selected';
             }
         }
 

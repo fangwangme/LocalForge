@@ -11,6 +11,7 @@ class DbClient {
         this.isWriter = false;       // Am I the designated file writer?
         this.hasWriter = false;      // Does any client have writer role?
         this.clientId = null;
+        this.rootHandle = null;
         this.connect();
     }
 
@@ -214,6 +215,9 @@ class DbClient {
                 if (!db.objectStoreNames.contains('snapshots')) {
                     db.createObjectStore('snapshots');
                 }
+                if (!db.objectStoreNames.contains('config')) {
+                    db.createObjectStore('config');
+                }
             };
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => reject(event.target.error);
@@ -223,16 +227,21 @@ class DbClient {
     async saveSnapshotToIDB(data, handle = null, filename = null) {
         try {
             const idb = await this.openIndexedDB();
-            const tx = idb.transaction('snapshots', 'readwrite');
+            const tx = idb.transaction(['snapshots', 'config'], 'readwrite');
             const store = tx.objectStore('snapshots');
-            // We only store one main DB snapshot for now
+            const configStore = tx.objectStore('config');
             const key = 'main_db';
+
+            // If we have a rootHandle, ensure it's saved to config
+            if (this.rootHandle) {
+                configStore.put(this.rootHandle, 'directory_handle');
+            }
 
             // Get existing to preserve handle if not provided
             let existing = {};
             try {
                 const getReq = store.get(key);
-                existing = await new Promise((res, rej) => {
+                existing = await new Promise((res) => {
                     getReq.onsuccess = () => res(getReq.result || {});
                     getReq.onerror = () => res({});
                 });
@@ -283,6 +292,78 @@ class DbClient {
             console.error('[DbClient] Permission check failed:', err);
             return false;
         }
+    }
+
+    async getDirectoryHandle() {
+        if (this.rootHandle) return this.rootHandle;
+        try {
+            const idb = await this.openIndexedDB();
+            const tx = idb.transaction('config', 'readonly');
+            const store = tx.objectStore('config');
+            const request = store.get('directory_handle');
+            const handle = await new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            if (handle) {
+                this.rootHandle = handle;
+                return handle;
+            }
+        } catch (e) {
+            console.warn('[DbClient] Failed to load DirectoryHandle from IDB');
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the database file handle within the authorized directory.
+     * Enforces that the file must be in the 'data' subdirectory.
+     */
+    async getDatabaseFileHandle(create = false) {
+        const root = await this.getDirectoryHandle();
+        if (!root) return null;
+
+        try {
+            // Check for 'data' directory
+            let dataDir;
+            try {
+                dataDir = await root.getDirectoryHandle('data', { create });
+            } catch (e) {
+                // Root might actually BE the data directory if the user picked it directly
+                // But for LocalForge project structure, data is a subfolder.
+                // We'll try to find 'data' first.
+                if (root.name === 'data') {
+                    dataDir = root;
+                } else {
+                    throw e;
+                }
+            }
+
+            return await dataDir.getFileHandle('html_tools_db.sqlite', { create });
+        } catch (err) {
+            console.error('[DbClient] Failed to resolve database file in data/ directory:', err);
+            return null;
+        }
+    }
+
+    async saveDirectoryHandle(handle) {
+        this.rootHandle = handle;
+        const idb = await this.openIndexedDB();
+        const tx = idb.transaction('config', 'readwrite');
+        tx.objectStore('config').put(handle, 'directory_handle');
+        return new Promise(r => tx.oncomplete = r);
+    }
+
+    async getFileHandleForSync() {
+        // 1. Try to get handle from Workspace Authorization first
+        let handle = await this.getDatabaseFileHandle();
+
+        // 2. Fallback to IDB snapshot (Legacy single-file mode)
+        if (!handle) {
+            const snapshot = await this.loadSnapshotFromIDB();
+            handle = snapshot?.handle;
+        }
+        return handle;
     }
 }
 

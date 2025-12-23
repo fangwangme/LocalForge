@@ -200,7 +200,39 @@ class SettingsManager {
     }
 
     static initDatabaseFunctions() {
+        window.authorizeWorkspace = async () => {
+            if (typeof window.showDirectoryPicker !== 'function') {
+                alert('Your browser does not support the Directory Selection API. Please use Chrome/Edge.');
+                return;
+            }
+
+            try {
+                const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                await db.saveDirectoryHandle(handle);
+
+                this.updateDbStatus('Workspace Authorized', 'amber');
+
+                // Attempt to load database from within data/
+                const fileHandle = await db.getDatabaseFileHandle(true); // create if not exists
+                if (fileHandle) {
+                    const file = await fileHandle.getFile();
+                    const buf = await file.arrayBuffer();
+                    await db.init(buf);
+                    this.updateDbStatus(`Connected: ${file.name}`, 'emerald');
+                    // IDB Snapshots
+                    await db.saveSnapshotToIDB(new Uint8Array(buf), fileHandle, file.name);
+                    setTimeout(window.closeSettings, 1000);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    alert('Authorization failed: ' + err.message);
+                }
+            }
+        };
+
         window.openDatabase = async () => {
+            // Deprecated in favor of authorizeWorkspace, but keeping for standalone file selection if needed
             if (typeof window.showOpenFilePicker === 'function') {
                 try {
                     const [handle] = await window.showOpenFilePicker({
@@ -243,12 +275,19 @@ class SettingsManager {
         window.saveDatabaseToDisk = async (event) => {
             try {
                 const data = await db.export();
-                const snapshot = await db.loadSnapshotFromIDB();
-                const handle = snapshot?.handle;
+
+                // 1. Try to get handle from Workspace first
+                let handle = await db.getDatabaseFileHandle();
+
+                // 2. Fallback to IDB snapshot handle
+                if (!handle) {
+                    const snapshot = await db.loadSnapshotFromIDB();
+                    handle = snapshot?.handle;
+                }
 
                 if (handle) {
                     if (!(await db.ensureFilePermission(handle, 'readwrite'))) {
-                        alert('请授予文件写入权限以保存更改。');
+                        alert('Please grant file write permission to save changes.');
                         return;
                     }
 
@@ -256,7 +295,7 @@ class SettingsManager {
                     await writable.write(data);
                     await writable.close();
 
-                    this.updateDbStatus(`已保存到: ${handle.name}`, 'emerald');
+                    this.updateDbStatus(`Saved to: ${handle.name}`, 'emerald');
                     await db.saveSnapshotToIDB(data, handle, handle.name);
                 } else {
                     // Prompt user to pick file location
@@ -268,7 +307,7 @@ class SettingsManager {
                     await writable.write(data);
                     await writable.close();
                     await db.saveSnapshotToIDB(data, newHandle, newHandle.name);
-                    this.updateDbStatus(`已保存: ${newHandle.name}`, 'emerald');
+                    this.updateDbStatus(`Saved: ${newHandle.name}`, 'emerald');
                 }
 
                 if (event && event.currentTarget) {
@@ -281,12 +320,12 @@ class SettingsManager {
                 }
             } catch (err) {
                 console.error('Save failed:', err);
-                alert('保存失败: ' + err.message);
+                alert('Save failed: ' + err.message);
             }
         };
 
         window.clearCacheAndReload = () => {
-            if (confirm('这将会清除已保存的文件句柄并重新加载页面。您的实际数据库文件是安全的。是否继续？')) {
+            if (confirm('This will clear the saved file handle and reload the page. Your actual database file is safe. Continue?')) {
                 indexedDB.deleteDatabase('LocalForgeDB');
                 setTimeout(() => window.location.reload(), 500);
             }
@@ -375,13 +414,14 @@ class SettingsManager {
                         </div>
                         <div class="space-y-3">
                             <div class="flex gap-2">
-                                <button onclick="window.openDatabase && window.openDatabase()" class="flex-[3] flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-600/20">
-                                    <i class="fas fa-folder-open"></i> Select Database
+                                <button onclick="window.authorizeWorkspace && window.authorizeWorkspace()" class="flex-[3] flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-600/20">
+                                    <i class="fas fa-key"></i> Authorize Project Folder
                                 </button>
-                                <button onclick="window.saveDatabaseToDisk && window.saveDatabaseToDisk(event)" class="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Save to disk">
-                                    <i class="fas fa-save"></i> Save
+                                <button onclick="window.saveDatabaseToDisk && window.saveDatabaseToDisk(event)" class="flex-[1] flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Save to disk">
+                                    <i class="fas fa-save"></i>
                                 </button>
                             </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Note: This will manage the database inside <code>data/</code> subdirectory.</p>
                             <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-sync text-slate-400 text-xs"></i>

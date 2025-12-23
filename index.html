@@ -154,73 +154,85 @@
 
 
 
-        <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
-            Note: Recommended filename is <code>html_tools_db.sqlite</code>.<br>
-            <script type="module">
-                import { db } from './js/db-client.js';
+        <script type="module">
+            import { db } from './js/db-client.js';
 
-                // === State ===
-                let dbHandle = null; // FileSystemFileHandle
-                let isAutoSave = true; // Always auto-save to disk
+            // === State ===
+            let dbHandle = null; // FileSystemFileHandle
+            let isAutoSave = true; // Always auto-save to disk
 
-                // === Helper Functions (Exposed to Window) ===
-                window.showDashboard = () => {
-                    // Just focus, maybe nothing else needed as we are single page now
-                    // Or maybe reset scroll?
-                };
+            // === Helper Functions (Exposed to Window) ===
+            window.showDashboard = () => {
+                // Just focus, maybe nothing else needed as we are single page now
+                // Or maybe reset scroll?
+            };
 
-                window.showDashboard = () => {
-                    // Just focus, maybe nothing else needed as we are single page now
-                    // Or maybe reset scroll?
-                };
+            window.showDashboard = () => {
+                // Just focus, maybe nothing else needed as we are single page now
+                // Or maybe reset scroll?
+            };
 
-                function updateDbStatus(text, color) {
-                    if (window.SettingsManager && window.SettingsManager.updateDbStatus) {
-                        window.SettingsManager.updateDbStatus(text, color);
-                    } else if (document.getElementById('modal-db-status-text')) {
-                        // Fallback if class not exposed
-                        const statusText = document.getElementById('modal-db-status-text');
-                        const statusDot = document.querySelector('#modal-db-status div');
-                        const statusContainer = document.getElementById('modal-db-status');
-                        if (statusText) {
-                            statusText.innerText = text;
-                            statusContainer.className = `flex items-center gap-2 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
-                            statusDot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
-                        }
+            function updateDbStatus(text, color) {
+                if (window.SettingsManager && window.SettingsManager.updateDbStatus) {
+                    window.SettingsManager.updateDbStatus(text, color);
+                } else if (document.getElementById('modal-db-status-text')) {
+                    // Fallback if class not exposed
+                    const statusText = document.getElementById('modal-db-status-text');
+                    const statusDot = document.querySelector('#modal-db-status div');
+                    const statusContainer = document.getElementById('modal-db-status');
+                    if (statusText) {
+                        statusText.innerText = text;
+                        statusContainer.className = `flex items-center gap-2 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
+                        statusDot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
                     }
                 }
+            }
 
-                // === Database Logic Using db-client ===
+            // === Database Logic Using db-client ===
 
-                // Listen for DB events
-                db.on('ready', () => {
-                    console.log('[Host] db.on(ready) fired');
-                    updateDbStatus('Engine Ready', 'amber');
-                    // Try load from IDB
-                    db.loadSnapshotFromIDB().then(snapshot => {
-                        if (snapshot && snapshot.data) {
-                            if (snapshot.handle) dbHandle = snapshot.handle;
-                            db.init(snapshot.data).then(() => {
-                                console.log('[Host] Database loaded from IDB snapshot');
-                                // Prefer dbHandle.name over snapshot.filename
-                                const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : 'Cached Data');
-                                updateDbStatus(`Restored: ${displayName}`, 'emerald');
-                            });
-                        } else {
-                            db.init().then(() => {
-                                console.log('[Host] No snapshot found, created empty database');
-                                updateDbStatus('New DB (In Memory)', 'amber');
-                            });
-                        }
-                    });
-                });
+            // Listen for DB events
+            db.on('ready', async () => {
+                console.log('[Host] db.on(ready) fired');
+                updateDbStatus('Engine Ready', 'amber');
 
-                db.on('db_opened', async () => {
-                    console.log('[Host] Database opened/connected');
+                try {
+                    // 1. Try to load from Authorized Workspace Workspace
+                    const fileHandle = await db.getDatabaseFileHandle();
+                    if (fileHandle && (await db.ensureFilePermission(fileHandle))) {
+                        const file = await fileHandle.getFile();
+                        const buf = await file.arrayBuffer();
+                        await db.init(buf);
+                        dbHandle = fileHandle;
+                        console.log('[Host] Database loaded from Workspace Workspace:', file.name);
+                        updateDbStatus(`Workspace: ${file.name}`, 'emerald');
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[Host] Workspace load failed, falling back to IDB snapshot', e);
+                }
 
-                    // Create system-level tables
-                    try {
-                        await db.execute(`
+                // 2. Fallback: Try load from IDB Snapshot
+                const snapshot = await db.loadSnapshotFromIDB();
+                if (snapshot && snapshot.data) {
+                    if (snapshot.handle) dbHandle = snapshot.handle;
+                    await db.init(snapshot.data);
+                    console.log('[Host] Database restored from IDB snapshot');
+                    const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : 'Cached Data');
+                    updateDbStatus(`Restored: ${displayName}`, 'emerald');
+                } else {
+                    // 3. New empty database
+                    await db.init();
+                    console.log('[Host] No data found, created fresh DB');
+                    updateDbStatus('New DB (In Memory)', 'amber');
+                }
+            });
+
+            db.on('db_opened', async () => {
+                console.log('[Host] Database opened/connected');
+
+                // Create system-level tables
+                try {
+                    await db.execute(`
                                         CREATE TABLE IF NOT EXISTS app_config (
                                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                                             tool_name TEXT NOT NULL,
@@ -230,63 +242,66 @@
                                             UNIQUE(tool_name, config_key)
                                         )
                                     `);
-                        console.log('[Host] System tables initialized');
-                    } catch (err) {
-                        console.error('[Host] Failed to create system tables:', err);
+                    console.log('[Host] System tables initialized');
+                } catch (err) {
+                    console.error('[Host] Failed to create system tables:', err);
+                }
+
+                // index.html should be the primary writer
+                db.claimWriter();
+            });
+
+            // Handle database updates - ALL pages save to IDB immediately
+            db.on('db_updated', async () => {
+                console.log('[Host] DB Updated, saving to IDB...');
+                try {
+                    const data = await db.export();
+                    await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
+                    console.log('[Host] Saved to IDB');
+                } catch (err) {
+                    console.error('[Host] IDB Save Error:', err);
+                }
+            });
+
+            // Handle periodic file sync (only when this page is the writer)
+            db.on('sync_to_file', async () => {
+                console.log('[Host] Syncing to file...');
+
+                try {
+                    const handle = await db.getFileHandleForSync();
+                    if (!handle) return;
+
+                    const data = await db.export();
+                    const hasPerm = await db.ensureFilePermission(handle, 'readwrite');
+
+                    if (!hasPerm) {
+                        console.warn('[Host] File permission denied');
+                        return;
                     }
 
-                    // index.html should be the primary writer
-                    db.claimWriter();
-                });
+                    const writable = await handle.createWritable();
+                    await writable.write(data);
+                    await writable.close();
+                    console.log('[Host] ✅ Synced to file:', handle.name);
+                    updateDbStatus(`Synced: ${handle.name}`, 'emerald');
 
-                // Handle database updates - ALL pages save to IDB immediately
-                db.on('db_updated', async () => {
-                    console.log('[Host] DB Updated, saving to IDB...');
-                    try {
-                        const data = await db.export();
-                        await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
-                        console.log('[Host] Saved to IDB');
-                    } catch (err) {
-                        console.error('[Host] IDB Save Error:', err);
-                    }
-                });
+                } catch (err) {
+                    console.error('[Host] Sync fail:', err);
+                }
+            });
 
-                // Handle periodic file sync (only when this page is the writer)
-                db.on('sync_to_file', async () => {
-                    console.log('[Host] Syncing to file...');
-                    if (!dbHandle) return;
-
-                    try {
-                        const data = await db.export();
-                        const hasPerm = await db.ensureFilePermission(dbHandle, 'readwrite');
-
-                        if (!hasPerm) {
-                            console.warn('[Host] File permission denied');
-                            return;
-                        }
-
-                        const writable = await dbHandle.createWritable();
-                        await writable.write(data);
-                        await writable.close();
-                        console.log('[Host] ✅ Synced to file:', dbHandle.name);
-                        updateDbStatus(`Synced: ${dbHandle.name}`, 'emerald');
-                    } catch (err) {
-                        console.error('[Host] File sync error:', err);
-                    }
-                });
-
-                // Listen for writer status changes
-                db.on('writer_changed', (data) => {
-                    console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
-                    if (data?.isWriter) {
-                        // Start periodic file sync (every 10 seconds)
-                        db.startPeriodicSync(10000);
-                    }
-                });
+            // Listen for writer status changes
+            db.on('writer_changed', (data) => {
+                console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
+                if (data?.isWriter) {
+                    // Start periodic file sync (every 10 seconds)
+                    db.startPeriodicSync(10000);
+                }
+            });
 
 
-                // Database interactions are now handled by SettingsManager in components.js
-            </script>
+            // Database interactions are now handled by SettingsManager in components.js
+        </script>
 </body>
 
 </html>

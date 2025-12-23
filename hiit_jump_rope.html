@@ -60,7 +60,7 @@
             animation: pulse-text 1.5s infinite;
         }
 
-        /* 当前活动段 - 绿色发光 */
+        /* Active Segment - Green Glow */
         .active-segment-glow {
             box-shadow: 0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.4), inset 0 0 12px rgba(255, 255, 255, 0.25);
             z-index: 20;
@@ -69,7 +69,7 @@
             background-color: rgba(34, 197, 94, 0.15) !important;
         }
 
-        /* 已完成段 - 纯绿色填充 */
+        /* Completed Segment - Solid Green Fill */
         .segment-completed {
             opacity: 1 !important;
             background: linear-gradient(180deg, rgba(34, 197, 94, 0.7) 0%, rgba(22, 163, 74, 0.6) 100%) !important;
@@ -77,7 +77,7 @@
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 8px rgba(34, 197, 94, 0.3);
         }
 
-        /* 未开始的段 - 深灰低调 */
+        /* Pending Segment - Dark Gray Understated */
         .segment-pending {
             opacity: 0.3;
             background-color: rgba(255, 255, 255, 0.02) !important;
@@ -100,7 +100,7 @@
             animation: segment-pulse 0.6s ease-in-out infinite;
         }
 
-        /* 段内倒计时数字 - 当前段 */
+        /* In-segment Countdown Number - Current Segment */
         .segment-countdown {
             position: absolute;
             top: 50%;
@@ -125,7 +125,7 @@
             opacity: 1;
         }
 
-        /* 已完成段的勾号 */
+        /* Tick for Completed Segments */
         .segment-completed .segment-countdown {
             font-size: 0.85rem;
             color: rgba(52, 211, 153, 1);
@@ -186,7 +186,7 @@
     <local-sidebar></local-sidebar>
 
     <div class="flex-1 flex flex-col min-w-0 relative">
-        <!-- 顶部导航/标题 -->
+        <!-- Top Nav/Title -->
         <local-header title="HIIT Jump Rope">
             <i slot="icon" class="fas fa-stopwatch text-indigo-500 dark:text-white"></i>
             <div slot="actions" class="flex items-center gap-2">
@@ -354,7 +354,7 @@
                 <div id="timerScreen"
                     class="hidden flex-col items-center justify-center w-full min-h-[calc(100vh-120px)] relative overflow-hidden">
 
-                    <!-- 状态标签 -->
+                    <!-- Status Label -->
                     <div class="absolute top-4 text-center z-10">
                         <div id="phaseText"
                             class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl text-slate-800 dark:text-white">
@@ -367,12 +367,12 @@
                         </div>
                     </div>
 
-                    <!-- 闪烁背景层 -->
+                    <!-- Flashing Background Layer -->
                     <div id="flashOverlay"
                         class="fixed inset-0 bg-white/20 opacity-0 pointer-events-none z-[5] transition-opacity duration-75">
                     </div>
 
-                    <!-- 圆形进度条容器 -->
+                    <!-- Circular Progress Bar Container -->
                     <div class="relative w-80 h-80 flex items-center justify-center z-10 -mt-16">
                         <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
                             <circle class="text-slate-200 dark:text-white/5" stroke-width="6" stroke="currentColor"
@@ -382,7 +382,7 @@
                                 cx="60" cy="60" />
                         </svg>
 
-                        <!-- 中间的大数字 -->
+                        <!-- Large Number in the Middle -->
                         <div class="absolute inset-0 flex flex-col items-center justify-center pt-4">
                             <span id="timerDisplay"
                                 class="text-6xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl text-slate-900 dark:text-white leading-none">00:00</span>
@@ -393,7 +393,7 @@
                         </div>
                     </div>
 
-                    <!-- 下一阶段提示 -->
+                    <!-- Next Phase Prompt -->
                     <div class="absolute bottom-32 text-center z-10 text-slate-700 dark:text-white">
                         <p class="text-[10px] uppercase tracking-[0.3em] mb-1 font-bold">Coming Up</p>
                         <p id="nextPhaseText"
@@ -413,7 +413,7 @@
                     <h2 class="text-4xl font-bold text-slate-800 dark:text-white">Workout Complete!</h2>
                     <p class="text-lg text-slate-600 dark:text-slate-200">Great job!</p>
 
-                    <!-- 训练统计 -->
+                    <!-- Training Stats -->
                     <div class="w-full max-w-xs space-y-3 mt-4">
                         <div
                             class="bg-white dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center shadow-sm dark:shadow-none border border-slate-200 dark:border-transparent">
@@ -749,7 +749,7 @@
             }
         };
 
-        // === 核心逻辑 ===
+        // === Core Logic ===
 
         const startTimer = () => {
             if (state.intervalId) clearInterval(state.intervalId);
@@ -771,16 +771,16 @@
                 if (state.timeLeft > 0) {
                     state.timeLeft -= delta;
 
-                    // 累计运动时间（只在运动阶段累计）
+                    // Accumulate work time (only during work phase)
                     if (state.phase === 'work') {
                         state.totalWorkTime += delta;
                         updatePaceProgress(delta);
                     }
 
-                    // 音效逻辑：最后3秒，且是整数秒附近
+                    // Sound logic: last 3 seconds, near integer seconds
                     const ceilTime = Math.ceil(state.timeLeft);
                     if (state.timeLeft <= 3.1 && state.timeLeft > 0) {
-                        // 简单的去抖动检查，防止一秒响多次
+                        // Simple debounce check to prevent multiple beeps per second
                         const prevCeil = Math.ceil(state.timeLeft + delta);
                         if (ceilTime !== prevCeil) {
                             playBeep('normal');
@@ -788,13 +788,13 @@
                     }
 
                 } else {
-                    // 时间到，切换阶段
+                    // Time's up, switch phase
                     playBeep('high');
                     switchPhase();
                 }
 
                 updateTimerUI();
-            }, 100); // 100ms 更新一次UI，保证圆环流畅
+            }, 100); // Update UI every 100ms for smooth progress animation
         };
 
         const initPaceSegments = () => {
@@ -808,7 +808,7 @@
             const segmentDuration = 600 / state.pace;
             els.segmentSeconds.innerText = segmentDuration.toFixed(1);
 
-            // 计算总共需要跳多少个10次
+            // Calculate how many 10-jump segments are needed
             const totalSegments = Math.floor(state.workTime * (state.pace / 60) / 10);
 
             for (let i = 0; i < totalSegments; i++) {
@@ -821,7 +821,7 @@
                 progress.id = `pace-seg-progress-${i}`;
                 segment.appendChild(progress);
 
-                // 添加倒计时数字显示
+                // Add countdown number display
                 const countdown = document.createElement('span');
                 countdown.className = 'segment-countdown';
                 countdown.id = `pace-seg-countdown-${i}`;
@@ -833,7 +833,7 @@
 
             state.paceTimeElapsed = 0;
             state.currentPaceSegment = 0;
-            state.segmentDuration = segmentDuration; // 保存以便在updatePaceProgress中使用
+            state.segmentDuration = segmentDuration; // Save for use in updatePaceProgress
             els.paceJumpCount.innerText = '0';
         };
 
@@ -848,7 +848,7 @@
             const segmentProgress = segmentTimeElapsed / segmentDuration;
             const segmentTimeRemaining = segmentDuration - segmentTimeElapsed;
 
-            // 更新当前段的进度和效果
+            // Update current segment's progress and effects
             const segmentEl = document.getElementById(`pace-segment-${currentSegment}`);
             const progressEl = document.getElementById(`pace-seg-progress-${currentSegment}`);
             const countdownEl = document.getElementById(`pace-seg-countdown-${currentSegment}`);
@@ -860,16 +860,16 @@
                 segmentEl.classList.add('active-segment-glow', 'segment-pulsing');
                 segmentEl.classList.remove('segment-completed', 'segment-pending');
             }
-            // 显示倒计时数字: 10-8-6-4-2 (双数变化，基于进度百分比)
+            // Show countdown numbers: 10-8-6-4-2 (even numbers, based on progress percentage)
             if (countdownEl) {
-                // 计算剩余跳绳数: 10 → 0，只显示双数 10,8,6,4,2
+                // Calculate remaining jumps: 10 → 0, only showing even numbers 10, 8, 6, 4, 2
                 const remainingJumps = Math.ceil((1 - segmentProgress) * 10);
-                // 向上取到最近的双数
+                // Round up to nearest even number
                 const displayNumber = remainingJumps % 2 === 0 ? remainingJumps : remainingJumps + 1;
                 countdownEl.innerText = Math.min(10, Math.max(0, displayNumber));
             }
 
-            // 将之前的所有段填满并标记为已完成（变暗）
+            // Fill previous segments and mark as completed
             for (let i = 0; i < currentSegment; i++) {
                 const prevSegment = document.getElementById(`pace-segment-${i}`);
                 const prevProgressEl = document.getElementById(`pace-seg-progress-${i}`);
@@ -883,11 +883,11 @@
                     prevSegment.classList.add('segment-completed');
                 }
                 if (prevCountdown) {
-                    prevCountdown.innerText = '✓'; // 已完成标记
+                    prevCountdown.innerText = '✓'; // Completed mark
                 }
             }
 
-            // 检查是否进入了新的一段（提醒）
+            // Check if entered a new segment (alert)
             if (currentSegment > state.currentPaceSegment) {
                 state.currentPaceSegment = currentSegment;
                 triggerFlash();
@@ -997,7 +997,7 @@
             state.currentRound = 1;
             state.totalWorkTime = 0; // 重置累计运动时间
             state.startTime = new Date().toISOString(); // 记录开始时间
-            state.endTime = null; // 重置结束时间
+            state.endTime = null; // Reset end time
 
             // Save configuration when workout starts
             saveConfig('workTime', state.workTime);
@@ -1006,7 +1006,7 @@
             saveConfig('weight', state.weight);
             saveConfig('pace', state.pace);
 
-            // UI 切换
+            // UI Switch
             els.setupScreen.classList.add('hidden');
             els.timerScreen.classList.remove('hidden');
             els.timerScreen.classList.add('flex');
@@ -1014,12 +1014,12 @@
             els.completeScreen.classList.add('hidden');
             els.completeScreen.classList.remove('flex');
 
-            // 进入准备阶段
+            // Enter ready phase
             state.phase = 'getReady';
             state.timeLeft = 5; // 5秒准备时间
             els.totalRoundsDisplay.innerText = state.totalRounds;
 
-            // 初始化声音上下文（需要用户交互）
+            // Initialize AudioContext (requires user interaction)
             if (!state.audioContext) {
                 state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -1031,33 +1031,33 @@
         const finishWorkout = async () => {
             clearInterval(state.intervalId);
             state.phase = 'finished';
-            state.endTime = new Date().toISOString(); // 记录结束时间
+            state.endTime = new Date().toISOString(); // Record end time
             updateColors('finished');
 
-            // 计算统计数据
+            // Calculate stats
             const workMinutes = state.totalWorkTime / 60;
-            // 高强度HIIT跳绳: 约 0.2 卡路里/公斤/分钟
+            // High-intensity HIIT jump rope: ~0.2 kcal/kg/min
             const caloriesBurned = Math.round(0.2 * state.weight * workMinutes);
 
-            // 计算总耗时 (秒)
+            // Calculate total duration (seconds)
             const durationMs = new Date(state.endTime) - new Date(state.startTime);
             const totalDuration = Math.round(durationMs / 1000);
 
-            // 保存到数据库
+            // Save to database
             await saveWorkout({
-                date: state.startTime, // 使用开始时间作为日期
+                date: state.startTime, // Use start time as date
                 rounds: state.totalRounds,
                 workTime: state.workTime,
                 restTime: state.restTime,
                 totalWorkTime: Math.round(state.totalWorkTime),
-                totalTime: totalDuration, // 总耗时
+                totalTime: totalDuration, // Total duration
                 startTime: state.startTime,
                 endTime: state.endTime,
                 calories: caloriesBurned,
                 weight: state.weight
             });
 
-            // 更新完成页面显示
+            // Update completion screen
             els.finalWorkTime.innerText = formatTime(Math.round(state.totalWorkTime));
             els.finalCalories.innerText = `${caloriesBurned} kcal`;
 
@@ -1079,19 +1079,19 @@
             els.completeScreen.classList.add('hidden');
             els.completeScreen.classList.remove('flex');
             els.resetBtn.classList.add('hidden');
-            els.paceContainer.classList.add('hidden'); // 隐藏配速进度条
+            els.paceContainer.classList.add('hidden'); // Hide pace progress bar
         };
 
         const togglePause = () => {
             state.isPaused = !state.isPaused;
             els.toggleIcon.className = state.isPaused ? 'fas fa-play' : 'fas fa-pause';
-            // 可以在这里添加透明度变化表示暂停
+            // Can add opacity change here to indicate pause
             els.timerDisplay.style.opacity = state.isPaused ? '0.5' : '1';
         };
 
-        // === 事件监听 ===
+        // === Event Listeners ===
 
-        // 输入变化实时更新 (不保存配置，只有开始训练时才保存)
+        // Real-time update on input change (don't save config, only save when training starts)
         els.workInput.addEventListener('input', (e) => {
             els.workDisplay.innerText = `${e.target.value}s`;
             calculateTotalTime();
@@ -1111,10 +1111,10 @@
             els.paceDisplay.innerText = `${e.target.value} JPM`;
         });
 
-        // +/- 按钮事件监听
+        // +/- Button event listeners
         document.querySelectorAll('.adjust-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // 确保获取按钮元素（即使点击的是内部图标）
+                // Ensure button element is retrieved (even if clicking internal icon)
                 const button = e.currentTarget;
                 const targetId = button.dataset.target;
                 const delta = parseInt(button.dataset.delta);
@@ -1129,11 +1129,11 @@
                 const max = parseInt(input.max);
                 let newValue = parseInt(input.value) + delta;
 
-                // 限制在范围内
+                // Clamp within range
                 newValue = Math.max(min, Math.min(max, newValue));
                 input.value = newValue;
 
-                // 触发 input 事件以更新显示
+                // Trigger input event to update display
                 input.dispatchEvent(new Event('input', { bubbles: true }));
             });
         });
@@ -1555,14 +1555,14 @@
         db.on('sync_to_file', async () => {
             console.log('[HIIT] Syncing to file...');
             try {
-                const snapshot = await db.loadSnapshotFromIDB();
-                if (snapshot?.handle) {
+                const handle = await db.getFileHandleForSync();
+                if (handle) {
                     const data = await db.export();
-                    if (await db.ensureFilePermission(snapshot.handle)) {
-                        const writable = await snapshot.handle.createWritable();
+                    if (await db.ensureFilePermission(handle)) {
+                        const writable = await handle.createWritable();
                         await writable.write(data);
                         await writable.close();
-                        console.log('[HIIT] ✅ Synced to file:', snapshot.handle.name);
+                        console.log('[HIIT] ✅ Synced to file:', handle.name);
                     } else {
                         console.warn('[HIIT] File permission not granted');
                     }

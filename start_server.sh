@@ -1,64 +1,100 @@
 #!/bin/bash
 
-# 获取脚本所在的绝对路径，确保无论在哪里运行，都能定位到项目根目录
+# Configuration
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-LOG_DIR="/usr/local/var/log"
-LOG_FILE="$LOG_DIR/localforge.log"
-PID_FILE="$PROJECT_DIR/.server.pid"
-PORT=8092
+DATA_DIR="$PROJECT_DIR/data"
+PROD_PID="$PROJECT_DIR/.server.pid"
+DEBUG_PID="$PROJECT_DIR/.server.debug.pid"
+PROD_LOG="/dev/null"
+DEBUG_LOG="$DATA_DIR/debug.log"
+
+PROD_PORT=8092
 DEBUG_PORT=8093
-DEBUG_MODE=false
 
-# 确保日志目录存在
-mkdir -p "$LOG_DIR" 2>/dev/null
+# Default State
+TARGET_MODE="prod" # prod | debug
+ACTION="start"     # start | stop | restart | status
 
-# Parse debug flag
-for arg in "$@"; do
-    case $arg in
-        --debug|-d)
-            DEBUG_MODE=true
-            PORT=$DEBUG_PORT
+# Helper: Print Usage
+usage() {
+    echo "Usage: $0 [action] [options]"
+    echo ""
+    echo "Actions:"
+    echo "  start       Start the server (default)"
+    echo "  stop        Stop the server"
+    echo "  restart     Restart the server"
+    echo "  status      Check server status"
+    echo ""
+    echo "Options:"
+    echo "  --debug, -d   Target the Debug Instance (Port $DEBUG_PORT)"
+    echo "  --help, -h    Show this message"
+    echo ""
+    exit 1
+}
+
+# 1. Parsing Arguments (Single Pass)
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        start|stop|restart|status)
+            ACTION="$1"
             shift
+            ;;
+        --debug|-d)
+            TARGET_MODE="debug"
+            shift
+            ;;
+        --help|-h)
+            usage
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            usage
             ;;
     esac
 done
 
-# Update PID file for debug mode to allow running both
-if [ "$DEBUG_MODE" = true ]; then
-    PID_FILE="$PROJECT_DIR/.server.debug.pid"
-    LOG_FILE="$LOG_DIR/localforge.debug.log"
+# 2. Setup Context based on Mode
+if [ "$TARGET_MODE" == "debug" ]; then
+    PID_FILE="$DEBUG_PID"
+    LOG_FILE="$DEBUG_LOG"
+    PORT=$DEBUG_PORT
+    MODE_LABEL="DEBUG"
+    # Ensure Data Dir exists for debug logs
+    if [ ! -d "$DATA_DIR" ]; then
+        mkdir -p "$DATA_DIR"
+    fi
+else
+    PID_FILE="$PROD_PID"
+    LOG_FILE="$PROD_LOG"
+    PORT=$PROD_PORT
+    MODE_LABEL="PRODUCTION"
+    # Data dir check is good practice anyway
+    if [ ! -d "$DATA_DIR" ]; then
+        mkdir -p "$DATA_DIR"
+    fi
 fi
 
+# 3. Actions
 start_server() {
-    # 检查是否已经在运行
     if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-        echo "Server is already running (PID: $(cat $PID_FILE))"
-        return 1
+        echo "⚠️  $MODE_LABEL Server is already running (PID: $(cat "$PID_FILE"), Port: $PORT)"
+        return 0
     fi
 
-    # 进入项目目录
+    echo "🚀 Starting LocalForge ($MODE_LABEL)..."
     cd "$PROJECT_DIR"
+    
+    nohup python3 -m http.server $PORT >> "$LOG_FILE" 2>&1 &
+    NEW_PID=$!
+    echo $NEW_PID > "$PID_FILE"
+    
+    echo "   • PID:  $NEW_PID"
+    echo "   • Port: $PORT"
+    echo "   • Log:  $LOG_FILE"
+    echo "   • URL:  http://localhost:$PORT"
 
-    echo "=================================================="
-    if [ "$DEBUG_MODE" = true ]; then
-        echo " Starting LocalForge Server (DEBUG MODE)..."
-    else
-        echo " Starting LocalForge Server..."
-    fi
-    echo " Project Path: $PROJECT_DIR"
-    echo " URL: http://localhost:$PORT"
-    echo " Log File: $LOG_FILE"
-    echo "=================================================="
-
-    # 使用 nohup 后台运行服务器
-    nohup python -m http.server $PORT >> "$LOG_FILE" 2>&1 &
-    echo $! > "$PID_FILE"
-
-    echo "Server started with PID: $(cat $PID_FILE)"
-
-    # 尝试打开默认浏览器 (macOS 使用 open 命令)
-    # Debug mode 不自动打开浏览器
-    if [[ "$OSTYPE" == "darwin"* ]] && [ "$DEBUG_MODE" = false ]; then
+    # Only auto-open browser in Production mode on macOS
+    if [ "$TARGET_MODE" == "prod" ] && [[ "$OSTYPE" == "darwin"* ]]; then
         sleep 1
         open "http://localhost:$PORT"
     fi
@@ -66,34 +102,42 @@ start_server() {
 
 stop_server() {
     if [ -f "$PID_FILE" ]; then
-        PID=$(cat "$PID_FILE")
-        if kill -0 $PID 2>/dev/null; then
-            echo "Stopping server (PID: $PID)..."
-            kill $PID
+        OLD_PID=$(cat "$PID_FILE")
+        if kill -0 $OLD_PID 2>/dev/null; then
+            echo "🛑 Stopping $MODE_LABEL Server (PID: $OLD_PID)..."
+            kill $OLD_PID
             rm -f "$PID_FILE"
-            echo "Server stopped."
+            echo "   ✅ Stopped."
         else
-            echo "Server process not found. Cleaning up PID file."
+            echo "⚠️  Process $OLD_PID not found. Cleaning up stale PID file."
             rm -f "$PID_FILE"
         fi
     else
-        echo "Server is not running (no PID file found)."
+        echo "ℹ️  $MODE_LABEL Server is not running."
     fi
 }
 
-status_server() {
-    if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-        echo "Server is running (PID: $(cat $PID_FILE))"
-        echo "URL: http://localhost:$PORT"
-        echo "Log: $LOG_FILE"
+check_status() {
+    # Check Prod
+    echo "--- Server Status ---"
+    if [ -f "$PROD_PID" ] && kill -0 $(cat "$PROD_PID") 2>/dev/null; then
+        echo "✅ PRODUCTION: Running (PID: $(cat "$PROD_PID"), Port: $PROD_PORT)"
     else
-        echo "Server is not running."
+        echo "⚪ PRODUCTION: Stopped"
     fi
+
+    # Check Debug
+    if [ -f "$DEBUG_PID" ] && kill -0 $(cat "$DEBUG_PID") 2>/dev/null; then
+        echo "✅ DEBUG:      Running (PID: $(cat "$DEBUG_PID"), Port: $DEBUG_PORT)"
+    else
+        echo "⚪ DEBUG:      Stopped"
+    fi
+    echo "---------------------"
 }
 
-# 命令行参数处理
-CMD="${1:-start}"
-case "$CMD" in
+
+# 4. Dispatch
+case "$ACTION" in
     start)
         start_server
         ;;
@@ -106,13 +150,6 @@ case "$CMD" in
         start_server
         ;;
     status)
-        status_server
-        ;;
-    *)
-        echo "Usage: $0 [--debug|-d] {start|stop|restart|status}"
-        echo ""
-        echo "Options:"
-        echo "  --debug, -d    Run server on port $DEBUG_PORT for debugging"
-        exit 1
+        check_status
         ;;
 esac

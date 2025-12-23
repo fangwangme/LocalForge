@@ -1,0 +1,26 @@
+{
+    "name": "localforge",
+    "version": "1.0.0",
+    "description": "A Local-First collection of HTML tools powered by SharedWorker + sql.js.",
+    "main": "index.html",
+    "scripts": {
+        "start": "./start_server.sh start",
+        "stop": "./start_server.sh stop",
+        "status": "./start_server.sh status",
+        "debug": "./start_server.sh --debug"
+    },
+    "keywords": [
+        "local-first",
+        "sqlite",
+        "sql.js",
+        "sharedworker",
+        "productivity",
+        "image-tools"
+    ],
+    "author": "LocalForge Contributors",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/fangwangme/LocalForge"
+    }
+}

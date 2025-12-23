@@ -3425,14 +3425,14 @@
         db.on('sync_to_file', async () => {
             console.log('[Pomodoro] Syncing to file...');
             try {
-                const snapshot = await db.loadSnapshotFromIDB();
-                if (snapshot?.handle) {
+                const handle = await db.getFileHandleForSync();
+                if (handle) {
                     const data = await db.export();
-                    if (await db.ensureFilePermission(snapshot.handle)) {
-                        const writable = await snapshot.handle.createWritable();
+                    if (await db.ensureFilePermission(handle)) {
+                        const writable = await handle.createWritable();
                         await writable.write(data);
                         await writable.close();
-                        console.log('[Pomodoro] ✅ Synced to file:', snapshot.handle.name);
+                        console.log('[Pomodoro] ✅ Synced to file:', handle.name);
                         updateSyncStatus(true);
                     } else {
                         // Permission requires user gesture - this is expected during auto-sync
