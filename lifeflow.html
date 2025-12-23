@@ -2636,29 +2636,36 @@
                     statusBadge = '<span class="text-rose-400 text-xs ml-1" title="Aborted"><i class="fas fa-times-circle"></i></span>';
                 }
 
+                const tagColor = tag.color || '#94a3b8';
+
                 return `
-                    <div class="p-4 hover:bg-slate-200 dark:bg-slate-700/50 transition flex items-center justify-between group">
+                    <div class="p-4 transition flex items-center justify-between group border-l-4" 
+                         style="border-color: ${tagColor}; background-color: ${tagColor}08;">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
-                            <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold shrink-0">
-                                ${s.duration}
+                            <div class="w-10 h-10 rounded-lg flex flex-col items-center justify-center font-bold shrink-0 transition-colors"
+                                 style="background-color: ${tagColor}20; color: ${tagColor};">
+                                <span class="text-sm">${s.duration}</span>
+                                <span class="text-[8px] uppercase opacity-60">min</span>
                             </div>
                             <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
-                                    <span class="font-bold text-slate-900 dark:text-slate-200 text-xs">${escapeHtml(tag.name)}</span>
+                                    <span class="font-bold text-slate-950 dark:text-slate-200 text-xs tracking-tight">${escapeHtml(tag.name)}</span>
                                     ${statusBadge}
                                 </div>
-                                ${s.title ? `<div class="text-sm text-slate-900 dark:text-white mb-1 break-words">${escapeHtml(s.title)}</div>` : ''}
-                                ${s.description ? `<div class="text-xs text-slate-600 dark:text-slate-400 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
-                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">${dateStr} ${startTimeStr} - ${endTimeStr}</div>
+                                ${s.title ? `<div class="text-sm font-semibold text-slate-900 dark:text-white mb-0.5 break-words">${escapeHtml(s.title)}</div>` : ''}
+                                ${s.description ? `<div class="text-xs text-slate-600 dark:text-slate-400 mb-1 leading-relaxed break-words">${escapeHtml(s.description)}</div>` : ''}
+                                <div class="text-[10px] text-slate-500 dark:text-slate-500 font-medium flex items-center gap-2">
+                                    <span class="opacity-70"><i class="far fa-calendar-alt mr-1"></i>${dateStr}</span>
+                                    <span class="opacity-70"><i class="far fa-clock mr-1"></i>${startTimeStr} - ${endTimeStr}</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                            <button onclick="editSession(${s.id})" class="text-slate-500 hover:text-blue-500 p-2" title="Edit">
-                                <i class="fas fa-edit"></i>
+                            <button onclick="editSession(${s.id})" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition" title="Edit">
+                                <i class="fas fa-edit text-sm"></i>
                             </button>
-                            <button onclick="deleteSession(${s.id})" class="text-slate-500 hover:text-rose-500 p-2" title="Delete">
-                                <i class="fas fa-trash"></i>
+                            <button onclick="deleteSession(${s.id})" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition" title="Delete">
+                                <i class="fas fa-trash text-sm"></i>
                             </button>
                         </div>
                     </div>

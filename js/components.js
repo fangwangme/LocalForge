@@ -161,8 +161,19 @@ class SettingsManager {
         // Initialize Notification Toggle Logic
         this.initNotifications();
 
-        // Add ESC key listener to close settings
+        // Global Shortcuts
         window.addEventListener('keydown', (e) => {
+            // Don't trigger if user is typing in an input
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            // Cmd + , or Ctrl + ,
+            if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+                e.preventDefault();
+                window.openSettings();
+                return;
+            }
+
+            // ESC to close
             if (e.key === 'Escape') {
                 const modal = document.getElementById('settingsModal');
                 if (modal && !modal.classList.contains('hidden')) {
