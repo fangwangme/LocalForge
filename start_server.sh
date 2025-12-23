@@ -84,7 +84,9 @@ start_server() {
     echo "🚀 Starting LocalForge ($MODE_LABEL)..."
     cd "$PROJECT_DIR"
     
+    # Using Python http.server as requested (Zero Dependency)
     nohup python -m http.server $PORT >> "$LOG_FILE" 2>&1 &
+    
     NEW_PID=$!
     echo $NEW_PID > "$PID_FILE"
     
@@ -101,20 +103,33 @@ start_server() {
 }
 
 stop_server() {
-    if [ -f "$PID_FILE" ]; then
-        OLD_PID=$(cat "$PID_FILE")
-        if kill -0 $OLD_PID 2>/dev/null; then
-            echo "🛑 Stopping $MODE_LABEL Server (PID: $OLD_PID)..."
-            kill $OLD_PID
-            rm -f "$PID_FILE"
-            echo "   ✅ Stopped."
+    echo "🛑 Stopping LocalForge Servers..."
+    
+    # 1. Stop Production Server
+    if [ -f "$PROD_PID" ]; then
+        PID=$(cat "$PROD_PID")
+        if kill -0 $PID 2>/dev/null; then
+            kill $PID
+            echo "   ✅ Stopped Production Server (PID: $PID)"
         else
-            echo "⚠️  Process $OLD_PID not found. Cleaning up stale PID file."
-            rm -f "$PID_FILE"
+            echo "   ⚠️  Production PID file stale, cleaning up."
         fi
-    else
-        echo "ℹ️  $MODE_LABEL Server is not running."
+        rm -f "$PROD_PID"
     fi
+
+    # 2. Stop Debug Server
+    if [ -f "$DEBUG_PID" ]; then
+        PID=$(cat "$DEBUG_PID")
+        if kill -0 $PID 2>/dev/null; then
+            kill $PID
+            echo "   ✅ Stopped Debug Server (PID: $PID)"
+        else
+            echo "   ⚠️  Debug PID file stale, cleaning up."
+        fi
+        rm -f "$DEBUG_PID"
+    fi
+    
+    echo "   ✨ All servers stopped."
 }
 
 check_status() {
