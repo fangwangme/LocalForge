@@ -151,11 +151,11 @@ class SettingsManager {
         this.initDatabaseFunctions();
 
         // Listen for DB events to update UI
-        db.on('ready', () => this.updateDbStatus('引擎就绪', 'amber'));
-        db.on('db_opened', () => this.updateDbStatus('数据库连接成功', 'emerald'));
+        db.on('ready', () => this.updateDbStatus('Engine Ready', 'amber'));
+        db.on('db_opened', () => this.updateDbStatus('Connected', 'emerald'));
         db.on('sync_to_file', (data) => {
             // Handle name might be available in db client soon
-            this.updateDbStatus('已同步到本地', 'emerald');
+            this.updateDbStatus('Synced to Disk', 'emerald');
         });
 
         // Initialize Notification Toggle Logic
@@ -210,7 +210,7 @@ class SettingsManager {
                     const arrayBuffer = await file.arrayBuffer();
 
                     await db.init(arrayBuffer);
-                    this.updateDbStatus(`已加载: ${file.name}`, 'emerald');
+                    this.updateDbStatus(`Loaded: ${file.name}`, 'emerald');
 
                     // IDB Cache
                     const u8 = new Uint8Array(arrayBuffer);
@@ -220,7 +220,7 @@ class SettingsManager {
                 } catch (err) {
                     if (err.name !== 'AbortError') {
                         console.error(err);
-                        alert('打开文件失败: ' + err.message);
+                        alert('Failed to open file: ' + err.message);
                     }
                 }
             } else {
@@ -233,7 +233,7 @@ class SettingsManager {
                     const buf = await file.arrayBuffer();
                     await db.init(buf);
                     await db.saveSnapshotToIDB(new Uint8Array(buf), null, file.name);
-                    this.updateDbStatus(`已加载: ${file.name} (Legacy)`, 'emerald');
+                    this.updateDbStatus(`Loaded: ${file.name} (Legacy)`, 'emerald');
                     setTimeout(window.closeSettings, 1500);
                 };
                 input.click();
@@ -331,7 +331,7 @@ class SettingsManager {
                 <!-- Header -->
                 <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 transition-colors duration-500">
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i class="fas fa-cog text-blue-500"></i> 系统设置
+                        <i class="fas fa-cog text-blue-500"></i> Settings
                     </h3>
                     <button onclick="window.closeSettings()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition">
                         <i class="fas fa-times text-lg"></i>
@@ -341,25 +341,25 @@ class SettingsManager {
                 <div class="p-6 space-y-8 transition-colors duration-500">
                     <!-- Theme Section -->
                     <section>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">外观主题</label>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Appearance</label>
                         <div class="grid grid-cols-3 gap-3">
                             <button id="themeBtn-light" onclick="window.setGlobalTheme('light')" class="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 group">
                                 <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition">
                                     <i class="fas fa-sun"></i>
                                 </div>
-                                <span class="text-xs font-medium dark:text-slate-300">浅色</span>
+                                <span class="text-xs font-medium dark:text-slate-300">Light</span>
                             </button>
                             <button id="themeBtn-dark" onclick="window.setGlobalTheme('dark')" class="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 group">
                                 <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 flex items-center justify-center group-hover:scale-110 transition">
                                     <i class="fas fa-moon"></i>
                                 </div>
-                                <span class="text-xs font-medium dark:text-slate-300">深色</span>
+                                <span class="text-xs font-medium dark:text-slate-300">Dark</span>
                             </button>
                             <button id="themeBtn-auto" onclick="window.setGlobalTheme('auto')" class="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-300 group">
                                 <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition">
                                     <i class="fas fa-desktop"></i>
                                 </div>
-                                <span class="text-xs font-medium dark:text-slate-300">跟随系统</span>
+                                <span class="text-xs font-medium dark:text-slate-300">System</span>
                             </button>
                         </div>
                     </section>
@@ -367,25 +367,25 @@ class SettingsManager {
                     <!-- Database Section -->
                     <section>
                         <div class="flex items-center justify-between mb-4">
-                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">数据库状态</label>
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Database Status</label>
                             <div id="modal-db-status" class="flex items-center gap-2">
                                 <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
-                                <span id="modal-db-status-text" class="text-xs font-medium text-slate-500 dark:text-slate-400">未连接</span>
+                                <span id="modal-db-status-text" class="text-xs font-medium text-slate-500 dark:text-slate-400">Disconnected</span>
                             </div>
                         </div>
                         <div class="space-y-3">
                             <div class="flex gap-2">
-                                <button onclick="window.openDatabase && window.openDatabase()" class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-600/20">
-                                    <i class="fas fa-folder-open"></i> 选择数据库
+                                <button onclick="window.openDatabase && window.openDatabase()" class="flex-[3] flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-600/20">
+                                    <i class="fas fa-folder-open"></i> Select Database
                                 </button>
-                                <button onclick="window.saveDatabaseToDisk && window.saveDatabaseToDisk(event)" class="flex items-center justify-center px-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="保存到本地">
-                                    <i class="fas fa-save"></i>
+                                <button onclick="window.saveDatabaseToDisk && window.saveDatabaseToDisk(event)" class="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-700 dark:text-white rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Save to disk">
+                                    <i class="fas fa-save"></i> Save
                                 </button>
                             </div>
                             <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-sync text-slate-400 text-xs"></i>
-                                    <span class="text-xs text-slate-600 dark:text-slate-400">自动保存</span>
+                                    <span class="text-xs text-slate-600 dark:text-slate-400">Auto Save</span>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" id="autoSaveToggle" class="sr-only peer" checked>
@@ -397,15 +397,15 @@ class SettingsManager {
 
                     <!-- Notifications -->
                     <section>
-                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">其他设置</label>
+                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Other Settings</label>
                          <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                                     <i class="fas fa-bell"></i>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-bold text-slate-900 dark:text-white">浏览器通知</div>
-                                    <p class="text-[10px] text-slate-500">计时结束时弹出提示</p>
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white">Notifications</div>
+                                    <p class="text-[10px] text-slate-500">Show alerts when timers finish</p>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
@@ -419,9 +419,9 @@ class SettingsManager {
                 <!-- Footer -->
                 <div class="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700 text-center rounded-b-2xl">
                     <button onclick="window.clearCacheAndReload && window.clearCacheAndReload()" class="text-xs text-rose-500 hover:text-rose-600 font-medium transition">
-                        <i class="fas fa-trash-alt mr-1"></i> 清除页面缓存并重新加载
+                        <i class="fas fa-trash-alt mr-1"></i> Clear Cache & Reload
                     </button>
-                    <p class="text-[10px] text-slate-400 mt-2 italic">LocalForge v1.2 &bull; 您的数据存储在本地浏览器中</p>
+                    <p class="text-[10px] text-slate-400 mt-2 italic">LocalForge v1.2 &bull; Your data is stored locally in the browser</p>
                 </div>
             </div>
         `;
@@ -629,12 +629,12 @@ class LocalSidebar extends HTMLElement {
                     <li>
                         <a href="index.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
                             <i class="fas fa-home w-6 text-center shrink-0 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass} font-medium">主页概览</span>
+                            <span class="${hideTextClass} font-medium">Home Overview</span>
                         </a>
                     </li>
 
                     <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
-                        媒体工具
+                        Media Tools
                     </div>
                     <!-- Separator for collapsed mode -->
                     ${this.isCollapsed ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>' : ''}
@@ -642,30 +642,30 @@ class LocalSidebar extends HTMLElement {
                     <li>
                         <a href="image_editor.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
                             <i class="fas fa-image w-6 text-center shrink-0 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">图片编辑器</span>
+                            <span class="${hideTextClass}">Image Editor</span>
                         </a>
                     </li>
                     <li>
                         <a href="image_resize.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
                             <i class="fas fa-compress-alt w-6 text-center shrink-0 group-hover:text-pink-500 dark:group-hover:text-pink-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">图片压缩</span>
+                            <span class="${hideTextClass}">Image Resize</span>
                         </a>
                     </li>
 
                     <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
-                        健身运动
+                        Fitness
                     </div>
                      ${this.isCollapsed ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>' : ''}
 
                     <li>
                         <a href="hiit_jump_rope.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
                             <i class="fas fa-stopwatch w-6 text-center shrink-0 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">HIIT 计时器</span>
+                            <span class="${hideTextClass}">HIIT Timer</span>
                         </a>
                     </li>
 
                     <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
-                        效率工具
+                        Productivity
                     </div>
                      ${this.isCollapsed ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>' : ''}
 
@@ -683,7 +683,7 @@ class LocalSidebar extends HTMLElement {
                 <button onclick="window.openSettings && window.openSettings()" 
                     class="w-full flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
                     <i class="fas fa-cog w-6 text-center shrink-0 ${iconMargin}"></i>
-                    <span class="${hideTextClass}">设置</span>
+                    <span class="${hideTextClass}">Settings</span>
                 </button>
             </div>
         `;

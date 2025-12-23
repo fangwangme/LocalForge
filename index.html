@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -53,7 +53,7 @@
             <!-- Header (Simplified) -->
             <header
                 class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center px-6 shrink-0 z-10 transition-colors duration-300">
-                <h2 id="page-title" class="text-lg font-medium text-slate-900 dark:text-white">主页概览</h2>
+                <h2 id="page-title" class="text-lg font-medium text-slate-900 dark:text-white">Home Overview</h2>
             </header>
 
             <!-- Content Area -->
@@ -62,9 +62,9 @@
                 <div id="dashboard-view" class="absolute inset-0 overflow-y-auto p-8">
                     <div class="max-w-5xl mx-auto space-y-10">
 
-                        <!-- Section: 媒体工具 -->
                         <section>
-                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">媒体工具</h3>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">Media Tools
+                            </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- Image Editor -->
                                 <a href="image_editor.html"
@@ -76,8 +76,10 @@
                                         class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-image"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">图片编辑器</h3>
-                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">16:9 裁剪、去水印。
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Image Editor
+                                    </h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">16:9 crop,
+                                        watermarking.
                                     </p>
                                 </a>
 
@@ -91,15 +93,16 @@
                                         class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-compress-alt"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">图片压缩</h3>
-                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">智能压缩图片体积。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Image Resize
+                                    </h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Smartly
+                                        compress image size.</p>
                                 </a>
                             </div>
                         </section>
 
-                        <!-- Section: 健身运动 -->
                         <section>
-                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">健身运动</h3>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">Fitness</h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- HIIT Timer -->
                                 <a href="hiit_jump_rope.html"
@@ -111,15 +114,16 @@
                                         class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-stopwatch"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">HIIT 计时器</h3>
-                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">自定义间歇训练计时。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">HIIT Timer</h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Custom
+                                        interval training timer.</p>
                                 </a>
                             </div>
                         </section>
 
-                        <!-- Section: 效率工具 -->
                         <section>
-                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">效率工具</h3>
+                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">Productivity
+                            </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- LifeFlow -->
                                 <a href="lifeflow.html"
@@ -132,7 +136,8 @@
                                         <i class="fas fa-clock"></i>
                                     </div>
                                     <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">LifeFlow</h3>
-                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">个人生活日志，记录每一刻。
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Personal life
+                                        log, record every moment.
                                     </p>
                                 </a>
                             </div>
@@ -150,7 +155,7 @@
 
 
         <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
-            注意：默认建议文件名为 <code>html_tools_db.sqlite</code>。<br>
+            Note: Recommended filename is <code>html_tools_db.sqlite</code>.<br>
             <script type="module">
                 import { db } from './js/db-client.js';
 
@@ -190,7 +195,7 @@
                 // Listen for DB events
                 db.on('ready', () => {
                     console.log('[Host] db.on(ready) fired');
-                    updateDbStatus('引擎就绪', 'amber');
+                    updateDbStatus('Engine Ready', 'amber');
                     // Try load from IDB
                     db.loadSnapshotFromIDB().then(snapshot => {
                         if (snapshot && snapshot.data) {
@@ -198,13 +203,13 @@
                             db.init(snapshot.data).then(() => {
                                 console.log('[Host] Database loaded from IDB snapshot');
                                 // Prefer dbHandle.name over snapshot.filename
-                                const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : '缓存数据');
-                                updateDbStatus(`已恢复: ${displayName}`, 'emerald');
+                                const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : 'Cached Data');
+                                updateDbStatus(`Restored: ${displayName}`, 'emerald');
                             });
                         } else {
                             db.init().then(() => {
                                 console.log('[Host] No snapshot found, created empty database');
-                                updateDbStatus('新数据库 (内存)', 'amber');
+                                updateDbStatus('New DB (In Memory)', 'amber');
                             });
                         }
                     });
@@ -264,7 +269,7 @@
                         await writable.write(data);
                         await writable.close();
                         console.log('[Host] ✅ Synced to file:', dbHandle.name);
-                        updateDbStatus(`已同步: ${dbHandle.name}`, 'emerald');
+                        updateDbStatus(`Synced: ${dbHandle.name}`, 'emerald');
                     } catch (err) {
                         console.error('[Host] File sync error:', err);
                     }

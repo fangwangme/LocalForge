@@ -1167,7 +1167,7 @@
                     const toast = document.createElement('div');
                     toast.id = 'db-warning-toast';
                     toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full shadow-lg z-50 animate-bounce';
-                    toast.innerText = '请先在主页打开数据库 / Please open database in Dashboard';
+                    toast.innerText = 'Please open database in Dashboard first';
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
                 }
@@ -1617,12 +1617,12 @@
                         // db_opened event will be fired by the worker
                     } else {
                         console.log('[HIIT] No database found in IDB, initializing new empty DB...');
-                        // alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                        alert('No database found! Please open a database file in Settings first.');
                         await db.init();
                     }
                 } catch (err) {
                     console.error('[HIIT] Failed to load from IDB:', err);
-                    // alert('数据库加载失败！\n\nFailed to load database!');
+                    alert('Failed to load database!');
                     console.log('[HIIT] Fallback: Initializing empty DB due to error...');
                     await db.init();
                 }

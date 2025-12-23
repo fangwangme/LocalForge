@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片压缩工具</title>
+    <title>Image Resize</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -250,7 +250,7 @@
 
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
-        <local-header title="图片压缩工具">
+        <local-header title="Image Resize">
             <i slot="icon" class="fas fa-compress-alt text-pink-500"></i>
         </local-header>
 
@@ -258,28 +258,28 @@
             <main>
                 <div class="drop-zone" id="dropZone">
                     <i class="fas fa-cloud-upload-alt text-blue-500"></i>
-                    <h3 class="text-slate-700 dark:text-white">拖放图片到这里</h3>
-                    <p class="text-slate-500 dark:text-slate-400">或点击选择文件（支持 PNG、JPG）</p>
+                    <h3 class="text-slate-700 dark:text-white">Drag and drop images here</h3>
+                    <p class="text-slate-500 dark:text-slate-400">or click to select files (PNG, JPG)</p>
                 </div>
                 <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple>
 
                 <div class="settings">
-                    <h4><i class="fas fa-cog"></i> 压缩设置</h4>
+                    <h4><i class="fas fa-cog"></i> Resize Settings</h4>
                     <div class="setting-row">
-                        <label>目标大小</label>
+                        <label>Target Size</label>
                         <select id="targetSize">
                             <option value="500">500 KB</option>
                             <option value="1000">1 MB</option>
                             <option value="2000" selected>2 MB (YouTube)</option>
                             <option value="5000">5 MB</option>
-                            <option value="custom">自定义...</option>
+                            <option value="custom">Custom...</option>
                         </select>
                         <input type="number" id="customSize" class="hidden" placeholder="KB" min="100" max="10000">
                     </div>
                     <div class="setting-row">
-                        <label>输出格式</label>
+                        <label>Output Format</label>
                         <select id="outputFormat">
-                            <option value="auto">保持原格式</option>
+                            <option value="auto">Original Format</option>
                             <option value="jpeg">JPEG</option>
                             <option value="png">PNG</option>
                             <option value="webp">WebP</option>
@@ -300,7 +300,7 @@
         const outputFormatSelect = document.getElementById('outputFormat');
         const resultsContainer = document.getElementById('results');
 
-        // 目标大小选择
+        // Target Size selection
         targetSizeSelect.addEventListener('change', () => {
             if (targetSizeSelect.value === 'custom') {
                 customSizeInput.classList.remove('hidden');
@@ -310,7 +310,7 @@
             }
         });
 
-        // 获取目标大小 (bytes)
+        // Get target size (bytes)
         function getTargetSize() {
             const value = targetSizeSelect.value === 'custom'
                 ? parseInt(customSizeInput.value) || 2000
@@ -318,7 +318,7 @@
             return value * 1024; // KB to bytes
         }
 
-        // 拖放事件
+        // Drag & Drop events
         dropZone.addEventListener('click', () => fileInput.click());
 
         dropZone.addEventListener('dragover', (e) => {
@@ -340,7 +340,7 @@
             handleFiles(fileInput.files);
         });
 
-        // 处理文件
+        // Process files
         async function handleFiles(files) {
             for (const file of files) {
                 if (!file.type.startsWith('image/')) continue;
@@ -348,23 +348,23 @@
             }
         }
 
-        // 存储待下载的 blob
+        // Store blobs for download
         const pendingDownloads = new Map();
 
-        // 处理单个图片
+        // Process single image
         async function processImage(file) {
             const targetBytes = getTargetSize();
             const originalSize = file.size;
             const outputName = generateOutputName(file.name, targetBytes);
 
-            // 如果已经小于目标大小
+            // If already smaller than target
             if (originalSize <= targetBytes) {
                 const resultId = addResult(file.name, originalSize, originalSize, 'already_small', outputName);
                 pendingDownloads.set(resultId, { blob: file, name: outputName });
                 return;
             }
 
-            // 添加处理中状态
+            // Add processing status
             const resultId = addResult(file.name, originalSize, null, 'processing', null);
 
             try {
@@ -377,7 +377,7 @@
             }
         }
 
-        // 手动触发下载
+        // Trigger manual download
         function triggerDownload(resultId) {
             const item = pendingDownloads.get(resultId);
             if (item) {
@@ -385,7 +385,7 @@
             }
         }
 
-        // 压缩图片 - 通过调整质量来达到目标大小
+        // Compress image - adjust quality to reach target size
         async function compressImage(file, targetBytes) {
             const img = await loadImage(file);
             const canvas = document.createElement('canvas');
@@ -395,24 +395,24 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            // 确定输出格式
+            // Determine output format
             let mimeType = file.type;
             const format = outputFormatSelect.value;
             if (format !== 'auto') {
                 mimeType = `image/${format}`;
             }
 
-            // PNG 不支持质量参数，需要转为 JPEG 或 WebP
+            // PNG doesn't support quality, convert to JPEG or WebP
             if (mimeType === 'image/png') {
                 // 先尝试 PNG，如果太大则转为 WebP
                 let blob = await canvasToBlob(canvas, mimeType, 1);
                 if (blob.size <= targetBytes) return blob;
 
-                // PNG 太大，改用 WebP
+                // PNG too large, use WebP
                 mimeType = 'image/webp';
             }
 
-            // 二分法查找最佳质量
+            // Binary search for best quality
             let minQuality = 0.1;
             let maxQuality = 1.0;
             let bestBlob = null;
@@ -428,7 +428,7 @@
                     maxQuality = quality;  // 需要更低质量
                 }
 
-                // 如果足够接近目标，提前结束
+                // Stop if close enough
                 if (bestBlob && Math.abs(bestBlob.size - targetBytes) < targetBytes * 0.05) {
                     break;
                 }
@@ -452,7 +452,7 @@
             });
         }
 
-        // 生成输出文件名
+        // Generate output filename
         function generateOutputName(originalName, targetBytes) {
             const targetKB = Math.round(targetBytes / 1024);
             const ext = outputFormatSelect.value === 'auto'
@@ -462,7 +462,7 @@
             return `${baseName}_${targetKB}.${ext}`;
         }
 
-        // 下载文件
+        // Download file
         function downloadFile(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -474,26 +474,26 @@
             URL.revokeObjectURL(url);
         }
 
-        // 格式化文件大小
+        // Format file size
         function formatSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / 1024 / 1024).toFixed(2) + ' MB';
         }
 
-        // 添加结果项
+        // Add result item
         function addResult(filename, originalSize, compressedSize, status, outputName) {
             const id = 'result-' + Date.now();
             let statusHtml = '';
 
             if (status === 'processing') {
-                statusHtml = '<div class="processing"><i class="fas fa-spinner"></i> 压缩中...</div>';
+                statusHtml = '<div class="processing"><i class="fas fa-spinner"></i> Resizing...</div>';
             } else if (status === 'already_small') {
                 statusHtml = `
                     <div style="text-align: right;">
-                        <div class="size success" style="margin-bottom: 4px;">✓ 无需压缩</div>
+                        <div class="size success" style="margin-bottom: 4px;">✓ Already Small</div>
                         <button class="btn-download" onclick="triggerDownload('${id}')">
-                            <i class="fas fa-download"></i> 下载
+                            <i class="fas fa-download"></i> Download
                         </button>
                     </div>
                 `;
@@ -503,7 +503,7 @@
                 <div class="result-item" id="${id}" data-original-size="${originalSize}">
                     <div class="result-info">
                         <h5>${filename}</h5>
-                        <p>原始: ${formatSize(originalSize)}</p>
+                        <p>Original: ${formatSize(originalSize)}</p>
                         ${outputName ? `<p style="font-size: 0.75rem; color: #64748b;">→ ${outputName}</p>` : ''}
                     </div>
                     <div class="result-status">${statusHtml}</div>
@@ -513,7 +513,7 @@
             return id;
         }
 
-        // 更新结果状态
+        // Update result status
         function updateResult(id, compressedSize, status, outputName, originalSize) {
             const el = document.getElementById(id);
             if (!el) return;
@@ -534,14 +534,14 @@
                 statusEl.innerHTML = `
                     <div style="text-align: right;">
                         <div class="size success">${formatSize(compressedSize)}</div>
-                        <div class="reduction" style="margin-bottom: 8px;">减少 ${reduction}%</div>
+                        <div class="reduction" style="margin-bottom: 8px;">Reduced ${reduction}%</div>
                         <button class="btn-download" onclick="triggerDownload('${id}')">
-                            <i class="fas fa-download"></i> 下载
+                            <i class="fas fa-download"></i> Download
                         </button>
                     </div>
                 `;
             } else {
-                statusEl.innerHTML = '<div style="color: #ef4444;">压缩失败</div>';
+                statusEl.innerHTML = '<div style="color: #ef4444;">Resize Failed</div>';
             }
         }
     </script>

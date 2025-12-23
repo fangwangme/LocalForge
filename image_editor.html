@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片处理 - LocalForge</title>
+    <title>Image Editor - LocalForge</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -40,9 +40,9 @@
 
     <div class="flex-1 flex flex-col min-w-0">
         <!-- Header -->
-        <local-header title="图片处理工具">
+        <local-header title="Image Editor">
             <i slot="icon" class="fas fa-image text-blue-500"></i>
-            <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">16:9 裁剪 & 去水印</div>
+            <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">16:9 Crop & Watermark Removal</div>
         </local-header>
 
         <!-- Main Content -->
@@ -52,30 +52,31 @@
             <aside
                 class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shrink-0 z-10 transition-colors duration-300">
                 <div class="p-4 border-b border-slate-200 dark:border-slate-700">
-                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">资源管理器
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider">
+                        Explorer
                     </h3>
                     <div class="flex gap-2 mb-2">
                         <button id="btn-single"
                             class="flex-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-xs text-slate-700 dark:text-white transition border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500">📄
-                            单文件</button>
+                            File</button>
                         <button id="btn-input"
                             class="flex-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-xs text-slate-700 dark:text-white transition border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500">📂
-                            目录</button>
+                            Folder</button>
                     </div>
                     <button id="btn-output"
                         class="w-full px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition border border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hidden mb-1">💾
-                        选择输出目录</button>
-                    <div id="output-info" class="text-[10px] text-slate-500 truncate mt-1">默认: Downloads</div>
+                        Choose Output Folder</button>
+                    <div id="output-info" class="text-[10px] text-slate-500 truncate mt-1">Default: Downloads</div>
                 </div>
 
                 <ul id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
                     <li
                         class="p-4 text-center text-slate-400 dark:text-slate-500 text-xs border border-dashed border-slate-300 dark:border-slate-700 rounded select-none">
-                        请选择文件或目录</li>
+                        Please select files or folder</li>
                 </ul>
 
                 <div class="p-2 border-t border-slate-200 dark:border-slate-700 text-center text-[10px] text-slate-400 dark:text-slate-500"
-                    id="file-count">0 张图片
+                    id="file-count">0 images
                 </div>
             </aside>
 
@@ -86,7 +87,8 @@
                 <div id="filename-bar"
                     class="h-10 bg-white dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 flex items-center justify-center px-4 shrink-0 transition-colors duration-300">
                     <span id="current-filename"
-                        class="text-sm font-medium text-blue-600 dark:text-blue-400 truncate max-w-full">未选择文件</span>
+                        class="text-sm font-medium text-blue-600 dark:text-blue-400 truncate max-w-full">No file
+                        selected</span>
                 </div>
                 <div
                     class="flex-1 flex items-center justify-center p-8 overflow-hidden bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')]">
@@ -101,7 +103,7 @@
                 <!-- Toast -->
                 <div id="toast"
                     class="absolute top-14 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 text-slate-800 dark:text-white px-4 py-2 rounded-full text-xs shadow-xl border border-slate-200 dark:border-slate-700 hidden transition-opacity z-50 flex items-center gap-2">
-                    <i class="fas fa-info-circle text-blue-500 dark:text-blue-400"></i> <span>提示消息</span>
+                    <i class="fas fa-info-circle text-blue-500 dark:text-blue-400"></i> <span>Notification</span>
                 </div>
             </main>
 
@@ -112,7 +114,7 @@
 
                     <!-- Crop Mode - Horizontal Layout -->
                     <div class="space-y-2">
-                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">模式
+                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mode
                         </h4>
                         <div class="flex gap-2">
                             <label class="flex-1 cursor-pointer">
@@ -135,11 +137,11 @@
                     <!-- Gemini Auto Watermark Removal -->
                     <div class="space-y-2">
                         <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gemini
-                            去水印</h4>
+                            Watermark Removal</h4>
                         <button id="btn-gemini-watermark"
                             class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded border border-emerald-500 transition flex items-center justify-center gap-2">
                             <i class="fas fa-magic"></i>
-                            一键去水印 (G)
+                            Auto Remove (G)
                         </button>
                         <div id="gemini-watermark-status"
                             class="px-2 py-1.5 bg-slate-800 rounded border border-slate-700 text-xs text-center hidden">
@@ -148,29 +150,30 @@
 
                     <!-- Watermark (Manual Diamond Mode) -->
                     <div class="space-y-2">
-                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">手动去水印
+                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Manual
+                            Removal
                         </h4>
                         <div id="watermark-status"
                             class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-xs text-center text-slate-600 dark:text-slate-300">
-                            点击拖动绘制菱形
+                            Click & drag to draw diamond
                         </div>
                         <div class="flex gap-2">
                             <button id="btn-clear-mask"
                                 class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs rounded border border-slate-200 dark:border-slate-600 transition">
-                                清除 (C)
+                                Clear (C)
                             </button>
                             <label
                                 class="flex items-center gap-1.5 cursor-pointer text-xs text-slate-500 dark:text-slate-400">
                                 <input type="checkbox" id="chk-persist-mask" checked
                                     class="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-blue-500">
-                                保留
+                                Keep
                             </label>
                         </div>
                     </div>
 
                     <!-- Export -->
                     <div class="space-y-2">
-                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">输出
+                        <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Output
                         </h4>
                         <div class="flex items-center justify-between">
                             <select id="sel-format"
@@ -190,21 +193,21 @@
                     <div class="pt-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
                         <button id="btn-save"
                             class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-500/20 transition">
-                            💾 保存 (S)
+                            💾 Save (S)
                         </button>
                         <button id="btn-save-original"
                             class="w-full py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs rounded border border-slate-200 dark:border-slate-600 transition">
-                            保存原图 (O)
+                            Save Original (O)
                         </button>
                         <button id="btn-download"
                             class="w-full py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white text-xs rounded border border-slate-200 dark:border-slate-600 hidden transition">
-                            ⬇️ 下载到本地
+                            ⬇️ Download to Local
                         </button>
                     </div>
 
                     <div class="text-[10px] text-slate-500 dark:text-slate-600 text-center space-y-1 pb-4">
-                        <p>← / → : 切换图片</p>
-                        <p>S : 保存 | O : 保存原图 | C : 清除</p>
+                        <p>← / → : Switch Image</p>
+                        <p>S : Save | O : Save Original | C : Clear</p>
                     </div>
 
                 </div>
@@ -297,7 +300,7 @@
                 try {
                     const [fileHandle] = await window.showOpenFilePicker({
                         types: [{
-                            description: '图片文件',
+                            description: 'Image Files',
                             accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] }
                         }],
                         multiple: false
@@ -343,9 +346,9 @@
             try {
                 const handle = await window.showDirectoryPicker();
                 state.outputHandle = handle;
-                els.outputInfo.textContent = `输出目录: ${handle.name}`;
+                els.outputInfo.textContent = `Output folder: ${handle.name}`;
                 els.outputInfo.style.color = '#4a90e2';
-                showToast("输出目录已设定");
+                showToast("Output folder set");
             } catch (err) {
                 if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
                     // 权限被拒绝或被 iframe 策略阻止
@@ -1037,7 +1040,7 @@
             ctx.fillStyle = '#10b981';
             ctx.font = '14px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('菱形水印区域', rect.x + rect.w / 2, rect.y + rect.h / 2 - 5);
+            ctx.fillText('Watermark Area', rect.x + rect.w / 2, rect.y + rect.h / 2 - 5);
             ctx.textAlign = 'left'; // 重置
         }
 
@@ -1111,10 +1114,10 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                showToast(`已下载: ${filename}`);
+                showToast(`Downloaded: ${filename}`);
             } catch (err) {
                 console.error(err);
-                alert("下载失败");
+                alert("Download Failed");
             }
         }
 
@@ -1132,7 +1135,7 @@
                     }
                 }
             } catch (err) {
-                console.error('扫描输出目录失败:', err);
+                console.error('Failed to scan output directory:', err);
             }
             return existingFiles;
         }
@@ -1152,7 +1155,7 @@
                         const mark = document.createElement('span');
                         mark.className = 'duplicate-mark text-emerald-400 ml-1';
                         mark.textContent = '✓';
-                        mark.title = '已存在于输出目录';
+                        mark.title = 'Already in output folder';
                         li.appendChild(mark);
                     }
                 }
@@ -1179,7 +1182,7 @@
                     if (state.currentIndex < state.files.length - 1) {
                         loadFile(state.currentIndex + 1);
                     } else {
-                        showToast("所有图片处理完毕！");
+                        showToast("All images processed!");
                     }
                 }
                 return;
@@ -1206,16 +1209,16 @@
                 await writable.write(blob);
                 await writable.close();
 
-                showToast(`已保存: ${filename}`);
+                showToast(`Saved: ${filename}`);
 
                 if (state.currentIndex < state.files.length - 1) {
                     loadFile(state.currentIndex + 1);
                 } else {
-                    showToast("所有图片处理完毕！");
+                    showToast("All images processed!");
                 }
             } catch (err) {
                 console.error(err);
-                alert("保存失败，请检查目录权限");
+                alert("Save failed, please check directory permissions");
             }
         }
 
@@ -1307,7 +1310,7 @@
                     const writable = await newFileHandle.createWritable();
                     await writable.write(blob);
                     await writable.close();
-                    showToast(`已保存原图: ${filename}`);
+                    showToast(`Saved Original: ${filename}`);
                 } else {
                     // 下载模式
                     const url = URL.createObjectURL(blob);
@@ -1318,18 +1321,18 @@
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    showToast(`已下载原图: ${filename}`);
+                    showToast(`Downloaded Original: ${filename}`);
                 }
 
                 // 切换到下一张
                 if (!state.isSingleFileMode && state.currentIndex < state.files.length - 1) {
                     loadFile(state.currentIndex + 1);
                 } else if (!state.isSingleFileMode) {
-                    showToast("所有图片处理完毕！");
+                    showToast("All images processed!");
                 }
             } catch (err) {
                 console.error(err);
-                alert("保存失败");
+                alert("Save Failed");
             }
         }
 

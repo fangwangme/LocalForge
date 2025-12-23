@@ -3230,14 +3230,14 @@
                 link.click();
                 document.body.removeChild(link);
 
-                btn.innerHTML = '<i class="fas fa-check"></i> 已下载';
+                btn.innerHTML = '<i class="fas fa-check"></i> Downloaded';
                 setTimeout(() => {
                     btn.innerHTML = originalHTML;
                     btn.disabled = false;
                 }, 2000);
             } catch (err) {
                 console.error('Panorama export error:', err);
-                alert('导出失败：' + err.message);
+                alert('Export failed: ' + err.message);
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             }
@@ -3294,7 +3294,7 @@
             const desc = document.getElementById('editDescription').value.trim();
 
             if (!stVal || !etVal) {
-                alert('请填写完整的时间');
+                alert('Please fill in complete time information');
                 return;
             }
 
@@ -3302,7 +3302,7 @@
             const end = new Date(etVal);
 
             if (end <= start) {
-                alert('结束时间必须晚于开始时间');
+                alert('End time must be after start time');
                 return;
             }
 
@@ -3445,7 +3445,7 @@
                 }
             } catch (err) {
                 console.error('[Pomodoro] File sync error:', err);
-                updateSyncStatus(false, '文件同步失败');
+                updateSyncStatus(false, 'File sync failed');
             }
         });
 
@@ -3456,7 +3456,7 @@
                 const snapshot = await db.loadSnapshotFromIDB();
                 if (snapshot?.handle) {
                     const hasPerm = await db.ensureFilePermission(snapshot.handle);
-                    updateSyncStatus(hasPerm, hasPerm ? null : '需授权');
+                    updateSyncStatus(hasPerm, hasPerm ? null : 'Need Auth');
                 }
                 // Start periodic file sync (every 10 seconds)
                 db.startPeriodicSync(10000);
@@ -3497,11 +3497,11 @@
                         // db_opened event will be fired by the worker
                     } else {
                         console.error('[Pomodoro] No database found in IDB!');
-                        alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                        alert('No database found! Please open a database file in Settings first.');
                     }
                 } catch (err) {
                     console.error('[Pomodoro] Failed to load from IDB:', err);
-                    alert('数据库加载失败！\n\nFailed to load database!');
+                    alert('Failed to load database!');
                 }
             };
 
