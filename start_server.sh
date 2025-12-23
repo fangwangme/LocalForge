@@ -84,7 +84,7 @@ start_server() {
     echo "🚀 Starting LocalForge ($MODE_LABEL)..."
     cd "$PROJECT_DIR"
     
-    nohup python3 -m http.server $PORT >> "$LOG_FILE" 2>&1 &
+    nohup python -m http.server $PORT >> "$LOG_FILE" 2>&1 &
     NEW_PID=$!
     echo $NEW_PID > "$PID_FILE"
     
