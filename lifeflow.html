@@ -7,6 +7,20 @@
     <title>LifeFlow | Personal Life Log</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
@@ -109,7 +123,7 @@
     </style>
 </head>
 
-<body class="bg-slate-900 text-white font-sans flex h-screen overflow-hidden">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-sans flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
     <local-sidebar></local-sidebar>
@@ -120,17 +134,18 @@
         <!-- Header -->
         <local-header title="LifeFlow">
             <i slot="icon" class="fas fa-clock text-rose-500"></i>
-            <div slot="actions" class="flex items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <button onclick="openTagsManagement()" class="p-3 text-slate-400 hover:text-white transition"
-                        title="Manage Tags">
-                        <i class="fas fa-tags text-xl"></i>
-                    </button>
-                    <button onclick="openStats()" class="p-3 text-slate-400 hover:text-white transition"
-                        title="View Stats">
-                        <i class="fas fa-history text-xl"></i>
-                    </button>
-                </div>
+            <div slot="actions" class="flex items-center gap-2">
+                <button onclick="window.openTagsManagement()"
+                    class="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
+                    title="Manage Tags">
+                    <i class="fas fa-tags text-lg"></i>
+                </button>
+                <button onclick="window.openStats()"
+                    class="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
+                    title="View Stats">
+                    <i class="fas fa-history text-lg"></i>
+                </button>
+
             </div>
         </local-header>
 
@@ -140,13 +155,13 @@
                 <!-- Tab Switcher -->
                 <div class="flex justify-center mb-12">
                     <div
-                        class="flex p-1 bg-slate-800/80 backdrop-blur rounded-2xl border border-slate-700/50 shadow-xl">
+                        class="flex p-1 bg-white dark:bg-slate-800/80 backdrop-blur rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-xl">
                         <button onclick="switchTab('timer')" id="tabBtnTimer"
                             class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg">
                             <i class="fas fa-clock"></i> Timer
                         </button>
                         <button onclick="switchTab('log')" id="tabBtnLog"
-                            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white">
                             <i class="fas fa-edit"></i> Quick Log
                         </button>
                     </div>
@@ -159,17 +174,17 @@
                         <!-- Row 1, Col 1: Pixel Tomato -->
                         <div class="flex flex-col items-center">
                             <div id="pixelGrid"
-                                class="pixel-grid bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm w-[345px]">
+                                class="pixel-grid bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm backdrop-blur-sm w-[345px]">
                                 <!-- Blocks injected here -->
                             </div>
-                            <div class="text-center mt-2 text-sm text-slate-500">
+                            <div class="text-center mt-2 text-sm text-slate-600">
                                 <span id="progressText">0 / 25 min</span>
                             </div>
                         </div>
 
                         <!-- Row 1, Col 2: Digital Timer -->
                         <div class="flex flex-col items-center">
-                            <div class="text-[10rem] font-bold font-mono tracking-tighter leading-none tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-2xl"
+                            <div class="text-[10rem] font-bold font-mono tracking-tighter leading-none tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-slate-700 to-slate-400 dark:from-white dark:to-slate-400 drop-shadow-2xl"
                                 id="digitalTimer">
                                 25:00
                             </div>
@@ -178,24 +193,24 @@
                         <!-- Row 2, Col 1: Duration Settings -->
                         <div class="flex items-center justify-center">
                             <div id="durationSettings"
-                                class="flex items-center bg-slate-800 rounded-full p-1.5 border border-slate-700">
+                                class="flex items-center bg-white dark:bg-slate-800 rounded-full p-1.5 border border-slate-200 dark:border-slate-700">
                                 <button onclick="setDuration(5)"
-                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"
                                     data-min="5">5</button>
                                 <button onclick="setDuration(15)"
-                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"
                                     data-min="15">15</button>
                                 <button onclick="setDuration(25)"
-                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                                     data-min="25">25</button>
                                 <button onclick="setDuration(45)"
-                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"
                                     data-min="45">45</button>
                                 <button onclick="setDuration(60)"
-                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"
+                                    class="duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"
                                     data-min="60">60</button>
                                 <button onclick="askCustomDuration()"
-                                    class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white"><i
+                                    class="px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white"><i
                                         class="fas fa-edit"></i></button>
                             </div>
                         </div>
@@ -213,42 +228,38 @@
                                 SWITCH ACTIVITY
                             </button>
                             <button onclick="skipTimer()" id="skipBtn"
-                                class="hidden w-12 h-12 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all flex items-center justify-center border border-slate-700/50"
+                                class="hidden w-12 h-12 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white rounded-xl transition-all flex items-center justify-center border border-slate-200 dark:border-slate-700/50"
                                 title="Skip Log">
                                 <i class="fas fa-forward"></i>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Notification Toggle (Outside Grid) -->
-                    <div class="mt-16 flex items-center gap-2 opacity-30 hover:opacity-100 transition duration-300">
-                        <input type="checkbox" id="notifyToggle" checked
-                            class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900 cursor-pointer accent-rose-500">
-                        <label for="notifyToggle" class="text-sm text-slate-400 cursor-pointer select-none">Task
-                            Completion Notification</label>
-                    </div>
+                    <!-- Notification Toggle moved to Settings -->
                 </div>
 
                 <!-- Quick Log Tab Content -->
                 <div id="tabContentLog" class="hidden max-w-md mx-auto py-8">
-                    <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm shadow-xl">
+                    <div
+                        class="bg-white dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm shadow-xl">
                         <div class="flex items-center gap-3 mb-6">
                             <div
                                 class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                                 <i class="fas fa-edit"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-white">Quick Activity Log</h3>
+                                <h3 class="font-bold text-slate-900 dark:text-white">Quick Activity Log</h3>
                                 <p class="text-xs text-slate-500">Record past activities manually</p>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <!-- Tag Selector -->
                             <div>
-                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Tag</label>
+                                <label
+                                    class="block text-xs text-slate-600 dark:text-slate-400 uppercase font-bold mb-1.5 ml-1">Tag</label>
                                 <div class="relative" id="quickLogTagSelector">
                                     <button type="button" onclick="toggleQuickLogTagMenu()" id="quickLogTagBtn"
-                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white hover:border-slate-600 focus:border-indigo-500 outline-none transition text-left flex items-center justify-between">
+                                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white hover:border-slate-300 dark:border-slate-600 focus:border-indigo-500 outline-none transition text-left flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <span id="quickLogTagDot"
                                                 class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
@@ -257,7 +268,7 @@
                                         <i class="fas fa-chevron-down text-xs text-slate-500"></i>
                                     </button>
                                     <div id="quickLogTagMenu"
-                                        class="hidden absolute top-full left-0 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto mt-1">
+                                        class="hidden absolute top-full left-0 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto mt-1">
                                         <!-- Items rendered by JS -->
                                     </div>
                                     <input type="hidden" id="quickLogTagValue">
@@ -265,14 +276,15 @@
                             </div>
                             <!-- Start DateTime -->
                             <div>
-                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Start
+                                <label
+                                    class="block text-xs text-slate-600 dark:text-slate-400 uppercase font-bold mb-1.5 ml-1">Start
                                     Time</label>
                                 <div class="flex gap-2">
                                     <input type="datetime-local" id="quickLogStartTime"
-                                        class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                                        class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none transition">
                                     <button type="button"
                                         onclick="(() => { const d = new Date(); const pad = n => String(n).padStart(2,'0'); document.getElementById('quickLogStartTime').value = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); })()"
-                                        class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-xl border border-slate-600 transition">
+                                        class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-600 transition">
                                         Now
                                     </button>
                                 </div>
@@ -280,23 +292,25 @@
                             <!-- Title -->
                             <div>
                                 <label
-                                    class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Title</label>
+                                    class="block text-xs text-slate-600 dark:text-slate-400 uppercase font-bold mb-1.5 ml-1">Title</label>
                                 <input type="text" id="quickLogTitle" placeholder="What did you do?"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                                    class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none transition">
                             </div>
                             <!-- Duration -->
                             <div>
-                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Duration
+                                <label
+                                    class="block text-xs text-slate-600 dark:text-slate-400 uppercase font-bold mb-1.5 ml-1">Duration
                                     (minutes)</label>
                                 <input type="number" id="quickLogDuration" value="25" min="1"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition">
+                                    class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none transition">
                             </div>
                             <!-- Notes -->
                             <div>
-                                <label class="block text-xs text-slate-400 uppercase font-bold mb-1.5 ml-1">Notes
+                                <label
+                                    class="block text-xs text-slate-600 dark:text-slate-400 uppercase font-bold mb-1.5 ml-1">Notes
                                     (optional)</label>
                                 <textarea id="quickLogNotes" rows="2" placeholder="Additional notes..."
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none transition resize-none"></textarea>
+                                    class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-indigo-500 outline-none transition resize-none"></textarea>
                             </div>
                             <!-- Submit -->
                             <button onclick="submitQuickLog()"
@@ -317,44 +331,46 @@
     <!-- Save Modal -->
     <!-- Stats View (Modal/Overlay) -->
     <div id="statsOverlay"
-        class="fixed inset-0 bg-slate-900 z-[60] transform translate-y-full transition duration-300 overflow-y-auto">
+        class="fixed inset-0 bg-slate-50 dark:bg-slate-900 z-[60] transform translate-y-full transition duration-300 overflow-y-auto">
         <div class="max-w-5xl mx-auto px-4 pb-8">
             <div
-                class="sticky top-0 z-[70] bg-slate-900/95 backdrop-blur pt-8 pb-4 mb-6 flex justify-between items-center border-b border-slate-800/50">
+                class="sticky top-0 z-[70] bg-slate-50 dark:bg-slate-900/95 backdrop-blur pt-8 pb-4 mb-6 flex justify-between items-center border-b border-slate-800/50">
                 <h2 class="text-2xl font-bold flex items-center gap-2">
                     <i class="fas fa-chart-pie text-indigo-500"></i> Data Overview
                 </h2>
                 <div class="flex flex-wrap items-center gap-3">
                     <!-- Unified Time Range Selector -->
-                    <div class="flex items-center gap-2 bg-slate-800 rounded-xl p-1 border border-slate-700/50">
+                    <div
+                        class="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-1 border border-slate-200 dark:border-slate-700/50">
                         <!-- Presets -->
-                        <div class="flex p-0.5 bg-slate-900/50 rounded-lg mr-1">
+                        <div class="flex p-0.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg mr-1">
                             <button onclick="setStatsRange('today')" id="rangeBtnToday"
-                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-white">Today</button>
+                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-slate-900 dark:text-white">Today</button>
                             <button onclick="setStatsRange('last7')" id="rangeBtnLast7"
-                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-white">Last 7 Days</button>
+                                class="px-3 py-1.5 text-xs rounded-md transition hover:text-slate-900 dark:text-white">Last
+                                7 Days</button>
                         </div>
 
-                        <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                        <div class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
                         <!-- Custom Date -->
                         <div class="flex items-center gap-1.5 px-2">
                             <input type="date" id="statsDatePicker"
-                                class="bg-slate-900 border border-slate-700 text-xs rounded px-2 py-1.5 text-white outline-none focus:border-rose-500 transition w-32"
+                                class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs rounded px-2 py-1.5 text-slate-900 dark:text-white outline-none focus:border-rose-500 transition w-32"
                                 onchange="setStatsRange('customDay')">
-                            <div class="flex p-0.5 bg-slate-900/50 rounded-lg">
+                            <div class="flex p-0.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                                 <button onclick="setStatsRange('customDay')" id="rangeBtnCustomDay"
-                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-white"
+                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-slate-900 dark:text-white"
                                     title="Stats for selected day">Single Day</button>
                                 <button onclick="setStatsRange('customWeek')" id="rangeBtnCustomWeek"
-                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-white"
+                                    class="px-2 py-1.5 text-[10px] uppercase tracking-wider rounded-md transition hover:text-slate-900 dark:text-white"
                                     title="Stats for selected day and 7 days prior">7 Days</button>
                             </div>
                         </div>
                     </div>
 
                     <button onclick="closeStats()"
-                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition text-sm font-medium">
+                        class="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition text-sm font-medium">
                         Close
                     </button>
                 </div>
@@ -362,22 +378,27 @@
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">Logged Events</div>
-                    <div class="text-2xl font-bold text-white"><span id="statsFocusCount">0</span> <span
-                            class="text-sm font-normal text-slate-500">records</span></div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
+                    <div class="text-slate-700 dark:text-slate-400 text-xs mb-1">Logged Events</div>
+                    <div class="text-2xl font-bold text-slate-900 dark:text-white"><span id="statsFocusCount">0</span>
+                        <span class="text-sm font-normal text-slate-700">records</span>
+                    </div>
                 </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">Logged Today</div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
+                    <div class="text-slate-700 dark:text-slate-400 text-xs mb-1">Logged Today</div>
                     <div class="text-xl font-bold text-indigo-400" id="statsTotalTime">0 minutes</div>
                 </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">Active Activities</div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
+                    <div class="text-slate-600 dark:text-slate-400 text-xs mb-1">Active Activities</div>
                     <div class="text-xl font-bold text-purple-400" id="statsEffectiveTime">0 minutes</div>
                     <div class="text-xs text-slate-500 mt-1">Excluding Default & Relax</div>
                 </div>
-                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
-                    <div class="text-slate-400 text-xs mb-1">Tags</div>
+                <div
+                    class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
+                    <div class="text-slate-600 dark:text-slate-400 text-xs mb-1">Tags</div>
                     <div class="text-2xl font-bold text-amber-400"><span id="statsTagCount">0</span> <span
                             class="text-sm font-normal text-slate-500">tags</span></div>
                 </div>
@@ -385,25 +406,29 @@
 
             <!-- Charts -->
             <div class="grid md:grid-cols-3 gap-6 mb-8">
-                <div class="md:col-span-2 bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                <div
+                    class="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-medium text-slate-300">Activity Trend</h3>
+                        <h3 class="text-sm font-medium text-slate-600 dark:text-slate-300">Activity Trend</h3>
                         <div class="flex items-center gap-4">
                             <button onclick="toggleFullView()" id="fullViewBtn"
-                                class="px-2 py-1 text-xs border border-slate-600 rounded text-slate-400 hover:text-white hover:border-slate-400 transition">
+                                class="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:border-slate-400 transition">
                                 <i class="fas fa-expand"></i> Panorama
                             </button>
                             <button onclick="openExportPanoramaModal()"
-                                class="px-2 py-1 text-xs border border-emerald-600 rounded text-emerald-400 hover:text-white hover:border-emerald-400 hover:bg-emerald-600/20 transition">
+                                class="px-2 py-1 text-xs border border-emerald-600 rounded text-emerald-400 hover:text-slate-900 dark:text-white hover:border-emerald-400 hover:bg-emerald-600/20 transition">
                                 <i class="fas fa-image"></i> Export
                             </button>
-                            <div class="flex items-center gap-2 text-xs text-slate-400" id="sliderContainer">
-                                <button onclick="moveSlider(-1)" class="p-1 hover:text-white transition"><i
+                            <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"
+                                id="sliderContainer">
+                                <button onclick="moveSlider(-1)"
+                                    class="p-1 hover:text-slate-900 dark:text-white transition"><i
                                         class="fas fa-chevron-left"></i></button>
                                 <input type="range" id="chartSlider" min="0" max="20" step="1" value="0"
                                     class="w-24 md:w-32 h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                     oninput="onSliderChange(this.value)">
-                                <button onclick="moveSlider(1)" class="p-1 hover:text-white transition"><i
+                                <button onclick="moveSlider(1)"
+                                    class="p-1 hover:text-slate-900 dark:text-white transition"><i
                                         class="fas fa-chevron-right"></i></button>
                             </div>
                         </div>
@@ -412,9 +437,10 @@
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700/50">
+                <div
+                    class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-medium text-slate-300">Distribution</h3>
+                        <h3 class="text-sm font-medium text-slate-600 dark:text-slate-300">Distribution</h3>
                     </div>
                     <div class="h-64 flex items-center justify-center">
                         <canvas id="distChart"></canvas>
@@ -423,12 +449,13 @@
             </div>
 
             <!-- History List (Unified with Export) -->
-            <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700/50 overflow-hidden">
                 <!-- Header with Filters -->
-                <div class="p-4 border-b border-slate-700">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700">
                     <div class="flex flex-wrap gap-3 items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <h3 class="font-medium text-slate-300">Detailed Records</h3>
+                            <h3 class="font-medium text-slate-600 dark:text-slate-300">Detailed Records</h3>
                             <div id="historyFilterIndicator" class="hidden"></div>
                         </div>
                         <div class="flex flex-wrap gap-2 items-center">
@@ -437,20 +464,21 @@
                     </div>
                     <!-- Status & Export Controls -->
                     <div
-                        class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
+                        class="flex flex-wrap gap-3 items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-700/50">
                         <div id="historyStatus" class="text-xs text-slate-500">Loading...</div>
                         <div class="flex gap-2 items-center">
-                            <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                            <label
+                                class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
                                 <input type="checkbox" id="exportExcludeRelax" class="rounded w-3 h-3">
                                 Exclude breaks when exporting
                             </label>
                             <button onclick="exportCurrentList()"
-                                class="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition flex items-center gap-1.5"
+                                class="px-3 py-1.5 text-xs bg-slate-200 dark:bg-slate-700 hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg transition flex items-center gap-1.5"
                                 title="Copy current list to clipboard">
                                 <i class="fas fa-copy"></i> Copy
                             </button>
                             <button onclick="openExportRecordsModal()"
-                                class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1.5"
+                                class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white rounded-lg transition flex items-center gap-1.5"
                                 title="Export daily Markdown report">
                                 <i class="fas fa-file-export"></i> Export MD
                             </button>
@@ -468,23 +496,24 @@
     <div id="saveModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <div
-            class="bg-slate-800 border-t-4 border-rose-500 rounded-2xl w-full max-w-sm p-8 shadow-2xl transform scale-90 transition-transform duration-300">
+            class="bg-white dark:bg-slate-800 border-t-4 border-rose-500 rounded-2xl w-full max-w-sm p-8 shadow-2xl transform scale-90 transition-transform duration-300">
             <div class="text-center mb-6">
                 <div
                     class="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-3xl animate-bounce">
                     <i class="fas fa-check"></i>
                 </div>
-                <h3 class="text-2xl font-bold text-white mb-2">Activity Logged!</h3>
-                <p class="text-slate-400 text-sm mb-6">Congratulations! You just recorded <span id="saveDuration"
-                        class="text-white font-bold">25</span> minutes of life.</p>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Activity Logged!</h3>
+                <p class="text-slate-600 dark:text-slate-400 text-sm mb-6">Congratulations! You just recorded <span
+                        id="saveDuration" class="text-slate-900 dark:text-white font-bold">25</span> minutes of life.
+                </p>
             </div>
 
-            <div class="bg-slate-900/50 rounded-lg p-4 mb-6">
+            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 mb-6">
                 <div class="mb-3 relative">
                     <label class="block text-xs text-slate-500 mb-1">Tag</label>
                     <div class="relative" id="saveTagCustomSelector">
                         <button type="button" onclick="toggleSaveTagMenu()" id="saveTagBtn"
-                            class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white hover:border-slate-600 focus:border-rose-500 outline-none transition text-left flex items-center justify-between">
+                            class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-2 text-sm text-slate-900 dark:text-white hover:border-slate-300 dark:border-slate-600 focus:border-rose-500 outline-none transition text-left flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span id="saveSelectedTagDot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
                                 <span id="saveSelectedTagName">Default</span>
@@ -492,7 +521,7 @@
                             <i class="fas fa-chevron-down text-xs text-slate-500"></i>
                         </button>
                         <div id="saveTagMenu"
-                            class="hidden absolute top-full left-0 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto mt-1">
+                            class="hidden absolute top-full left-0 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto mt-1">
                             <!-- Items rendered here -->
                         </div>
                         <!-- Hidden input to store value -->
@@ -502,12 +531,12 @@
                 <div class="mb-3">
                     <label class="block text-xs text-slate-500 mb-1">Title</label>
                     <input type="text" id="saveTitle" placeholder="What did you do?"
-                        class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition">
+                        class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:border-rose-500 outline-none transition">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-500 mb-1">Notes (Optional)</label>
                     <textarea id="saveDescription" rows="2" placeholder="Additional notes..."
-                        class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm text-white placeholder-slate-500 focus:border-rose-500 outline-none transition resize-none"></textarea>
+                        class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:border-rose-500 outline-none transition resize-none"></textarea>
                 </div>
             </div>
 
@@ -523,19 +552,21 @@
     <!-- Tag Management Modal -->
     <div id="tagsManagementModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-xl text-white flex items-center gap-2">
+                <h3 class="font-bold text-xl text-slate-900 dark:text-white flex items-center gap-2">
                     <i class="fas fa-tags text-rose-500"></i> Tag Management
                 </h3>
-                <button onclick="closeTagsManagement()" class="text-slate-400 hover:text-white transition">
+                <button onclick="closeTagsManagement()"
+                    class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white transition">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <div class="mb-4">
                 <button onclick="openAddTagModal()"
-                    class="w-full py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600 border-dashed text-slate-300 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                    class="w-full py-2 bg-slate-200 dark:bg-slate-700/50 hover:bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 border-dashed text-slate-600 dark:text-slate-300 rounded-lg text-sm transition flex items-center justify-center gap-2">
                     <i class="fas fa-plus"></i> New Tag
                 </button>
             </div>
@@ -546,7 +577,7 @@
 
             <div class="mt-6 flex justify-end">
                 <button onclick="closeTagsManagement()"
-                    class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition">
+                    class="px-6 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg font-medium transition">
                     Close
                 </button>
             </div>
@@ -555,16 +586,17 @@
 
     <div id="addTagModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4" id="tagModalTitle">New Tag</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Name</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Name</label>
                     <input type="text" id="newTagName" placeholder="e.g., Coding"
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition">
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Color</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Color</label>
                     <div class="flex items-center gap-3">
                         <input type="color" id="newTagColor" value="#3b82f6"
                             class="w-10 h-10 p-0 rounded border-none cursor-pointer bg-transparent">
@@ -573,16 +605,17 @@
                 </div>
                 <div class="flex items-center gap-2 pt-2">
                     <input type="checkbox" id="newTagDefault"
-                        class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
-                    <label for="newTagDefault" class="text-xs text-slate-400 cursor-pointer select-none">Set as default
+                        class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500">
+                    <label for="newTagDefault"
+                        class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">Set as default
                         tag</label>
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="document.getElementById('addTagModal').classList.add('hidden')"
-                    class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">Cancel</button>
+                    class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white">Cancel</button>
                 <button onclick="confirmAddTag()"
-                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded">Save</button>
+                    class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white text-xs rounded">Save</button>
             </div>
         </div>
     </div>
@@ -590,31 +623,32 @@
     <!-- Edit Session Modal -->
     <div id="editSessionModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-sm p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4 text-white">Edit Record</h3>
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 class="font-bold text-lg mb-4 text-slate-900 dark:text-white">Edit Record</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Start Time</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Start Time</label>
                     <input type="datetime-local" id="editStartTime"
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">End Time</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">End Time</label>
                     <input type="datetime-local" id="editEndTime"
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Tag</label>
+                        <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Tag</label>
                         <select id="editTagSelect"
-                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Status</label>
+                        <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Status</label>
                         <select id="editStatusSelect"
-                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none">
                             <option value="completed">✅ Completed</option>
                             <option value="aborted">⏹️ Aborted</option>
                             <option value="in_progress">⏳ In Progress</option>
@@ -622,19 +656,19 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Title</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Title</label>
                     <input type="text" id="editTitle" placeholder="Event Name"
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none">
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Notes</label>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Notes</label>
                     <textarea id="editDescription" rows="2" placeholder="Optional notes..."
-                        class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none resize-none"></textarea>
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none resize-none"></textarea>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
                 <button onclick="closeEditSessionModal()"
-                    class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Cancel</button>
+                    class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-slate-700 transition">Cancel</button>
                 <button onclick="confirmEditSession()"
                     class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">Save</button>
             </div>
@@ -644,19 +678,20 @@
     <!-- Custom Duration Modal -->
     <div id="customDurationModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-xs p-6 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-center">Custom Duration</h3>
             <div class="space-y-4">
                 <div>
                     <div class="flex items-center justify-center gap-4 mb-4">
                         <button onclick="adjustCustomInput(-5)"
-                            class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition"><i
+                            class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white transition"><i
                                 class="fas fa-minus"></i></button>
                         <div class="text-3xl font-bold font-mono text-blue-400 w-20 text-center">
                             <span id="customInputDisplay">25</span>
                         </div>
                         <button onclick="adjustCustomInput(5)"
-                            class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition"><i
+                            class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-600 text-slate-900 dark:text-white transition"><i
                                 class="fas fa-plus"></i></button>
                     </div>
                     <input type="range" id="customInputRange" min="1" max="180" step="1" value="25"
@@ -667,9 +702,9 @@
             </div>
             <div class="flex justify-between gap-3 mt-6">
                 <button onclick="closeCustomDuration()"
-                    class="flex-1 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Cancel</button>
+                    class="flex-1 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-slate-700 transition">Cancel</button>
                 <button onclick="confirmCustomDuration()"
-                    class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition">Confirm</button>
+                    class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white font-bold shadow-lg shadow-blue-600/20 transition">Confirm</button>
             </div>
         </div>
     </div>
@@ -677,25 +712,28 @@
     <!-- Export Records Modal (Daily Markdown) -->
     <div id="exportRecordsModal" style="z-index: 100;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h3 class="font-bold text-lg mb-4 text-white flex items-center gap-2">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h3 class="font-bold text-lg mb-4 text-slate-900 dark:text-white flex items-center gap-2">
                 <i class="fas fa-file-export text-blue-400"></i> Export Records
-                <span id="exportDateLabel" class="text-sm font-normal text-slate-400 ml-auto"></span>
+                <span id="exportDateLabel"
+                    class="text-sm font-normal text-slate-600 dark:text-slate-400 ml-auto"></span>
             </h3>
             <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-3 pb-3 border-b border-slate-700/50">
+                <div class="grid grid-cols-2 gap-3 pb-3 border-b border-slate-200 dark:border-slate-700/50">
                     <div>
                         <label class="block text-[10px] text-slate-500 uppercase tracking-wider mb-1">Select
                             Date</label>
                         <input type="date" id="exportDatePicker" onchange="onExportDateChange()"
-                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none transition">
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 outline-none transition">
                     </div>
                     <div class="flex flex-col justify-end">
                         <div class="flex items-center gap-2 mb-2">
                             <input type="checkbox" id="exportIncludeRelax" onchange="onExportDateChange()"
-                                class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 cursor-pointer accent-blue-500">
+                                class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700 text-blue-500 cursor-pointer accent-blue-500">
                             <label for="exportIncludeRelax"
-                                class="text-sm text-slate-300 cursor-pointer select-none">Include Breaks</label>
+                                class="text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">Include
+                                Breaks</label>
                         </div>
                     </div>
                 </div>
@@ -703,14 +741,14 @@
                 <div id="exportPreviewStatus" class="text-xs text-slate-500">Select a date to load data</div>
                 <div id="exportPreviewArea">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Markdown Output</label>
+                        <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Markdown Output</label>
                         <textarea id="exportRecordsOutput" rows="10" readonly
-                            class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-slate-300 font-mono focus:border-blue-500 outline-none resize-none"></textarea>
+                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-600 dark:text-slate-300 font-mono focus:border-blue-500 outline-none resize-none"></textarea>
                     </div>
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button onclick="closeExportRecordsModal()"
-                        class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Close</button>
+                        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-slate-700 transition">Close</button>
                     <button onclick="copyExportRecords()"
                         class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2">
                         <i class="fas fa-copy"></i> Copy
@@ -723,14 +761,15 @@
     <!-- Export Panorama Modal (7-Day PNG) -->
     <div id="exportPanoramaModal" style="z-index: 200;"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center overflow-y-auto py-8">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-7xl p-8 shadow-2xl my-auto">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-7xl p-8 shadow-2xl my-auto">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                     <i class="fas fa-image text-emerald-400"></i> Export 7-Day Panorama
                 </h3>
                 <div class="flex gap-3">
                     <button onclick="closeExportPanoramaModal()"
-                        class="px-4 py-2 rounded-lg border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 transition">Close</button>
+                        class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-slate-700 transition">Close</button>
                     <button onclick="downloadPanoramaPNG()"
                         class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
                         <i class="fas fa-download"></i> Download PNG
@@ -738,14 +777,18 @@
                 </div>
             </div>
             <div class="space-y-4">
-                <p id="exportPanoramaHeader" class="text-xs text-slate-400">Generated based on current stats range</p>
+                <p id="exportPanoramaHeader" class="text-xs text-slate-600 dark:text-slate-400">Generated based on
+                    current stats range</p>
                 <!-- Preview Container -->
-                <div id="panoramaPreview" class="bg-slate-900 rounded-lg p-4 border border-slate-700 overflow-x-auto">
+                <div id="panoramaPreview"
+                    class="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700 overflow-x-auto">
                     <div class="text-center text-slate-500 py-8">Generating preview...</div>
                 </div>
             </div>
         </div>
     </div>
+
+
 
     <script type="module">
         import { db } from './js/db-client.js';
@@ -770,6 +813,10 @@
         let statsBaseDate = new Date();
         let trendChart = null;
         let distChart = null;
+
+        // === Theme State ===
+        let themeMode = 'auto'; // auto, light, dark
+        const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
         // === Session Tracking ===
         let currentSessionId = null; // Track record ID in DB for early save/periodic update
@@ -807,36 +854,9 @@
             // 2. Data Init
             await requestData();
 
-            // Notify Toggle & Permission Sync
-            const notifyToggle = document.getElementById('notifyToggle');
-
-            if ('Notification' in window) {
-                // Always default to checked as requested
-                notifyToggle.checked = true;
-
-                // Handle User Click - request permission when checked
-                notifyToggle.addEventListener('change', (e) => {
-                    if (notifyToggle.checked) {
-                        if (Notification.permission === 'denied') {
-                            notifyToggle.checked = false;
-                            alert('Please allow notification permissions in your browser settings.');
-                        } else if (Notification.permission !== 'granted') {
-                            Notification.requestPermission().then(perm => {
-                                if (perm !== 'granted') {
-                                    notifyToggle.checked = false;
-                                    if (perm === 'denied') {
-                                        alert('Please allow notification permissions in your browser settings.');
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            } else {
-                // Notifications not supported - disable the toggle
-                notifyToggle.checked = false;
-                notifyToggle.disabled = true;
-            }
+            // Initialize Pixel Grid
+            renderPixels();
+            updatePixelDisplay();
 
             // 3. Global Click Listener for Tag Menu
             document.addEventListener('click', (e) => {
@@ -1047,9 +1067,9 @@
             els.durationBtns.forEach(btn => {
                 const btnMins = parseInt(btn.dataset.min);
                 if (btnMins === mins) {
-                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-700 text-white shadow-sm';
+                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm';
                 } else {
-                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-400 hover:text-white';
+                    btn.className = 'duration-btn px-4 py-2 rounded-full text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white';
                 }
             });
         }
@@ -1102,20 +1122,20 @@
             const btnLong = document.getElementById('modeLongBreak');
 
             [btnWork, btnShort, btnLong].forEach(btn => {
-                btn.className = 'px-6 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white';
+                btn.className = 'px-6 py-2 rounded-lg text-sm font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white';
             });
 
             if (mode === 'work') {
-                btnWork.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-rose-500 text-white shadow-lg shadow-rose-500/20';
+                btnWork.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-rose-500 text-slate-900 dark:text-white shadow-lg shadow-rose-500/20';
                 setDuration(25);
                 // Reset to default tag for work
                 resetTimerToDefaultTag();
             } else if (mode === 'short_break') {
-                btnShort.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/20';
+                btnShort.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-emerald-500 text-slate-900 dark:text-white shadow-lg shadow-emerald-500/20';
                 setDuration(5);
                 setBreakTag();
             } else if (mode === 'long_break') {
-                btnLong.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-blue-500 text-white shadow-lg shadow-blue-500/20';
+                btnLong.className = 'px-6 py-2 rounded-lg text-sm font-medium transition bg-blue-500 text-slate-900 dark:text-white shadow-lg shadow-blue-500/20';
                 setDuration(15);
                 setBreakTag();
             }
@@ -1359,9 +1379,9 @@
             if (!menu) return;
 
             const listHtml = tags.map(t => `
-                <button type="button" onclick="selectSaveTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-700 transition flex items-center gap-2">
+                <button type="button" onclick="selectSaveTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-200 dark:bg-slate-700 transition flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
-                    <span class="text-sm text-slate-300 hover:text-white">${t.name}</span>
+                    <span class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white">${t.name}</span>
                 </button>
             `).join('');
 
@@ -1522,13 +1542,13 @@
             if (tab === 'timer') {
                 timerView.classList.remove('hidden');
                 logView.classList.add('hidden');
-                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg';
-                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white';
+                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-slate-900 dark:text-white shadow-lg';
+                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white';
             } else {
                 timerView.classList.add('hidden');
                 logView.classList.remove('hidden');
-                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-400 hover:text-white';
-                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-lg';
+                timerBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white';
+                logBtn.className = 'px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 bg-indigo-600 text-slate-900 dark:text-white shadow-lg';
             }
         }
 
@@ -1596,14 +1616,14 @@
 
             const toast = document.createElement('div');
             toast.id = 'successToast';
-            toast.className = `fixed top-6 left-1/2 -translate-x-1/2 ${bgColor} backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[1000] border border-white/10 transition-all duration-300 opacity-0 -translate-y-4`;
+            toast.className = `fixed top-6 left-1/2 -translate-x-1/2 ${bgColor} backdrop-blur-md text-slate-900 dark:text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 z-[1000] border border-white/10 transition-all duration-300 opacity-0 -translate-y-4`;
             toast.innerHTML = `
                 <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
                     <i class="fas ${icon} text-xl"></i>
                 </div>
                 <div>
                     <div class="font-bold text-lg">${title}</div>
-                    ${message ? `<div class="text-sm text-white/80">${message}</div>` : ''}
+                    ${message ? `<div class="text-sm text-slate-900 dark:text-white/80">${message}</div>` : ''}
                 </div>
             `;
             document.body.appendChild(toast);
@@ -1646,9 +1666,9 @@
             if (!menu) return;
 
             menu.innerHTML = tags.map(t => `
-                <button type="button" onclick="selectQuickLogTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-700 transition flex items-center gap-2">
+                <button type="button" onclick="selectQuickLogTag(${t.id})" class="w-full text-left px-3 py-2 hover:bg-slate-200 dark:bg-slate-700 transition flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
-                    <span class="text-sm text-slate-300 hover:text-white">${t.name}</span>
+                    <span class="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white">${t.name}</span>
                 </button>
             `).join('');
 
@@ -1785,7 +1805,7 @@
                 if (val === 0) {
                     div.className = 'pixel-block invisible';
                 } else {
-                    div.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
+                    div.className = 'pixel-block bg-slate-100 dark:bg-slate-800 rounded-sm transition-all duration-300';
                     div.dataset.type = val; // 1=Body, 2=Stem
                     // Keep aspect ratio roughly square
                     div.style.aspectRatio = '1/1';
@@ -1825,7 +1845,7 @@
                 } else {
                     if (block.classList.contains('pixel-filled')) {
                         block.style.backgroundColor = '';
-                        block.className = 'pixel-block bg-slate-800 rounded-sm transition-all duration-300';
+                        block.className = 'pixel-block bg-slate-100 dark:bg-slate-800 rounded-sm transition-all duration-300';
                         block.style.filter = '';
                         block.style.boxShadow = '';
                         block.classList.remove('pixel-filled');
@@ -1901,10 +1921,10 @@
 
             if (els.tagList) {
                 els.tagList.innerHTML = tags.map(t => `
-                <div class="w-full px-3 py-1 hover:bg-slate-700/50 transition flex items-center justify-between group">
+                <div class="w-full px-3 py-1 hover:bg-slate-200 dark:bg-slate-700/50 transition flex items-center justify-between group">
                     <button onclick="selectTag(${t.id})" class="flex-1 flex items-center gap-2 py-1.5 text-left">
                         <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${t.color}"></span>
-                        <span class="text-sm ${currentTag && t.id === currentTag.id ? 'text-white font-bold' : 'text-slate-300 group-hover:text-white'}">${t.name}</span>
+                        <span class="text-sm ${currentTag && t.id === currentTag.id ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:text-white'}">${t.name}</span>
                     </button>
                     ${showActions ? `
                     <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -1926,7 +1946,7 @@
             const manageList = document.getElementById('manageTagList');
             if (manageList) {
                 manageList.innerHTML = tags.map(t => `
-                    <div class="bg-slate-900/50 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between group">
+                    <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 p-3 rounded-xl flex items-center justify-between group">
                         <div class="flex items-center gap-3">
                             <div class="w-4 h-4 rounded-full shadow-sm" style="background-color: ${t.color}"></div>
                             <div>
@@ -1935,11 +1955,11 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button onclick="editTag(${t.id})" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition">
+                            <button onclick="editTag(${t.id})" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 transition">
                                 <i class="fas fa-edit text-sm"></i>
                             </button>
                             ${!t.isDefault ? `
-                            <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition">
+                            <button onclick="confirmDeleteTag(${t.id}, '${t.name.replace(/'/g, "\\'")}')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition">
                                 <i class="fas fa-trash text-sm"></i>
                             </button>
                             ` : ''}
@@ -2074,7 +2094,7 @@
                 if (!document.getElementById('db-warning-toast')) {
                     const toast = document.createElement('div');
                     toast.id = 'db-warning-toast';
-                    toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full shadow-lg z-50 animate-bounce';
+                    toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-slate-900 dark:text-white px-6 py-2 rounded-full shadow-lg z-50 animate-bounce';
                     toast.innerText = 'Please open database in Dashboard';
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 3000);
@@ -2155,8 +2175,8 @@
                 'customWeek': 'rangeBtnCustomWeek'
             };
 
-            const activeClass = 'bg-rose-600 text-white shadow-sm';
-            const inactiveClass = 'text-slate-400 hover:text-white';
+            const activeClass = 'bg-rose-600 text-slate-900 dark:text-white shadow-sm';
+            const inactiveClass = 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:text-white';
 
             Object.entries(buttons).forEach(([m, id]) => {
                 const btn = document.getElementById(id);
@@ -2331,19 +2351,19 @@
                     scales: {
                         x: {
                             min: 0,
-                            max: 24, // WILL BE OVERRIDDEN by slider logic immediately after
-                            grid: { color: '#334155' },
+                            max: 24,
+                            grid: { color: document.documentElement.classList.contains('dark') ? '#334155' : '#e2e8f0' },
                             ticks: {
                                 stepSize: 1,
                                 callback: function (value) {
                                     return value + ':00';
                                 },
-                                color: '#94a3b8'
+                                color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#475569'
                             }
                         },
                         y: {
                             grid: { display: false },
-                            ticks: { color: '#cbd5e1' }
+                            ticks: { color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#64748b' }
                         }
                     }
                 }
@@ -2388,8 +2408,8 @@
                 trendChart.options.scales.x.ticks.stepSize = 4; // Less dense ticks
                 trendChart.update();
 
-                btn.classList.add('bg-blue-600', 'border-blue-500', 'text-white');
-                btn.classList.remove('text-slate-400', 'border-slate-600');
+                btn.classList.add('bg-blue-600', 'border-blue-500', 'text-slate-900 dark:text-white');
+                btn.classList.remove('text-slate-600 dark:text-slate-400', 'border-slate-300 dark:border-slate-600');
                 btn.innerHTML = '<i class="fas fa-compress"></i> Exit';
 
                 sliderContainer.classList.add('opacity-50', 'pointer-events-none');
@@ -2401,8 +2421,8 @@
                 trendChart.options.scales.x.ticks.stepSize = 1; // Detailed ticks
                 trendChart.update();
 
-                btn.classList.remove('bg-blue-600', 'border-blue-500', 'text-white');
-                btn.classList.add('text-slate-400', 'border-slate-600');
+                btn.classList.remove('bg-blue-600', 'border-blue-500', 'text-slate-900 dark:text-white');
+                btn.classList.add('text-slate-600 dark:text-slate-400', 'border-slate-300 dark:border-slate-600');
                 btn.innerHTML = '<i class="fas fa-expand"></i> Full View';
 
                 sliderContainer.classList.remove('opacity-50', 'pointer-events-none');
@@ -2467,7 +2487,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'right', labels: { color: '#94a3b8' } },
+                        legend: { position: 'right', labels: { color: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#475569' } },
                         tooltip: {
                             callbacks: {
                                 label: function (context) {
@@ -2514,10 +2534,10 @@
                 const tag = tags.find(t => t.name === historyTagFilter);
                 const color = tag?.color || '#94a3b8';
                 filterEl.innerHTML = `
-                    <span class="flex items-center gap-1.5 px-2 py-1 bg-slate-700 rounded-lg text-xs">
+                    <span class="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded-lg text-xs">
                         <span class="w-2 h-2 rounded-full" style="background: ${color}"></span>
-                        <span class="text-slate-300">${historyTagFilter}</span>
-                        <button onclick="clearHistoryTagFilter()" class="ml-1 text-slate-400 hover:text-white transition">
+                        <span class="text-slate-600 dark:text-slate-300">${historyTagFilter}</span>
+                        <button onclick="clearHistoryTagFilter()" class="ml-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white transition">
                             <i class="fas fa-times text-[10px]"></i>
                         </button>
                     </span>
@@ -2617,20 +2637,20 @@
                 }
 
                 return `
-                    <div class="p-4 hover:bg-slate-700/50 transition flex items-center justify-between group">
+                    <div class="p-4 hover:bg-slate-200 dark:bg-slate-700/50 transition flex items-center justify-between group">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
-                            <div class="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 font-bold shrink-0">
+                            <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 font-bold shrink-0">
                                 ${s.duration}
                             </div>
                             <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="w-2 h-2 rounded-full" style="background-color: ${tag.color}"></span>
-                                    <span class="font-medium text-slate-200">${escapeHtml(tag.name)}</span>
+                                    <span class="font-bold text-slate-900 dark:text-slate-200 text-xs">${escapeHtml(tag.name)}</span>
                                     ${statusBadge}
                                 </div>
-                                ${s.title ? `<div class="text-sm text-white mb-1 break-words">${escapeHtml(s.title)}</div>` : ''}
-                                ${s.description ? `<div class="text-xs text-slate-400 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
-                                <div class="text-xs text-slate-500">${dateStr} ${startTimeStr} - ${endTimeStr}</div>
+                                ${s.title ? `<div class="text-sm text-slate-900 dark:text-white mb-1 break-words">${escapeHtml(s.title)}</div>` : ''}
+                                ${s.description ? `<div class="text-xs text-slate-600 dark:text-slate-400 mb-1 break-words">${escapeHtml(s.description)}</div>` : ''}
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">${dateStr} ${startTimeStr} - ${endTimeStr}</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
@@ -2744,7 +2764,7 @@
 
             const toast = document.createElement('div');
             toast.id = 'undoToast';
-            toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[1000] border border-slate-700/50 animate-fade-in';
+            toast.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800/90 backdrop-blur-md text-slate-900 dark:text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[1000] border border-slate-200 dark:border-slate-700/50 animate-fade-in';
             toast.innerHTML = `
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center">
@@ -2753,8 +2773,8 @@
                     <span class="text-sm font-medium">Activity log deleted</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="undoDelete()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all active:scale-95">Undo</button>
-                    <button onclick="this.parentElement.parentElement.remove()" class="p-2 text-slate-500 hover:text-white transition">
+                    <button onclick="undoDelete()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-slate-900 dark:text-white rounded-lg text-sm font-bold transition-all active:scale-95">Undo</button>
+                    <button onclick="this.parentElement.parentElement.remove()" class="p-2 text-slate-500 hover:text-slate-900 dark:text-white transition">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -2995,7 +3015,7 @@
             });
 
             if (weekSessions.length === 0) {
-                preview.innerHTML = '<div class="text-center text-slate-500 py-12 bg-slate-900 border border-dashed border-slate-700 rounded-lg">No activity logs for this week</div>';
+                preview.innerHTML = '<div class="text-center text-slate-500 py-12 bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">No activity logs for this week</div>';
                 return;
             }
 
@@ -3371,7 +3391,7 @@
 
             const toast = document.createElement('div');
             toast.id = 'sync-warning-toast';
-            toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
+            toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-amber-600 text-slate-900 dark:text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3';
             toast.innerHTML = `
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>${message}</span>
@@ -3545,6 +3565,11 @@
         setDuration(25);
         // History filter is now button-based, default is 'today' (set in setHistoryFilter)
 
+        window.addEventListener('themeChanged', () => {
+            if (!els.statsOverlay.classList.contains('translate-y-full')) {
+                updateStatsUI();
+            }
+        });
     </script>
 </body>
 

@@ -1,29 +1,49 @@
 /* Global Styles for LocalForge */
 
 /* === Custom Scrollbar (Slate Theme) === */
+/* === Custom Scrollbar (Slate Theme - Dark Mode) === */
+.dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: #1e293b; /* slate-800 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569; /* slate-600 */
+    border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* slate-500 */
+}
+
+/* === Custom Scrollbar (Light Mode) === */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #1e293b; /* slate-800 */
+    background: #f1f5f9; /* slate-100 */
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #475569; /* slate-600 */
+    background: #cbd5e1; /* slate-300 */
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #64748b; /* slate-500 */
+    background: #94a3b8; /* slate-400 */
 }
 
 /* === Form Input Fixes for Dark Mode === */
 /* Inverts the calendar icon in date/time inputs so it's visible on dark backgrounds */
-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
 }

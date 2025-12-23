@@ -11,6 +11,20 @@
     <!-- sql.js for SQLite in browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <!-- Custom Components -->
     <script type="module" src="js/components.js"></script>
     <!-- Global Styles -->
@@ -119,45 +133,69 @@
             opacity: 1;
         }
 
-        /* 柔和的背景色定义 */
+        /* Theme-aware Phase Backgrounds */
+        /* Default (Light Mode) - Soft Pastels */
         .bg-phase-setup {
+            background-color: #f8fafc;
+        }
+
+        /* Slate 50 */
+        .bg-phase-work {
+            background-color: #e0e7ff;
+        }
+
+        /* Indigo 100 */
+        .bg-phase-rest {
+            background-color: #dcfce7;
+        }
+
+        /* Emerald 100 */
+        .bg-phase-ready {
+            background-color: #ffedd5;
+        }
+
+        /* Orange 100 */
+
+        /* Dark Mode - Immersive Deep tones */
+        :root.dark .bg-phase-setup {
             background-color: #0f172a;
         }
 
         /* Slate 900 */
-        .bg-phase-work {
+        :root.dark .bg-phase-work {
             background-color: #1e1b4b;
         }
 
         /* Indigo 950 */
-        .bg-phase-rest {
+        :root.dark .bg-phase-rest {
             background-color: #064e3b;
         }
 
-        /* Emerald 950/Teal */
-        .bg-phase-ready {
+        /* Emerald 950 */
+        :root.dark .bg-phase-ready {
             background-color: #431407;
         }
 
-        /* Orange 950/Rust */
+        /* Orange 950 */
     </style>
 </head>
 
-<body class="bg-phase-setup text-white font-sans h-screen overflow-hidden flex select-none">
+<body
+    class="bg-phase-setup dark:bg-slate-900 text-slate-800 dark:text-white font-sans h-screen overflow-hidden flex select-none transition-colors duration-300">
 
     <local-sidebar></local-sidebar>
 
     <div class="flex-1 flex flex-col min-w-0 relative">
         <!-- 顶部导航/标题 -->
         <local-header title="HIIT Jump Rope">
-            <i slot="icon" class="fas fa-stopwatch text-white"></i>
+            <i slot="icon" class="fas fa-stopwatch text-indigo-500 dark:text-white"></i>
             <div slot="actions" class="flex items-center gap-2">
                 <button id="resetBtn"
                     class="hidden text-sm bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full transition border border-white/10">
                     <i class="fas fa-redo-alt mr-1"></i> Reset
                 </button>
                 <button id="statsBtn"
-                    class="text-base bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition ml-2 border border-white/10">
+                    class="text-base bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white px-4 py-2 rounded-full transition ml-2 border border-slate-200 dark:border-white/10">
                     <i class="fas fa-chart-line mr-1"></i> Stats
                 </button>
             </div>
@@ -170,29 +208,30 @@
                 <!-- 1. Setup Screen -->
                 <div id="setupScreen" class="w-full space-y-6 animate-fade-in py-6 max-w-md mx-auto">
                     <div class="text-center space-y-2">
-                        <h2 class="text-3xl font-bold tracking-tight">Jump Master</h2>
-                        <p class="text-slate-400 text-sm">Optimize your HIIT performance</p>
+                        <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Jump Master</h2>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm">Optimize your HIIT performance</p>
                     </div>
 
                     <div class="space-y-4">
                         <!-- 运动时间 -->
-                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                        <div
+                            class="bg-white dark:bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm dark:shadow-none">
                             <label
-                                class="flex justify-between text-indigo-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                                class="flex justify-between text-indigo-600 dark:text-indigo-300 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-fire-alt mr-2"></i>Jump Interval</span>
                                 <span id="workDisplay"
-                                    class="bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-400">60s</span>
+                                    class="bg-indigo-100 dark:bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-600 dark:text-indigo-400">60s</span>
                             </label>
                             <div class="flex items-center gap-4">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="workInput" data-delta="-5">
                                     <i class="fas fa-minus"></i>
                                 </button>
                                 <input type="range" id="workInput" min="30" max="90" step="5" value="60"
-                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                    class="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="workInput" data-delta="5">
                                     <i class="fas fa-plus"></i>
                                 </button>
@@ -200,23 +239,24 @@
                         </div>
 
                         <!-- 休息时间 -->
-                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                        <div
+                            class="bg-white dark:bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm dark:shadow-none">
                             <label
-                                class="flex justify-between text-emerald-300 font-bold mb-3 uppercase text-xs tracking-wider">
+                                class="flex justify-between text-emerald-600 dark:text-emerald-300 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-coffee mr-2"></i>Rest Interval</span>
                                 <span id="restDisplay"
-                                    class="bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-400">45s</span>
+                                    class="bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-600 dark:text-emerald-400">45s</span>
                             </label>
                             <div class="flex items-center gap-4">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="restInput" data-delta="-5">
                                     <i class="fas fa-minus"></i>
                                 </button>
                                 <input type="range" id="restInput" min="30" max="90" step="5" value="45"
-                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                    class="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="restInput" data-delta="5">
                                     <i class="fas fa-plus"></i>
                                 </button>
@@ -225,18 +265,20 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <!-- 轮数 -->
-                            <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                            <div
+                                class="bg-white dark:bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm dark:shadow-none">
                                 <label
-                                    class="block text-blue-300 font-bold mb-3 uppercase text-xs tracking-wider">Rounds</label>
+                                    class="block text-blue-600 dark:text-blue-300 font-bold mb-3 uppercase text-xs tracking-wider">Rounds</label>
                                 <div class="flex items-center justify-between">
                                     <button type="button"
-                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                         data-target="roundsInput" data-delta="-1">
                                         <i class="fas fa-minus text-xs"></i>
                                     </button>
-                                    <span id="roundsDisplay" class="text-xl font-black">7</span>
+                                    <span id="roundsDisplay"
+                                        class="text-xl font-black text-slate-900 dark:text-white">7</span>
                                     <button type="button"
-                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                         data-target="roundsInput" data-delta="1">
                                         <i class="fas fa-plus text-xs"></i>
                                     </button>
@@ -244,19 +286,21 @@
                                 <input type="range" id="roundsInput" min="1" max="15" step="1" value="7" class="hidden">
                             </div>
                             <!-- 体重 -->
-                            <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                            <div
+                                class="bg-white dark:bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm dark:shadow-none">
                                 <label
-                                    class="block text-purple-300 font-bold mb-3 uppercase text-xs tracking-wider">Weight</label>
+                                    class="block text-purple-600 dark:text-purple-300 font-bold mb-3 uppercase text-xs tracking-wider">Weight</label>
                                 <div class="flex items-center justify-between">
                                     <button type="button"
-                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                         data-target="weightInput" data-delta="-1">
                                         <i class="fas fa-minus text-xs"></i>
                                     </button>
-                                    <span id="weightDisplay" class="text-lg font-black">70<span
+                                    <span id="weightDisplay"
+                                        class="text-lg font-black text-slate-900 dark:text-white">70<span
                                             class="text-xs ml-0.5">kg</span></span>
                                     <button type="button"
-                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center"
+                                        class="adjust-btn w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                         data-target="weightInput" data-delta="1">
                                         <i class="fas fa-plus text-xs"></i>
                                     </button>
@@ -267,23 +311,25 @@
                         </div>
 
                         <!-- 目标配速 (Pace) -->
-                        <div class="bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-700/50">
+                        <div
+                            class="bg-white dark:bg-slate-800/50 backdrop-blur-md p-5 rounded-3xl border border-slate-200 dark:border-slate-700/50 shadow-sm dark:shadow-none">
                             <label
-                                class="flex justify-between text-lime-400 font-bold mb-3 uppercase text-xs tracking-wider">
+                                class="flex justify-between text-lime-600 dark:text-lime-400 font-bold mb-3 uppercase text-xs tracking-wider">
                                 <span><i class="fas fa-tachometer-alt mr-2"></i>Target Pace (Jumps/Min)</span>
-                                <span id="paceDisplay" class="bg-lime-500/20 px-2 py-0.5 rounded text-lime-400">140
+                                <span id="paceDisplay"
+                                    class="bg-lime-100 dark:bg-lime-500/20 px-2 py-0.5 rounded text-lime-600 dark:text-lime-400">140
                                     JPM</span>
                             </label>
                             <div class="flex items-center gap-4">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="paceInput" data-delta="-10">
                                     <i class="fas fa-minus"></i>
                                 </button>
                                 <input type="range" id="paceInput" min="100" max="180" step="10" value="140"
-                                    class="flex-1 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-500">
+                                    class="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-lime-500">
                                 <button type="button"
-                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                                    class="adjust-btn w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center transition text-slate-600 dark:text-white"
                                     data-target="paceInput" data-delta="10">
                                     <i class="fas fa-plus"></i>
                                 </button>
@@ -296,7 +342,9 @@
                             class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-2xl shadow-2xl transform transition active:scale-[0.98] text-xl uppercase tracking-widest">
                             Start Session
                         </button>
-                        <p class="text-center text-[10px] text-slate-500 mt-4 uppercase tracking-[0.2em]">Est. Duration:
+                        <p
+                            class="text-center text-[10px] text-slate-600 dark:text-slate-500 mt-4 uppercase tracking-[0.2em]">
+                            Est. Duration:
                             <span id="totalTimeDisplay">08:00</span>
                         </p>
                     </div>
@@ -308,11 +356,14 @@
 
                     <!-- 状态标签 -->
                     <div class="absolute top-4 text-center z-10">
-                        <div id="phaseText" class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl">GET
+                        <div id="phaseText"
+                            class="text-5xl font-black uppercase tracking-[0.3em] drop-shadow-2xl text-slate-800 dark:text-white">
+                            GET
                             READY</div>
-                        <div class="text-sm font-bold opacity-60 mt-2 uppercase tracking-widest">
-                            Round <span id="currentRoundDisplay" class="text-white">1</span> of <span
-                                id="totalRoundsDisplay">8</span>
+                        <div
+                            class="text-sm font-bold mt-2 uppercase tracking-widest text-slate-800 dark:text-slate-300">
+                            Round <span id="currentRoundDisplay" class="text-slate-900 dark:text-white">1</span> of
+                            <span id="totalRoundsDisplay">8</span>
                         </div>
                     </div>
 
@@ -322,32 +373,36 @@
                     </div>
 
                     <!-- 圆形进度条容器 -->
-                    <div class="relative w-80 h-80 flex items-center justify-center z-10">
+                    <div class="relative w-80 h-80 flex items-center justify-center z-10 -mt-16">
                         <svg class="progress-ring w-full h-full" viewBox="0 0 120 120">
-                            <circle class="text-white/5" stroke-width="6" stroke="currentColor" fill="transparent"
-                                r="54" cx="60" cy="60" />
-                            <circle id="progressCircle" class="progress-ring__circle text-white" stroke-width="6"
-                                stroke-linecap="round" stroke="currentColor" fill="transparent" r="54" cx="60"
-                                cy="60" />
+                            <circle class="text-slate-200 dark:text-white/5" stroke-width="6" stroke="currentColor"
+                                fill="transparent" r="54" cx="60" cy="60" />
+                            <circle id="progressCircle" class="progress-ring__circle text-slate-800 dark:text-white"
+                                stroke-width="6" stroke-linecap="round" stroke="currentColor" fill="transparent" r="54"
+                                cx="60" cy="60" />
                         </svg>
 
                         <!-- 中间的大数字 -->
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pt-4">
                             <span id="timerDisplay"
-                                class="text-8xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl">00:00</span>
+                                class="text-6xl font-black font-mono tabular-nums tracking-tighter drop-shadow-2xl text-slate-900 dark:text-white leading-none">00:00</span>
                             <button id="toggleBtn"
-                                class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full w-14 h-14 flex items-center justify-center transition active:scale-90">
+                                class="mt-4 bg-slate-900/5 hover:bg-slate-900/10 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-xl border border-slate-900/10 dark:border-white/20 rounded-full w-14 h-14 flex items-center justify-center transition active:scale-90 text-slate-900 dark:text-white">
                                 <i id="toggleIcon" class="fas fa-pause text-xl"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- 下一阶段提示 -->
-                    <div class="absolute bottom-32 text-center opacity-40 z-10">
-                        <p class="text-[10px] uppercase tracking-[0.3em] mb-1">Coming Up</p>
-                        <p id="nextPhaseText" class="font-black text-xl uppercase tracking-widest">JUMP</p>
+                    <div class="absolute bottom-32 text-center z-10 text-slate-700 dark:text-white">
+                        <p class="text-[10px] uppercase tracking-[0.3em] mb-1 font-bold">Coming Up</p>
+                        <p id="nextPhaseText"
+                            class="font-black text-xl uppercase tracking-widest text-slate-800 dark:text-white">JUMP</p>
                     </div>
                 </div>
+
+                <!-- 3. Summary Screen -->
+                <div id="summaryScreen" class="hidden w-full max-w-md mx-auto animate-fade-in py-6"> </div>
 
                 <!-- 3. Complete Screen -->
                 <div id="completeScreen"
@@ -355,33 +410,39 @@
                     <div class="text-6xl text-yellow-400 animate-bounce">
                         <i class="fas fa-trophy"></i>
                     </div>
-                    <h2 class="text-4xl font-bold">Workout Complete!</h2>
-                    <p class="text-lg text-slate-200">Great job!</p>
+                    <h2 class="text-4xl font-bold text-slate-800 dark:text-white">Workout Complete!</h2>
+                    <p class="text-lg text-slate-600 dark:text-slate-200">Great job!</p>
 
                     <!-- 训练统计 -->
                     <div class="w-full max-w-xs space-y-3 mt-4">
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                        <div
+                            class="bg-white dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center shadow-sm dark:shadow-none border border-slate-200 dark:border-transparent">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-indigo-500/30 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-clock text-indigo-400"></i>
+                                <div
+                                    class="w-10 h-10 bg-indigo-500/10 dark:bg-indigo-500/30 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-clock text-indigo-600 dark:text-indigo-400"></i>
                                 </div>
-                                <span class="text-slate-300">Jump Time</span>
+                                <span class="text-slate-600 dark:text-slate-300">Jump Time</span>
                             </div>
-                            <span id="finalWorkTime" class="text-xl font-bold text-indigo-400">00:00</span>
+                            <span id="finalWorkTime"
+                                class="text-xl font-bold text-indigo-600 dark:text-indigo-400">00:00</span>
                         </div>
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center">
+                        <div
+                            class="bg-white dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 flex justify-between items-center shadow-sm dark:shadow-none border border-slate-200 dark:border-transparent">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-orange-500/30 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-fire text-orange-400"></i>
+                                <div
+                                    class="w-10 h-10 bg-orange-500/10 dark:bg-orange-500/30 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-fire text-orange-600 dark:text-orange-400"></i>
                                 </div>
-                                <span class="text-slate-300">Calories Burned</span>
+                                <span class="text-slate-600 dark:text-slate-300">Calories Burned</span>
                             </div>
-                            <span id="finalCalories" class="text-xl font-bold text-orange-400">0 kcal</span>
+                            <span id="finalCalories" class="text-xl font-bold text-orange-600 dark:text-orange-400">0
+                                kcal</span>
                         </div>
                     </div>
 
                     <button id="homeBtn"
-                        class="mt-6 bg-white text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-100 transition"
+                        class="mt-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 px-8 rounded-full shadow hover:bg-slate-800 dark:hover:bg-slate-100 transition"
                         onclick="openStats()">
                         Close
                     </button>
@@ -414,45 +475,51 @@
     </div>
 
     <!-- Stats Overlay -->
-    <div id="statsOverlay" class="fixed inset-0 bg-slate-900 z-[60] hidden overflow-y-auto">
-        <div class="max-w-4xl mx-auto px-4 py-8">
+    <div id="statsOverlay"
+        class="fixed inset-0 bg-slate-50 dark:bg-slate-900 z-[60] hidden overflow-y-auto transition-colors duration-300">
+        <div class="max-w-4xl mx-auto px-4 py-8 text-slate-900 dark:text-white">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Training History</h2>
+                <h2 class="text-2xl font-bold">Training Stats</h2>
                 <button onclick="closeStats()"
-                    class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition text-sm font-medium">
+                    class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg transition text-sm font-medium">
                     Close
                 </button>
             </div>
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-slate-800 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-bold text-rose-400" id="statTotalWorkouts">0</div>
-                    <div class="text-slate-400 text-sm mt-1">Total Workouts</div>
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
+                    <div class="text-3xl font-bold text-rose-500 dark:text-rose-400" id="statTotalWorkouts">0</div>
+                    <div class="text-slate-500 dark:text-slate-400 text-sm mt-1">Total Workouts</div>
                 </div>
-                <div class="bg-slate-800 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-bold text-orange-400" id="statTotalCalories">0</div>
-                    <div class="text-slate-400 text-sm mt-1">Total Calories</div>
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
+                    <div class="text-3xl font-bold text-orange-500 dark:text-orange-400" id="statTotalCalories">0</div>
+                    <div class="text-slate-500 dark:text-slate-400 text-sm mt-1">Total Calories</div>
                 </div>
-                <div class="bg-slate-800 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-bold text-emerald-400" id="statTotalTime">0</div>
-                    <div class="text-slate-400 text-sm mt-1">Total Time (min)</div>
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
+                    <div class="text-3xl font-bold text-emerald-500 dark:text-emerald-400" id="statTotalTime">0</div>
+                    <div class="text-slate-500 dark:text-slate-400 text-sm mt-1">Total Time (min)</div>
                 </div>
-                <div class="bg-slate-800 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-bold text-blue-400" id="statAvgCalories">0</div>
-                    <div class="text-slate-400 text-sm mt-1">Avg Calories</div>
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl p-4 text-center border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
+                    <div class="text-3xl font-bold text-blue-500 dark:text-blue-400" id="statAvgCalories">0</div>
+                    <div class="text-slate-500 dark:text-slate-400 text-sm mt-1">Avg Calories</div>
                 </div>
             </div>
 
             <!-- Chart -->
-            <div class="bg-slate-800 rounded-xl p-6 mb-8">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-xl p-6 mb-8 border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-semibold">Trend (Last 30 Days)</h2>
-                    <div class="bg-slate-700/50 p-1 rounded-lg flex text-xs">
+                    <div class="bg-slate-100 dark:bg-slate-700/50 p-1 rounded-lg flex text-xs">
                         <button onclick="renderChart('calories')" id="chartMetricCal"
-                            class="px-3 py-1 rounded-md bg-slate-600 text-white shadow transition">Calories</button>
+                            class="px-3 py-1 rounded-md bg-white dark:bg-slate-600 text-slate-800 dark:text-white shadow transition">Calories</button>
                         <button onclick="renderChart('duration')" id="chartMetricTime"
-                            class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition">Duration</button>
+                            class="px-3 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">Duration</button>
                     </div>
                 </div>
                 <div class="overflow-x-auto pb-4">
@@ -462,15 +529,17 @@
                 </div>
             </div>
 
-            <!-- History List -->
-            <div class="bg-slate-800 rounded-xl p-6">
+            <!-- Stats List -->
+            <div
+                class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-transparent shadow-sm dark:shadow-none">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold">History</h2>
-                    <button onclick="exportDatabase()" class="text-xs text-slate-400 hover:text-white">
+                    <h2 class="text-lg font-semibold">Stats</h2>
+                    <button onclick="exportDatabase()"
+                        class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
                         <i class="fas fa-download mr-1"></i> Export Data
                     </button>
                 </div>
-                <div id="historyList" class="space-y-3">
+                <div id="statsList" class="space-y-3">
                     <div class="text-center text-slate-500 py-8">
                         <i class="fas fa-spinner fa-spin text-2xl"></i>
                         <p class="mt-2">Loading...</p>
@@ -483,46 +552,48 @@
     <!-- Edit Modal -->
     <div id="editModal"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] hidden flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl m-4">
+        <div
+            class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl m-4 text-slate-900 dark:text-white">
             <h3 class="text-xl font-bold mb-4">Edit Workout</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Date & Time</label>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Date & Time</label>
                     <input type="datetime-local" id="edit-date"
-                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                        class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Rounds</label>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Rounds</label>
                         <input type="number" id="edit-rounds"
-                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Calories</label>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Calories</label>
                         <input type="number" id="edit-cals"
-                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Work (s)</label>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Work (s)</label>
                         <input type="number" id="edit-work"
-                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Rest (s)</label>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Rest (s)</label>
                         <input type="number" id="edit-rest"
-                            class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Weight (kg)</label>
+                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Weight (kg)</label>
                     <input type="number" id="edit-weight" step="0.1"
-                        class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white">
+                        class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-3 py-2 text-slate-900 dark:text-white">
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
-                <button onclick="closeEditModal()" class="px-4 py-2 text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="closeEditModal()"
+                    class="px-4 py-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">Cancel</button>
                 <button onclick="saveEdit()"
                     class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">Save</button>
             </div>
@@ -663,9 +734,10 @@
         };
 
         const updateColors = (phase) => {
-            // 重置所有类
+            // Remove all phase classes first
             els.body.classList.remove('bg-phase-setup', 'bg-phase-work', 'bg-phase-rest', 'bg-phase-ready');
 
+            // Re-apply global theme setup class if phase is setup or finished
             if (phase === 'setup' || phase === 'finished') {
                 els.body.classList.add('bg-phase-setup');
             } else if (phase === 'work') {
@@ -1080,14 +1152,14 @@
             // Hide completion screen if visible
             if (els.completionScreen) els.completionScreen.classList.add('hidden');
             els.statsOverlay.classList.remove('hidden');
-            renderAllStats();
+            renderAllStatsUI();
         }
 
         function closeStats() {
             els.statsOverlay.classList.add('hidden');
         }
 
-        async function renderAllStats() {
+        async function renderAllStatsUI() {
             if (!db.isOpen) {
                 // console.warn('Database not open');
                 // Optional: Show prompt to user
@@ -1108,7 +1180,7 @@
 
             await renderSummary();
             await renderChart(currentChartMetric);
-            await renderHistory();
+            await renderStatsList();
         }
 
         async function executeQueryResult(sql, params = []) {
@@ -1148,16 +1220,20 @@
             // UI Toggle State
             const btnCal = document.getElementById('chartMetricCal');
             const btnTime = document.getElementById('chartMetricTime');
+            const isDark = document.documentElement.classList.contains('dark');
+            const activeClasses = ['bg-slate-600', 'text-white', 'shadow', 'dark:bg-slate-600'];
+            const inactiveClasses = ['text-slate-600', 'dark:text-slate-400'];
+
             if (metric === 'calories') {
-                btnCal.classList.add('bg-slate-600', 'text-white', 'shadow');
-                btnCal.classList.remove('text-slate-400');
-                btnTime.classList.remove('bg-slate-600', 'text-white', 'shadow');
-                btnTime.classList.add('text-slate-400');
+                btnCal.classList.add(...activeClasses);
+                btnCal.classList.remove(...inactiveClasses);
+                btnTime.classList.remove(...activeClasses);
+                btnTime.classList.add(...inactiveClasses);
             } else {
-                btnTime.classList.add('bg-slate-600', 'text-white', 'shadow');
-                btnTime.classList.remove('text-slate-400');
-                btnCal.classList.remove('bg-slate-600', 'text-white', 'shadow');
-                btnCal.classList.add('text-slate-400');
+                btnTime.classList.add(...activeClasses);
+                btnTime.classList.remove(...inactiveClasses);
+                btnCal.classList.remove(...activeClasses);
+                btnCal.classList.add(...inactiveClasses);
             }
 
             let sql = '';
@@ -1230,12 +1306,12 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { color: '#94a3b8' }
+                            grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+                            ticks: { color: isDark ? '#94a3b8' : '#475569' }
                         },
                         x: {
                             grid: { display: false },
-                            ticks: { color: '#94a3b8' }
+                            ticks: { color: isDark ? '#94a3b8' : '#475569' }
                         }
                     },
                     plugins: {
@@ -1245,7 +1321,7 @@
             });
         }
 
-        async function renderHistory() {
+        async function renderStatsList() {
             let query = `
                 SELECT id, date, rounds, work_time, rest_time, total_work_time, calories, weight, total_time
                 FROM workouts
@@ -1256,7 +1332,7 @@
             let result = await executeQueryResult(query);
 
             if (!result || result.length === 0 || result[0].values.length === 0) {
-                document.getElementById('historyList').innerHTML = `
+                document.getElementById('statsList').innerHTML = `
                     <div class="text-center text-slate-500 py-12">
                         <i class="fas fa-calendar-times text-4xl mb-4 opacity-20"></i>
                         <p>No workout records found</p>
@@ -1274,7 +1350,7 @@
                 const workSecs = totalWorkTime % 60;
 
                 return `
-                    <div class="p-4 hover:bg-slate-700/30 transition flex items-center justify-between group border-l-4 border-indigo-500/50 bg-slate-800/20 rounded-r-xl">
+                    <div class="p-4 hover:bg-slate-200 dark:hover:bg-slate-700/30 transition flex items-center justify-between group border-l-4 border-indigo-500/50 bg-slate-100 dark:bg-slate-800/20 rounded-r-xl">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex flex-col items-center justify-center text-indigo-400 shrink-0">
                                 <span class="text-xs font-black leading-none">${rounds}</span>
@@ -1282,19 +1358,19 @@
                             </div>
                             <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <i class="fas fa-bolt text-[10px] text-lime-400"></i>
-                                    <span class="font-bold text-slate-200">${dateStr}</span>
+                                    <i class="fas fa-bolt text-[10px] text-lime-500 dark:text-lime-400"></i>
+                                    <span class="font-bold text-slate-900 dark:text-slate-200">${dateStr}</span>
                                 </div>
-                                <div class="text-xs text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
-                                    <span><i class="fas fa-stopwatch mr-1 opacity-50"></i>${workTime}s / ${restTime}s</span>
-                                    <span><i class="fas fa-clock mr-1 opacity-50"></i>Jump ${workMins}m ${workSecs}s</span>
+                                <div class="text-xs text-slate-600 dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
+                                    <span><i class="fas fa-stopwatch mr-1 opacity-60 dark:opacity-50"></i>${workTime}s / ${restTime}s</span>
+                                    <span><i class="fas fa-clock mr-1 opacity-60 dark:opacity-50"></i>Jump ${workMins}m ${workSecs}s</span>
                                 </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-4 shrink-0">
                             <div class="text-right px-2">
-                                <div class="text-xl font-black text-orange-400 leading-none">${calories}</div>
-                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">kcal</div>
+                                <div class="text-xl font-black text-orange-600 dark:text-orange-400 leading-none">${calories}</div>
+                                <div class="text-[10px] font-bold text-slate-600 dark:text-slate-500 uppercase tracking-tighter">kcal</div>
                             </div>
                             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                                 <button onclick="openEditModal(${id}, '${date}', ${rounds}, ${workTime}, ${restTime}, ${calories}, ${weight})" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition" title="Edit">
@@ -1309,7 +1385,7 @@
                 `;
             }).join('');
 
-            document.getElementById('historyList').innerHTML = `<div class="space-y-3">${html}</div>`;
+            document.getElementById('statsList').innerHTML = `<div class="space-y-3">${html}</div>`;
         }
 
         // --- CRUD for Stats ---
@@ -1435,6 +1511,7 @@
             }
         };
 
+        window.openStats = openStats;
         window.closeStats = closeStats;
         window.exportDatabase = async function () {
             try {
@@ -1539,12 +1616,15 @@
                         await db.init(snapshot.data);
                         // db_opened event will be fired by the worker
                     } else {
-                        console.error('[HIIT] No database found in IDB!');
-                        alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                        console.log('[HIIT] No database found in IDB, initializing new empty DB...');
+                        // alert('数据库未找到！请先在主页 Settings 中打开数据库文件。\n\nNo database found! Please open a database file in Settings first.');
+                        await db.init();
                     }
                 } catch (err) {
                     console.error('[HIIT] Failed to load from IDB:', err);
-                    alert('数据库加载失败！\n\nFailed to load database!');
+                    // alert('数据库加载失败！\n\nFailed to load database!');
+                    console.log('[HIIT] Fallback: Initializing empty DB due to error...');
+                    await db.init();
                 }
             };
 
@@ -1740,7 +1820,7 @@
             // Note: finishWorkout is internal but calls saveWorkout
             openStats: () => {
                 els.statsOverlay.classList.remove('hidden');
-                renderAllStats();
+                renderAllStatsUI();
             },
             // savedEdit, deleteWorkout exposed earlier? No, I need to ensure they are visible.
             // But they were attached to window in previous edits?
@@ -1751,6 +1831,22 @@
 
 
 
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            // Don't trigger if user is typing in an input
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            if (e.key.toLowerCase() === 's') {
+                openStats();
+            } else if (e.key === 'Escape') {
+                closeStats();
+                // Also close edit modal if it's open
+                const editModal = document.getElementById('editModal');
+                if (editModal && !editModal.classList.contains('hidden')) {
+                    closeEditModal();
+                }
+            }
+        });
     </script>
 </body>
 

@@ -17,6 +17,20 @@
     </script>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -29,20 +43,21 @@
 </head>
 
 <body>
-    <div class="flex h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
+    <div
+        class="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
         <!-- Sidebar -->
         <local-sidebar></local-sidebar>
 
         <!-- Main Content (Dashboard Only) -->
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-900 relative">
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-900 relative">
             <!-- Header (Simplified) -->
             <header
-                class="h-16 bg-slate-900 border-b border-slate-800 flex justify-between items-center px-6 shrink-0 z-10">
-                <h2 id="page-title" class="text-lg font-medium text-white">主页概览</h2>
+                class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center px-6 shrink-0 z-10 transition-colors duration-300">
+                <h2 id="page-title" class="text-lg font-medium text-slate-900 dark:text-white">主页概览</h2>
             </header>
 
             <!-- Content Area -->
-            <div class="flex-1 relative overflow-hidden bg-slate-900">
+            <div class="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
                 <!-- Dashboard View -->
                 <div id="dashboard-view" class="absolute inset-0 overflow-y-auto p-8">
                     <div class="max-w-5xl mx-auto space-y-10">
@@ -53,7 +68,7 @@
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- Image Editor -->
                                 <a href="image_editor.html"
-                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
                                     <div
                                         class="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
                                     </div>
@@ -61,13 +76,14 @@
                                         class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-image"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-white mb-1">图片编辑器</h3>
-                                    <p class="text-slate-400 text-xs leading-relaxed">16:9 裁剪、去水印。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">图片编辑器</h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">16:9 裁剪、去水印。
+                                    </p>
                                 </a>
 
                                 <!-- Image Resize -->
                                 <a href="image_resize.html"
-                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-purple-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-purple-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
                                     <div
                                         class="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
                                     </div>
@@ -75,8 +91,8 @@
                                         class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-compress-alt"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-white mb-1">图片压缩</h3>
-                                    <p class="text-slate-400 text-xs leading-relaxed">智能压缩图片体积。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">图片压缩</h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">智能压缩图片体积。</p>
                                 </a>
                             </div>
                         </section>
@@ -87,7 +103,7 @@
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- HIIT Timer -->
                                 <a href="hiit_jump_rope.html"
-                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-rose-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
                                     <div
                                         class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
                                     </div>
@@ -95,8 +111,8 @@
                                         class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-stopwatch"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-white mb-1">HIIT 计时器</h3>
-                                    <p class="text-slate-400 text-xs leading-relaxed">自定义间歇训练计时。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">HIIT 计时器</h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">自定义间歇训练计时。</p>
                                 </a>
                             </div>
                         </section>
@@ -107,7 +123,7 @@
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 <!-- LifeFlow -->
                                 <a href="lifeflow.html"
-                                    class="group p-5 bg-slate-800 rounded-xl border border-slate-700 hover:border-indigo-500/50 hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block">
+                                    class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
                                     <div
                                         class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
                                     </div>
@@ -115,8 +131,9 @@
                                         class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
                                         <i class="fas fa-clock"></i>
                                     </div>
-                                    <h3 class="text-base font-bold text-white mb-1">LifeFlow</h3>
-                                    <p class="text-slate-400 text-xs leading-relaxed">个人生活日志，记录每一刻。</p>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">LifeFlow</h3>
+                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">个人生活日志，记录每一刻。
+                                    </p>
                                 </a>
                             </div>
                         </section>
@@ -130,130 +147,75 @@
         <!-- Hidden File Input for Legacy Browsers -->
         <input type="file" id="db-file-input" hidden accept=".sqlite,.db,application/x-sqlite3">
 
-        <!-- Settings Modal Overlay -->
-        <div id="settings-modal"
-            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center animate-fade-in"
-            onclick="if(event.target === this) closeSettings()">
-            <div
-                class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl transform transition-all scale-100">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold text-white">设置 & 数据库</h3>
-                    <button onclick="closeSettings()" class="text-slate-400 hover:text-white">
-                        <i class="fas fa-times text-lg"></i>
-                    </button>
-                </div>
 
-                <div class="space-y-6">
-                    <!-- DB Status Section -->
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                        <div class="text-sm text-slate-400 mb-2">数据库状态</div>
-                        <div id="modal-db-status" class="flex items-center gap-3 text-amber-400 font-medium">
-                            <div class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></div>
-                            <span id="modal-db-status-text">未连接 (使用内存暂存)</span>
-                        </div>
-                    </div>
 
-                    <!-- Actions -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <button onclick="openDatabase()"
-                            class="flex flex-col items-center justify-center p-4 bg-indigo-600/10 border border-indigo-500/30 rounded-lg hover:bg-indigo-600/20 hover:border-indigo-500 transition group">
-                            <i
-                                class="fas fa-folder-open text-2xl text-indigo-400 mb-2 group-hover:scale-110 transition"></i>
-                            <span class="text-indigo-100 font-medium">打开文件</span>
-                        </button>
+        <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
+            注意：默认建议文件名为 <code>html_tools_db.sqlite</code>。<br>
+            <script type="module">
+                import { db } from './js/db-client.js';
 
-                        <button onclick="saveDatabaseToDisk(event)"
-                            class="flex flex-col items-center justify-center p-4 bg-emerald-600/10 border border-emerald-500/30 rounded-lg hover:bg-emerald-600/20 hover:border-emerald-500 transition group">
-                            <i class="fas fa-save text-2xl text-emerald-400 mb-2 group-hover:scale-110 transition"></i>
-                            <span class="text-emerald-100 font-medium">保存到本地</span>
-                        </button>
-                    </div>
+                // === State ===
+                let dbHandle = null; // FileSystemFileHandle
+                let isAutoSave = true; // Always auto-save to disk
 
-                    <!-- Reset/New Action -->
-                    <button onclick="handleCreateNewDatabase()"
-                        class="w-full mt-4 flex items-center justify-center gap-2 p-3 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-300 transition text-slate-400 text-sm">
-                        <i class="fas fa-plus-circle"></i> <span>新建本地数据库文件</span>
-                    </button>
+                // === Helper Functions (Exposed to Window) ===
+                window.showDashboard = () => {
+                    // Just focus, maybe nothing else needed as we are single page now
+                    // Or maybe reset scroll?
+                };
 
-                    <div class="border-t border-slate-700/50 my-4 pt-4">
-                        <button onclick="clearCacheAndReload()"
-                            class="w-full flex items-center justify-center gap-2 p-3 bg-red-900/20 border border-red-800/50 rounded-lg hover:bg-red-900/40 hover:border-red-600 hover:text-red-300 transition text-red-500/80 text-sm">
-                            <i class="fas fa-trash-alt"></i> <span>清除缓存并修复 (Fix Issues)</span>
-                        </button>
-                    </div>
+                window.showDashboard = () => {
+                    // Just focus, maybe nothing else needed as we are single page now
+                    // Or maybe reset scroll?
+                };
 
-                    <div class="text-center mt-2">
-                        <button onclick="document.getElementById('db-file-input').click()"
-                            class="text-xs text-slate-600 hover:text-slate-400 underline">无法打开? 使用旧版选择器 / Legacy
-                            Picker</button>
-                    </div>
+                function updateDbStatus(text, color) {
+                    if (window.SettingsManager && window.SettingsManager.updateDbStatus) {
+                        window.SettingsManager.updateDbStatus(text, color);
+                    } else if (document.getElementById('modal-db-status-text')) {
+                        // Fallback if class not exposed
+                        const statusText = document.getElementById('modal-db-status-text');
+                        const statusDot = document.querySelector('#modal-db-status div');
+                        const statusContainer = document.getElementById('modal-db-status');
+                        if (statusText) {
+                            statusText.innerText = text;
+                            statusContainer.className = `flex items-center gap-2 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
+                            statusDot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
+                        }
+                    }
+                }
 
-                    <div class="text-xs text-slate-500 text-center leading-relaxed mt-2">
-                        注意：默认建议文件名为 <code>html_tools_db.sqlite</code>。<br>
-                        <script type="module">
-                            import { db } from './js/db-client.js';
+                // === Database Logic Using db-client ===
 
-                            // === State ===
-                            let dbHandle = null; // FileSystemFileHandle
-                            let isAutoSave = true; // Always auto-save to disk
-
-                            // === Helper Functions (Exposed to Window) ===
-                            window.showDashboard = () => {
-                                // Just focus, maybe nothing else needed as we are single page now
-                                // Or maybe reset scroll?
-                            };
-
-                            window.openSettings = () => {
-                                document.getElementById('settings-modal').classList.remove('hidden');
-                            };
-
-                            window.closeSettings = () => {
-                                document.getElementById('settings-modal').classList.add('hidden');
-                            };
-
-                            function updateDbStatus(text, color) {
-                                const statusText = document.getElementById('modal-db-status-text');
-                                const statusDot = document.querySelector('#modal-db-status div');
-                                const statusContainer = document.getElementById('modal-db-status');
-
-                                if (statusText) {
-                                    statusText.innerText = text;
-                                    statusContainer.className = `flex items-center gap-3 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
-                                    statusDot.className = `w-3 h-3 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
-                                }
-                            }
-
-                            // === Database Logic Using db-client ===
-
-                            // Listen for DB events
-                            db.on('ready', () => {
-                                console.log('[Host] db.on(ready) fired');
-                                updateDbStatus('引擎就绪', 'amber');
-                                // Try load from IDB
-                                db.loadSnapshotFromIDB().then(snapshot => {
-                                    if (snapshot && snapshot.data) {
-                                        if (snapshot.handle) dbHandle = snapshot.handle;
-                                        db.init(snapshot.data).then(() => {
-                                            console.log('[Host] Database loaded from IDB snapshot');
-                                            // Prefer dbHandle.name over snapshot.filename
-                                            const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : '缓存数据');
-                                            updateDbStatus(`已恢复: ${displayName}`, 'emerald');
-                                        });
-                                    } else {
-                                        db.init().then(() => {
-                                            console.log('[Host] No snapshot found, created empty database');
-                                            updateDbStatus('新数据库 (内存)', 'amber');
-                                        });
-                                    }
-                                });
+                // Listen for DB events
+                db.on('ready', () => {
+                    console.log('[Host] db.on(ready) fired');
+                    updateDbStatus('引擎就绪', 'amber');
+                    // Try load from IDB
+                    db.loadSnapshotFromIDB().then(snapshot => {
+                        if (snapshot && snapshot.data) {
+                            if (snapshot.handle) dbHandle = snapshot.handle;
+                            db.init(snapshot.data).then(() => {
+                                console.log('[Host] Database loaded from IDB snapshot');
+                                // Prefer dbHandle.name over snapshot.filename
+                                const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : '缓存数据');
+                                updateDbStatus(`已恢复: ${displayName}`, 'emerald');
                             });
+                        } else {
+                            db.init().then(() => {
+                                console.log('[Host] No snapshot found, created empty database');
+                                updateDbStatus('新数据库 (内存)', 'amber');
+                            });
+                        }
+                    });
+                });
 
-                            db.on('db_opened', async () => {
-                                console.log('[Host] Database opened/connected');
+                db.on('db_opened', async () => {
+                    console.log('[Host] Database opened/connected');
 
-                                // Create system-level tables
-                                try {
-                                    await db.execute(`
+                    // Create system-level tables
+                    try {
+                        await db.execute(`
                                         CREATE TABLE IF NOT EXISTS app_config (
                                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                                             tool_name TEXT NOT NULL,
@@ -263,189 +225,63 @@
                                             UNIQUE(tool_name, config_key)
                                         )
                                     `);
-                                    console.log('[Host] System tables initialized');
-                                } catch (err) {
-                                    console.error('[Host] Failed to create system tables:', err);
-                                }
+                        console.log('[Host] System tables initialized');
+                    } catch (err) {
+                        console.error('[Host] Failed to create system tables:', err);
+                    }
 
-                                // index.html should be the primary writer
-                                db.claimWriter();
-                            });
+                    // index.html should be the primary writer
+                    db.claimWriter();
+                });
 
-                            // Handle database updates - ALL pages save to IDB immediately
-                            db.on('db_updated', async () => {
-                                console.log('[Host] DB Updated, saving to IDB...');
-                                try {
-                                    const data = await db.export();
-                                    await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
-                                    console.log('[Host] Saved to IDB');
-                                } catch (err) {
-                                    console.error('[Host] IDB Save Error:', err);
-                                }
-                            });
+                // Handle database updates - ALL pages save to IDB immediately
+                db.on('db_updated', async () => {
+                    console.log('[Host] DB Updated, saving to IDB...');
+                    try {
+                        const data = await db.export();
+                        await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
+                        console.log('[Host] Saved to IDB');
+                    } catch (err) {
+                        console.error('[Host] IDB Save Error:', err);
+                    }
+                });
 
-                            // Handle periodic file sync (only when this page is the writer)
-                            db.on('sync_to_file', async () => {
-                                console.log('[Host] Syncing to file...');
-                                if (!dbHandle) return;
+                // Handle periodic file sync (only when this page is the writer)
+                db.on('sync_to_file', async () => {
+                    console.log('[Host] Syncing to file...');
+                    if (!dbHandle) return;
 
-                                try {
-                                    const data = await db.export();
-                                    const hasPerm = await db.ensureFilePermission(dbHandle, 'readwrite');
+                    try {
+                        const data = await db.export();
+                        const hasPerm = await db.ensureFilePermission(dbHandle, 'readwrite');
 
-                                    if (!hasPerm) {
-                                        console.warn('[Host] File permission denied');
-                                        return;
-                                    }
+                        if (!hasPerm) {
+                            console.warn('[Host] File permission denied');
+                            return;
+                        }
 
-                                    const writable = await dbHandle.createWritable();
-                                    await writable.write(data);
-                                    await writable.close();
-                                    console.log('[Host] ✅ Synced to file:', dbHandle.name);
-                                    updateDbStatus(`已同步: ${dbHandle.name}`, 'emerald');
-                                } catch (err) {
-                                    console.error('[Host] File sync error:', err);
-                                }
-                            });
+                        const writable = await dbHandle.createWritable();
+                        await writable.write(data);
+                        await writable.close();
+                        console.log('[Host] ✅ Synced to file:', dbHandle.name);
+                        updateDbStatus(`已同步: ${dbHandle.name}`, 'emerald');
+                    } catch (err) {
+                        console.error('[Host] File sync error:', err);
+                    }
+                });
 
-                            // Listen for writer status changes
-                            db.on('writer_changed', (data) => {
-                                console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
-                                if (data?.isWriter) {
-                                    // Start periodic file sync (every 10 seconds)
-                                    db.startPeriodicSync(10000);
-                                }
-                            });
+                // Listen for writer status changes
+                db.on('writer_changed', (data) => {
+                    console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
+                    if (data?.isWriter) {
+                        // Start periodic file sync (every 10 seconds)
+                        db.startPeriodicSync(10000);
+                    }
+                });
 
 
-                            window.handleCreateNewDatabase = async () => {
-                                if (confirm('确定要新建吗？如果当前有未保存的数据，将会丢失。')) {
-                                    await db.init(); // Re-init with empty
-                                    dbHandle = null;
-                                    updateDbStatus('新建数据库 (未保存)', 'amber');
-                                }
-                            };
-
-                            window.clearCacheAndReload = () => {
-                                if (confirm('This will clear saved file handles and reload the page. Your actual database file is safe. Proceed?')) {
-                                    // Clear file handle storage
-                                    indexedDB.deleteDatabase('LocalForgeDB');
-                                    setTimeout(() => window.location.reload(), 500);
-                                }
-                            };
-
-                            window.triggerAutoSave = () => {
-                                window.saveDatabaseToDisk(null, true);
-                            };
-
-                            window.openDatabase = async () => {
-                                if (typeof window.showOpenFilePicker === 'function') {
-                                    try {
-                                        const [handle] = await window.showOpenFilePicker({
-                                            types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
-                                        });
-                                        const file = await handle.getFile();
-                                        const arrayBuffer = await file.arrayBuffer();
-
-                                        await db.init(arrayBuffer);
-
-                                        dbHandle = handle;
-                                        updateDbStatus(`已加载: ${file.name}`, 'emerald');
-
-                                        // IDB Cache
-                                        const u8 = new Uint8Array(arrayBuffer);
-                                        await db.saveSnapshotToIDB(u8, handle, file.name);
-
-                                        // window.closeSettings();
-                                        setTimeout(window.closeSettings, 2000); // Close after delay
-
-                                    } catch (err) {
-                                        if (err.name !== 'AbortError') {
-                                            console.error(err);
-                                            alert('打开文件失败: ' + err.message);
-                                        }
-                                    }
-                                } else {
-                                    document.getElementById('db-file-input').click();
-                                }
-                            };
-
-                            window.saveDatabaseToDisk = async (event, isAuto = false) => {
-                                console.log('[Host] saveDatabaseToDisk called, isAuto:', isAuto, 'dbHandle:', dbHandle);
-                                try {
-                                    const data = await db.export(); // Uint8Array
-                                    console.log('[Host] db.export() returned:', data?.length, 'bytes');
-
-                                    if (dbHandle) {
-                                        if (!(await db.ensureFilePermission(dbHandle, 'readwrite'))) {
-                                            if (isAuto) {
-                                                updateDbStatus('自动保存暂停 (需手动保存验证)', 'amber');
-                                                return;
-                                            }
-                                            return;
-                                        }
-
-                                        const writable = await dbHandle.createWritable();
-                                        await writable.write(data);
-                                        await writable.close();
-
-                                        updateDbStatus(`已保存: ${dbHandle.name}`, 'emerald');
-                                        await db.saveSnapshotToIDB(data, dbHandle, dbHandle.name);
-                                        console.log('[Host] Database saved to file and IDB');
-
-                                        if (event && event.currentTarget) {
-                                            const icon = event.currentTarget.querySelector('i');
-                                            if (icon) {
-                                                const tempClass = icon.className;
-                                                icon.className = 'fas fa-check text-white';
-                                                setTimeout(() => icon.className = tempClass, 1500);
-                                            }
-                                        }
-                                    } else if (!isAuto) {
-                                        // Prompt user to pick file location
-                                        const handle = await window.showSaveFilePicker({
-                                            types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }],
-                                            suggestedName: `html_tools_db.sqlite`
-                                        });
-                                        dbHandle = handle;
-                                        const writable = await handle.createWritable();
-                                        await writable.write(data);
-                                        await writable.close();
-                                        await db.saveSnapshotToIDB(data, dbHandle, handle.name);
-                                        updateDbStatus(`已保存: ${handle.name}`, 'emerald');
-                                        console.log('[Host] Database saved to new file and IDB');
-                                    } else {
-                                        // Auto-save to IDB only if no file handle
-                                        await db.saveSnapshotToIDB(data, null, 'auto_backup');
-                                        console.log('[Host] Auto-saved to IDB (no file handle)');
-                                    }
-                                } catch (err) {
-                                    console.error('Save failed:', err);
-                                }
-                            };
-
-                            // Handle Legacy Input
-                            document.getElementById('db-file-input').addEventListener('change', async (e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
-                                const buf = await file.arrayBuffer();
-                                await db.init(buf);
-                                dbHandle = null;
-                                await db.saveSnapshotToIDB(new Uint8Array(buf), null, file.name);
-                                updateDbStatus(`已加载: ${file.name} (Legacy)`, 'emerald');
-                                // window.closeSettings();
-                                setTimeout(window.closeSettings, 2000);
-                            });
-
-                            // Init Autosave Toggle
-                            const autoSaveToggle = document.getElementById('autoSaveToggle');
-                            if (autoSaveToggle) {
-                                autoSaveToggle.addEventListener('change', (e) => {
-                                    isAutoSave = e.target.checked;
-                                    if (isAutoSave) window.triggerAutoSave();
-                                });
-                            }
-                        </script>
+                // Database interactions are now handled by SettingsManager in components.js
+            </script>
 </body>
 
 </html>
