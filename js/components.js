@@ -358,6 +358,26 @@ class SettingsManager {
             localStorage.setItem('lifeflow_notif_enabled', enabled);
             console.log('[Settings] Notifications', enabled ? 'enabled' : 'disabled');
         };
+
+        // Add Test Notification logic
+        window.sendTestNotification = async () => {
+            console.log('[Settings] Manual test notification triggered');
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Test Notification', 'This is a test notification from LifeFlow Settings.');
+            } else {
+                // Fallback if lifeflow.html logic isn't available
+                if (Notification.permission === 'granted') {
+                    new Notification('LifeFlow Test', { body: 'Test notification (Direct)', requireInteraction: true });
+                } else {
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') {
+                        new Notification('LifeFlow Test', { body: 'Test notification (After Permission)', requireInteraction: true });
+                    } else {
+                        alert('Notification permission not granted.');
+                    }
+                }
+            }
+        };
     }
 
     static injectSettingsModal() {
@@ -438,21 +458,26 @@ class SettingsManager {
                     <!-- Notifications -->
                     <section>
                          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Other Settings</label>
-                         <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                                    <i class="fas fa-bell"></i>
+                             <div class="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                            <i class="fas fa-bell"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white">Notifications</div>
+                                            <p class="text-[10px] text-slate-500">Show alerts when timers finish</p>
+                                        </div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="notifToggle" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                                    </label>
                                 </div>
-                                <div>
-                                    <div class="text-sm font-bold text-slate-900 dark:text-white">Notifications</div>
-                                    <p class="text-[10px] text-slate-500">Show alerts when timers finish</p>
-                                </div>
+                                <button onclick="window.sendTestNotification()" class="w-full py-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
+                                    Test Notification
+                                </button>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="notifToggle" class="sr-only peer">
-                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
-                            </label>
-                        </div>
                     </section>
                 </div>
 

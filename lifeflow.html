@@ -1286,26 +1286,63 @@
             playCompletionSound();
 
             // System Notification
-            const notifyToggle = document.getElementById('notifyToggle');
-            if (notifyToggle && notifyToggle.checked) {
-                if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    try {
-                        const n = new Notification('Activity Logged!', {
-                            body: `Congratulations! You just recorded ${durationMinutes} minutes of life.`,
-                            icon: 'favicon.png',
-                            tag: 'lifeflow-complete'
-                        });
-                        console.log('[LifeFlow] Notification sent:', n);
-                    } catch (e) {
-                        console.error('[LifeFlow] Notify Error:', e);
-                    }
-                } else {
-                    Notification.requestPermission();
-                }
-            }
+            showNotification('Activity Logged!', `Congratulations! You just recorded ${durationMinutes} minutes of life.`);
 
             openSaveModal(durationMinutes, 'completed');
         }
+
+        // --- Robust Notification Helper ---
+        async function showNotification(title, body) {
+            console.log(`[LifeFlow] showNotification triggered: "${title}"`);
+
+            const notifEnabled = localStorage.getItem('lifeflow_notif_enabled') === 'true';
+            if (!notifEnabled) {
+                console.log('[LifeFlow] Notifications are disabled in settings.');
+                return;
+            }
+
+            if (typeof Notification === 'undefined') {
+                console.warn('[LifeFlow] Notifications not supported by this browser.');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                sendActualNotification(title, body);
+            } else if (Notification.permission !== 'denied') {
+                console.log('[LifeFlow] Requesting notification permission...');
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    sendActualNotification(title, body);
+                } else {
+                    console.warn('[LifeFlow] Permission denied after request.');
+                }
+            } else {
+                console.warn('[LifeFlow] Notification permission is denied.');
+            }
+        }
+
+        function sendActualNotification(title, body) {
+            try {
+                const n = new Notification(title, {
+                    body: body,
+                    icon: 'favicon.png',
+                    tag: 'lifeflow-complete',
+                    requireInteraction: true // Keep on screen until user interacts (macOS Popup)
+                });
+
+                n.onclick = () => {
+                    window.focus();
+                    n.close();
+                };
+
+                console.log('[LifeFlow] System notification sent successfully:', n);
+            } catch (err) {
+                console.error('[LifeFlow] Error creating notification object:', err);
+            }
+        }
+
+        // Expose to window for the "Test Notification" button in settings
+        window.showNotification = showNotification;
 
         // discardSession function is no longer needed as the "Discard" button is removed.
         /*
@@ -2640,10 +2677,10 @@
 
                 return `
                     <div class="p-4 transition flex items-center justify-between group border-l-4" 
-                         style="border-color: ${tagColor}; background-color: ${tagColor}08;">
+                         style="border-color: ${tagColor}; background-color: ${tagColor}15;">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg flex flex-col items-center justify-center font-bold shrink-0 transition-colors"
-                                 style="background-color: ${tagColor}20; color: ${tagColor};">
+                                 style="background-color: ${tagColor}30; color: ${tagColor};">
                                 <span class="text-sm">${s.duration}</span>
                                 <span class="text-[8px] uppercase opacity-60">min</span>
                             </div>
@@ -2653,10 +2690,10 @@
                                     ${statusBadge}
                                 </div>
                                 ${s.title ? `<div class="text-sm font-semibold text-slate-900 dark:text-white mb-0.5 break-words">${escapeHtml(s.title)}</div>` : ''}
-                                ${s.description ? `<div class="text-xs text-slate-600 dark:text-slate-400 mb-1 leading-relaxed break-words">${escapeHtml(s.description)}</div>` : ''}
-                                <div class="text-[10px] text-slate-500 dark:text-slate-500 font-medium flex items-center gap-2">
-                                    <span class="opacity-70"><i class="far fa-calendar-alt mr-1"></i>${dateStr}</span>
-                                    <span class="opacity-70"><i class="far fa-clock mr-1"></i>${startTimeStr} - ${endTimeStr}</span>
+                                ${s.description ? `<div class="text-xs text-slate-700 dark:text-slate-300 mb-1 leading-relaxed break-words">${escapeHtml(s.description)}</div>` : ''}
+                                <div class="text-[10px] text-slate-700 dark:text-slate-200 font-medium flex items-center gap-2">
+                                    <span class="opacity-80"><i class="far fa-calendar-alt mr-1"></i>${dateStr}</span>
+                                    <span class="opacity-80"><i class="far fa-clock mr-1"></i>${startTimeStr} - ${endTimeStr}</span>
                                 </div>
                             </div>
                         </div>
