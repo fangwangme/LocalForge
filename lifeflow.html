@@ -2978,7 +2978,7 @@
 
                 const tag = tags.find(t => t.id === s.tagId);
                 const tagName = tag ? tag.name : '';
-                const title = escapeHtml(s.title || '');
+                const title = s.title || '';
 
                 let label = '';
                 if (title && tagName && title !== tagName) {
