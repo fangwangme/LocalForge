@@ -3,21 +3,27 @@
 # Configuration
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DATA_DIR="$PROJECT_DIR/data"
-PROD_PID="$PROJECT_DIR/.server.pid"
-DEBUG_PID="$PROJECT_DIR/.server.debug.pid"
-PROD_LOG="/dev/null"
-DEBUG_LOG="$DATA_DIR/debug.log"
+PID_FILE="$PROJECT_DIR/.server.pid"
+LOG_FILE="$DATA_DIR/server.log"
 
-PROD_PORT=8092
-DEBUG_PORT=8093
+# Auto-detect environment based on directory name
+# LocalForge-dev -> DEV (port 8093)
+# LocalForge     -> MAIN (port 8092)
+DIR_NAME=$(basename "$PROJECT_DIR")
+if [[ "$DIR_NAME" == *"-dev"* ]]; then
+    ENV_MODE="DEV"
+    PORT=8093
+else
+    ENV_MODE="MAIN"
+    PORT=8092
+fi
 
 # Default State
-TARGET_MODE="prod" # prod | debug
 ACTION="start"     # start | stop | restart | status
 
 # Helper: Print Usage
 usage() {
-    echo "Usage: $0 [action] [options]"
+    echo "Usage: $0 [action]"
     echo ""
     echo "Actions:"
     echo "  start       Start the server (default)"
@@ -25,9 +31,7 @@ usage() {
     echo "  restart     Restart the server"
     echo "  status      Check server status"
     echo ""
-    echo "Options:"
-    echo "  --debug, -d   Target the Debug Instance (Port $DEBUG_PORT)"
-    echo "  --help, -h    Show this message"
+    echo "Environment: $ENV_MODE (Port: $PORT)"
     echo ""
     exit 1
 }
@@ -37,10 +41,6 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         start|stop|restart|status)
             ACTION="$1"
-            shift
-            ;;
-        --debug|-d)
-            TARGET_MODE="debug"
             shift
             ;;
         --help|-h)
@@ -53,25 +53,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 2. Setup Context based on Mode
-if [ "$TARGET_MODE" == "debug" ]; then
-    PID_FILE="$DEBUG_PID"
-    LOG_FILE="$DEBUG_LOG"
-    PORT=$DEBUG_PORT
-    MODE_LABEL="DEBUG"
-    # Ensure Data Dir exists for debug logs
-    if [ ! -d "$DATA_DIR" ]; then
-        mkdir -p "$DATA_DIR"
-    fi
-else
-    PID_FILE="$PROD_PID"
-    LOG_FILE="$PROD_LOG"
-    PORT=$PROD_PORT
-    MODE_LABEL="PRODUCTION"
-    # Data dir check is good practice anyway
-    if [ ! -d "$DATA_DIR" ]; then
-        mkdir -p "$DATA_DIR"
-    fi
+# 2. Setup Context
+MODE_LABEL="$ENV_MODE"
+if [ ! -d "$DATA_DIR" ]; then
+    mkdir -p "$DATA_DIR"
 fi
 
 # 3. Actions
@@ -103,51 +88,31 @@ start_server() {
 }
 
 stop_server() {
-    echo "🛑 Stopping LocalForge Servers..."
+    echo "🛑 Stopping LocalForge ($MODE_LABEL)..."
     
-    # 1. Stop Production Server
-    if [ -f "$PROD_PID" ]; then
-        PID=$(cat "$PROD_PID")
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
         if kill -0 $PID 2>/dev/null; then
             kill $PID
-            echo "   ✅ Stopped Production Server (PID: $PID)"
+            echo "   ✅ Stopped Server (PID: $PID)"
         else
-            echo "   ⚠️  Production PID file stale, cleaning up."
+            echo "   ⚠️  PID file stale, cleaning up."
         fi
-        rm -f "$PROD_PID"
+        rm -f "$PID_FILE"
+    else
+        echo "   ⚪ No server running."
     fi
-
-    # 2. Stop Debug Server
-    if [ -f "$DEBUG_PID" ]; then
-        PID=$(cat "$DEBUG_PID")
-        if kill -0 $PID 2>/dev/null; then
-            kill $PID
-            echo "   ✅ Stopped Debug Server (PID: $PID)"
-        else
-            echo "   ⚠️  Debug PID file stale, cleaning up."
-        fi
-        rm -f "$DEBUG_PID"
-    fi
-    
-    echo "   ✨ All servers stopped."
 }
 
 check_status() {
-    # Check Prod
-    echo "--- Server Status ---"
-    if [ -f "$PROD_PID" ] && kill -0 $(cat "$PROD_PID") 2>/dev/null; then
-        echo "✅ PRODUCTION: Running (PID: $(cat "$PROD_PID"), Port: $PROD_PORT)"
+    echo "--- $MODE_LABEL Server Status ---"
+    if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+        echo "✅ Running (PID: $(cat "$PID_FILE"), Port: $PORT)"
+        echo "   URL: http://localhost:$PORT"
     else
-        echo "⚪ PRODUCTION: Stopped"
+        echo "⚪ Stopped"
     fi
-
-    # Check Debug
-    if [ -f "$DEBUG_PID" ] && kill -0 $(cat "$DEBUG_PID") 2>/dev/null; then
-        echo "✅ DEBUG:      Running (PID: $(cat "$DEBUG_PID"), Port: $DEBUG_PORT)"
-    else
-        echo "⚪ DEBUG:      Stopped"
-    fi
-    echo "---------------------"
+    echo "----------------------------"
 }
 
 
