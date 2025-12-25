@@ -1987,7 +1987,7 @@
                         <div class="flex items-center gap-3">
                             <div class="w-4 h-4 rounded-full shadow-sm" style="background-color: ${t.color}"></div>
                             <div>
-                                <div class="text-sm font-medium text-slate-200">${t.name}</div>
+                                <div class="text-sm font-medium text-slate-700 dark:text-slate-200">${t.name}</div>
                                 ${t.isDefault ? '<div class="text-[10px] text-slate-500 uppercase tracking-wider">Default Tag</div>' : ''}
                             </div>
                         </div>
@@ -2675,12 +2675,17 @@
 
                 const tagColor = tag.color || '#94a3b8';
 
+                // Basic check for white/near-white to ensure visibility in light mode
+                // If it's pure white, use slate-400 (#94a3b8) as fallback for display
+                const isWhite = tagColor.toLowerCase() === '#ffffff' || tagColor.toLowerCase() === '#fff';
+                const displayColor = isWhite ? '#94a3b8' : tagColor;
+
                 return `
                     <div class="p-4 transition flex items-center justify-between group border-l-4" 
-                         style="border-color: ${tagColor}; background-color: ${tagColor}15;">
+                         style="border-color: ${displayColor}; background-color: ${displayColor}15;">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg flex flex-col items-center justify-center font-bold shrink-0 transition-colors"
-                                 style="background-color: ${tagColor}30; color: ${tagColor};">
+                                 style="background-color: ${displayColor}30; color: ${displayColor};">
                                 <span class="text-sm">${s.duration}</span>
                                 <span class="text-[8px] uppercase opacity-60">min</span>
                             </div>
