@@ -597,11 +597,13 @@
                 </div>
                 <div>
                     <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Color</label>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
                         <input type="color" id="newTagColor" value="#3b82f6"
                             class="w-10 h-10 p-0 rounded border-none cursor-pointer bg-transparent">
-                        <span class="text-xs text-slate-500">Click to choose color</span>
+                        <input type="text" id="newTagColorHex" placeholder="#3b82f6"
+                            class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-2 py-1.5 text-sm font-mono focus:border-blue-500 outline-none transition">
                     </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Hex input takes priority (e.g., #ff5733)</p>
                 </div>
                 <div class="flex items-center gap-2 pt-2">
                     <input type="checkbox" id="newTagDefault"
@@ -2042,6 +2044,7 @@
             document.getElementById('tagModalTitle').innerText = 'New Tag';
             document.getElementById('newTagName').value = '';
             document.getElementById('newTagColor').value = '#3b82f6';
+            document.getElementById('newTagColorHex').value = '';
             document.getElementById('newTagDefault').checked = false;
             document.getElementById('addTagModal').classList.remove('hidden');
         }
@@ -2058,6 +2061,7 @@
             document.getElementById('tagModalTitle').innerText = 'Edit Tag';
             document.getElementById('newTagName').value = tag.name;
             document.getElementById('newTagColor').value = tag.color;
+            document.getElementById('newTagColorHex').value = tag.color;
             document.getElementById('newTagDefault').checked = tag.isDefault;
             document.getElementById('addTagModal').classList.remove('hidden');
         }
@@ -2072,7 +2076,10 @@
 
         async function confirmAddTag() {
             const name = document.getElementById('newTagName').value.trim();
-            const color = document.getElementById('newTagColor').value;
+            const colorPicker = document.getElementById('newTagColor').value;
+            const colorHex = document.getElementById('newTagColorHex').value.trim();
+            // Prioritize hex input if it looks valid
+            const color = (colorHex && /^#[0-9A-Fa-f]{6}$/.test(colorHex)) ? colorHex : colorPicker;
             const isDefault = document.getElementById('newTagDefault').checked ? 1 : 0;
 
             if (!name) return;
