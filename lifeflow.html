@@ -2324,13 +2324,31 @@
 
                     const tag = getTag(s.tagId);
 
+                    // Apply luminance-based visibility logic for chart colors
+                    const isDarkMode = document.documentElement.classList.contains('dark');
+                    let displayColor = tag.color;
+                    const getLuminance = (hex) => {
+                        const c = hex.substring(1);
+                        const rgb = parseInt(c, 16);
+                        const r = (rgb >> 16) & 0xff;
+                        const g = (rgb >>  8) & 0xff;
+                        const b = (rgb >>  0) & 0xff;
+                        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    };
+                    try {
+                        const lum = getLuminance(tag.color);
+                        if (lum > 0.85 && !isDarkMode) {
+                            displayColor = '#94a3b8'; // visible gray fallback
+                        }
+                    } catch (e) { /* ignore */ }
+
                     timelineData.push({
                         x: [startDisp, endDisp],
                         y: dayStr, // Matches Y-axis label
                         tag: tag.name, // For tooltip
                         rawStart: sDate // For tooltip formatting
                     });
-                    timelineColors.push(tag.color); // Color by tag
+                    timelineColors.push(displayColor); // Color by tag (adjusted)
                 }
             });
 
