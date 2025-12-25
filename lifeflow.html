@@ -2077,6 +2077,24 @@
 
             if (!name) return;
 
+            // Warn user if color is too light (will be invisible in Light Mode)
+            const getLuminance = (hex) => {
+                const c = hex.substring(1);
+                const rgb = parseInt(c, 16);
+                const r = (rgb >> 16) & 0xff;
+                const g = (rgb >> 8) & 0xff;
+                const b = (rgb >> 0) & 0xff;
+                return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            };
+            try {
+                const lum = getLuminance(color);
+                if (lum > 0.85) {
+                    const proceed = confirm('Warning: Very light colors (like white) will be hard to see in Light Mode. Do you want to continue anyway?');
+                    if (!proceed) return;
+                }
+            } catch (e) { /* ignore parsing error */ }
+
+
             try {
                 // If this tag is being set as default, unset others first
                 if (isDefault === 1) {
@@ -2324,31 +2342,13 @@
 
                     const tag = getTag(s.tagId);
 
-                    // Apply luminance-based visibility logic for chart colors
-                    const isDarkMode = document.documentElement.classList.contains('dark');
-                    let displayColor = tag.color;
-                    const getLuminance = (hex) => {
-                        const c = hex.substring(1);
-                        const rgb = parseInt(c, 16);
-                        const r = (rgb >> 16) & 0xff;
-                        const g = (rgb >>  8) & 0xff;
-                        const b = (rgb >>  0) & 0xff;
-                        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                    };
-                    try {
-                        const lum = getLuminance(tag.color);
-                        if (lum > 0.85 && !isDarkMode) {
-                            displayColor = '#94a3b8'; // visible gray fallback
-                        }
-                    } catch (e) { /* ignore */ }
-
                     timelineData.push({
                         x: [startDisp, endDisp],
                         y: dayStr, // Matches Y-axis label
                         tag: tag.name, // For tooltip
                         rawStart: sDate // For tooltip formatting
                     });
-                    timelineColors.push(displayColor); // Color by tag (adjusted)
+                    timelineColors.push(tag.color); // Color by tag
                 }
             });
 
@@ -2648,14 +2648,6 @@
             renderHistoryItems();
         }
 
-
-        // Listen for theme changes to re-render colors
-        window.addEventListener('themeChanged', () => {
-            if (currentHistorySessions.length > 0) {
-                renderHistoryItems();
-            }
-        });
-
         function renderHistoryItems() {
             const list = document.getElementById('historyList');
             const statusEl = document.getElementById('historyStatus');
@@ -2701,39 +2693,12 @@
 
                 const tagColor = tag.color || '#94a3b8';
 
-                // Advanced visibility logic based on luminance and theme mode
-                const isDarkMode = document.documentElement.classList.contains('dark');
-                let displayColor = tagColor;
-
-                // Helper to calculate luminance (0 to 1)
-                const getLuminance = (hex) => {
-                    const c = hex.substring(1);      // strip #
-                    const rgb = parseInt(c, 16);   // convert rrggbb to decimal
-                    const r = (rgb >> 16) & 0xff;  // extract red
-                    const g = (rgb >> 8) & 0xff;  // extract green
-                    const b = (rgb >> 0) & 0xff;  // extract blue
-
-                    // sRGB luminance formula
-                    return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                };
-
-                try {
-                    const lum = getLuminance(tagColor);
-                    // If color is very bright (> 0.85) and we are in Light Mode, darken it for visibility
-                    if (lum > 0.85 && !isDarkMode) {
-                        displayColor = '#94a3b8'; // visible gray fallback
-                    }
-                } catch (e) {
-                    // Fallback if color parsing fails
-                    console.warn('Color parse failed', tagColor);
-                }
-
                 return `
                     <div class="p-4 transition flex items-center justify-between group border-l-4" 
-                         style="border-color: ${displayColor}; background-color: ${displayColor}15;">
+                         style="border-color: ${tagColor}; background-color: ${tagColor}15;">
                         <div class="flex items-center gap-4 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-lg flex flex-col items-center justify-center font-bold shrink-0 transition-colors"
-                                 style="background-color: ${displayColor}30; color: ${displayColor};">
+                                 style="background-color: ${tagColor}30; color: ${tagColor};">
                                 <span class="text-sm">${s.duration}</span>
                                 <span class="text-[8px] uppercase opacity-60">min</span>
                             </div>
