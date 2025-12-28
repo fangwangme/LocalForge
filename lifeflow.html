@@ -441,6 +441,10 @@
                     class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-medium text-slate-600 dark:text-slate-300">Distribution</h3>
+                        <div id="ratioContainer"
+                            class="hidden flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-500 dark:text-indigo-400 cursor-help">
+                            <i class="fas fa-balance-scale"></i> C/C Ratio: <span id="ccRatio">0.0</span>
+                        </div>
                     </div>
                     <div class="h-64 flex items-center justify-center">
                         <canvas id="distChart"></canvas>
@@ -611,6 +615,15 @@
                     <label for="newTagDefault"
                         class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">Set as default
                         tag</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Category</label>
+                    <select id="newTagCategory"
+                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition uppercase font-bold tracking-wider">
+                        <option value="creating">Creating</option>
+                        <option value="consuming">Consuming</option>
+                        <option value="other" selected>Other</option>
+                    </select>
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
@@ -1915,7 +1928,8 @@
                     id: r.values[0],
                     name: r.values[1],
                     color: r.values[2],
-                    isDefault: r.values[3] === 1
+                    isDefault: r.values[3] === 1,
+                    category_type: r.values[4] || 'other'
                 }));
 
                 // Sort: isDefault first, then alphabetically by name
@@ -2021,15 +2035,15 @@
 
         async function createDefaultTags() {
             const defaults = [
-                { name: 'Default', color: '#818cf8', is_default: 1 }, // Indigo for general activities
-                { name: 'Relax', color: '#f472b6', is_default: 0 }    // Pink/Rose for relax
+                { name: 'Default', color: '#818cf8', is_default: 1, category_type: 'other' }, // Indigo for general activities
+                { name: 'Relax', color: '#f472b6', is_default: 0, category_type: 'other' }    // Pink/Rose for relax
             ];
 
             for (const d of defaults) {
                 try {
                     await db.execute(
-                        "INSERT INTO pomodoro_tags (name, color, is_default) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM pomodoro_tags WHERE name = ?)",
-                        [d.name, d.color, d.is_default, d.name]
+                        "INSERT INTO pomodoro_tags (name, color, is_default, category_type) SELECT ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM pomodoro_tags WHERE name = ?)",
+                        [d.name, d.color, d.is_default, d.category_type, d.name]
                     );
                 } catch (e) { console.error('Create Default Tag Failed:', d.name, e); }
             }
@@ -2046,6 +2060,7 @@
             document.getElementById('newTagColor').value = '#3b82f6';
             document.getElementById('newTagColorHex').value = '';
             document.getElementById('newTagDefault').checked = false;
+            document.getElementById('newTagCategory').value = 'other';
             document.getElementById('addTagModal').classList.remove('hidden');
         }
 
@@ -2063,6 +2078,7 @@
             document.getElementById('newTagColor').value = tag.color;
             document.getElementById('newTagColorHex').value = tag.color;
             document.getElementById('newTagDefault').checked = tag.isDefault;
+            document.getElementById('newTagCategory').value = tag.category_type || 'other';
             document.getElementById('addTagModal').classList.remove('hidden');
         }
 
@@ -2081,6 +2097,7 @@
             // Prioritize hex input if it looks valid
             const color = (colorHex && /^#[0-9A-Fa-f]{6}$/.test(colorHex)) ? colorHex : colorPicker;
             const isDefault = document.getElementById('newTagDefault').checked ? 1 : 0;
+            const category = document.getElementById('newTagCategory').value;
 
             if (!name) return;
 
@@ -2109,9 +2126,9 @@
                 }
 
                 if (currentEditTagId) {
-                    await db.execute("UPDATE pomodoro_tags SET name = ?, color = ?, is_default = ? WHERE id = ?", [name, color, isDefault, currentEditTagId]);
+                    await db.execute("UPDATE pomodoro_tags SET name = ?, color = ?, is_default = ?, category_type = ? WHERE id = ?", [name, color, isDefault, category, currentEditTagId]);
                 } else {
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES (?, ?, ?)", [name, color, isDefault]);
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES (?, ?, ?, ?)", [name, color, isDefault, category]);
                 }
 
                 // If we unset a default but didn't set a new one, we might need a fallback.
@@ -2175,7 +2192,7 @@
             try {
                 // 1. Get Tags
                 console.log('[LifeFlow] Querying tags...');
-                const tagsResult = await db.query("SELECT id, name, color, is_default FROM pomodoro_tags");
+                const tagsResult = await db.query("SELECT id, name, color, is_default, category_type FROM pomodoro_tags");
                 console.log('[LifeFlow] Tags result:', tagsResult);
                 if (tagsResult && tagsResult.length > 0) {
                     const formattedTags = tagsResult[0].values.map(v => ({ values: v }));
@@ -2518,10 +2535,33 @@
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#ccc' };
 
             const tagStats = {};
+            let creatingMins = 0;
+            let consumingMins = 0;
+
             rangedSessions.forEach(s => {
                 const t = getTag(s.tagId);
                 tagStats[t.name] = (tagStats[t.name] || 0) + s.duration;
+
+                if (t.category_type === 'creating') creatingMins += s.duration;
+                else if (t.category_type === 'consuming') consumingMins += s.duration;
             });
+
+            // Update Ratio UI
+            const ratioEl = document.getElementById('ccRatio');
+            const ratioContainer = document.getElementById('ratioContainer');
+            if (ratioEl && ratioContainer) {
+                if (consumingMins > 0 || creatingMins > 0) {
+                    const ratio = consumingMins > 0 ? (creatingMins / consumingMins).toFixed(2) : (creatingMins > 0 ? '∞' : '0.00');
+                    ratioEl.innerText = ratio;
+                    ratioContainer.classList.remove('hidden');
+
+                    const formatH = (m) => m >= 60 ? `${(m / 60).toFixed(1)}h` : `${m}m`;
+                    ratioContainer.title = `Creating: ${formatH(creatingMins)} | Consuming: ${formatH(consumingMins)}`;
+                } else {
+                    ratioContainer.classList.add('hidden');
+                    ratioContainer.title = '';
+                }
+            }
 
             const distLabels = Object.keys(tagStats);
             const distData = Object.values(tagStats);
@@ -3092,6 +3132,8 @@
             const getTag = (id) => tags.find(t => t.id === id) || { name: 'Unknown', color: '#94a3b8' };
             const stats = {};
             let totalMins = 0;
+            let creatingMins = 0;
+            let consumingMins = 0;
             let dayFocusCounts = [0, 0, 0, 0, 0, 0, 0];
 
             weekSessions.forEach(s => {
@@ -3105,9 +3147,14 @@
                 stats[tag.name].mins += s.duration;
                 totalMins += s.duration;
 
+                if (tag.category_type === 'creating') creatingMins += s.duration;
+                else if (tag.category_type === 'consuming') consumingMins += s.duration;
+
                 const dayIdx = Math.floor((new Date(s.startTime) - startDate) / (86400000));
                 if (dayIdx >= 0 && dayIdx < 7) dayFocusCounts[dayIdx]++;
             });
+
+            const ccRatio = consumingMins > 0 ? (creatingMins / consumingMins).toFixed(2) : (creatingMins > 0 ? '∞' : '0.00');
 
             // Build Preview HTML with refined styling
             let html = `
@@ -3117,9 +3164,15 @@
                         <h2 style="margin: 0; font-size: 32px; font-weight: 800; color: #818cf8;">7-Day Activity Flow</h2>
                         <p style="margin: 8px 0 0 0; color: #64748b; font-size: 16px;">${startDate.toLocaleDateString('en-US')} - ${new Date(endDate.getTime() - 86400000).toLocaleDateString('en-US')}</p>
                     </div>
-                    <div style="margin-left: auto; text-align: right;">
-                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; display: block; margin-bottom: 4px;">Weekly Continuity</span>
-                        <div style="font-size: 24px; font-weight: 800; color: #f8fafc;">${((totalMins / (7 * 24 * 60)) * 100).toFixed(1)}%</div>
+                    <div style="margin-left: auto; text-align: right; display: flex; gap: 24px;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; display: block; margin-bottom: 4px;">C/C Ratio</span>
+                            <div style="font-size: 24px; font-weight: 800; color: #818cf8;">${ccRatio}</div>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; display: block; margin-bottom: 4px;">Weekly Continuity</span>
+                            <div style="font-size: 24px; font-weight: 800; color: #f8fafc;">${((totalMins / (7 * 24 * 60)) * 100).toFixed(1)}%</div>
+                        </div>
                     </div>
                 </div>
 
@@ -3389,9 +3442,21 @@
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         name TEXT NOT NULL,
                         color TEXT NOT NULL,
-                        is_default INTEGER DEFAULT 0
+                        is_default INTEGER DEFAULT 0,
+                        category_type TEXT DEFAULT 'other'
                     )
                 `);
+
+                try {
+                    await db.execute("SELECT category_type FROM pomodoro_tags LIMIT 1");
+                } catch (e) {
+                    try {
+                        await db.execute("ALTER TABLE pomodoro_tags ADD COLUMN category_type TEXT DEFAULT 'other'");
+                        console.log('[Pomodoro] Migration successful: Added category_type column');
+                    } catch (e2) {
+                        console.error('[Pomodoro] Migration failed:', e2);
+                    }
+                }
 
                 // Tags Check
                 console.log('[Pomodoro] Checking if tags exist...');
@@ -3399,10 +3464,10 @@
                 console.log('[Pomodoro] Tag count result:', countRes);
                 if (countRes && countRes[0].values[0][0] === 0) {
                     console.log('[Pomodoro] No tags found, inserting defaults...');
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Work', '#3b82f6', 1)");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Study', '#a855f7', 0)");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Workout', '#e11d48', 0)");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default) VALUES ('Relax', '#10b981', 0)");
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Work', '#3b82f6', 1, 'other')");
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Study', '#a855f7', 0, 'other')");
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Workout', '#e11d48', 0, 'other')");
+                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Relax', '#10b981', 0, 'other')");
                     console.log('[Pomodoro] Default tags inserted');
                 } else {
                     console.log('[Pomodoro] Tags already exist, count:', countRes[0].values[0][0]);
