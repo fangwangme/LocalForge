@@ -808,7 +808,6 @@
     <script type="module">
         import { db } from './js/db-client.js';
 
-        console.log('[LifeFlow] Script starting...');
 
         // === State ===
         let currentState = 'stopped'; // stopped, running
@@ -861,7 +860,6 @@
 
         // === Init ===
         async function init() {
-            console.log('[LifeFlow] init() called.');
 
             // 1. DB Init
             await initTables();
@@ -934,7 +932,6 @@
 
                 if (existing && existing[0] && existing[0].values.length > 0) {
                     currentSessionId = existing[0].values[0][0];
-                    console.log('[LifeFlow] Resumed existing record:', currentSessionId);
                     isUpserting = false;
                     return;
                 }
@@ -950,7 +947,6 @@
                     currentSessionId = res.lastInsertRowid;
                     localStorage.setItem('lifeflow_active_session_id', currentSessionId);
                     localStorage.setItem('lifeflow_active_target_mins', durationMinutes);
-                    console.log('[LifeFlow] Created early session record:', currentSessionId);
                 }
             } catch (err) {
                 console.error('[LifeFlow] upsertSessionRecord failed:', err);
@@ -1031,7 +1027,6 @@
                                 }
                             }, 200);
 
-                            console.log('[LifeFlow] Session recovered:', id);
                         } else {
                             // Mark as aborted
                             await db.execute("UPDATE pomodoro_sessions SET status = 'aborted' WHERE id = ?", [id]);
@@ -1063,7 +1058,6 @@
                 );
                 lastSyncTime = Date.now();
                 lastUpdateCheckSecs = timeLeftSeconds;
-                console.log('[LifeFlow] Session progress synced:', elapsedMinutes, 'mins');
             } catch (err) {
                 console.error('[LifeFlow] updateActiveSessionProgress failed:', err);
             }
@@ -1253,7 +1247,6 @@
             clearInterval(timerInterval);
             currentSessionId = null; // Clear tracking
             resetTimerUI();
-            console.log('[LifeFlow] Timer skipped, session discarded.');
         }
 
         // Immediate exports for timer control onclick handlers
@@ -1308,7 +1301,6 @@
 
         // --- Robust Notification Helper ---
         async function showNotification(title, body) {
-            console.log(`[LifeFlow] showNotification triggered: "${title}"`);
 
             const notifEnabled = localStorage.getItem('lifeflow_notif_enabled') === 'true';
             if (!notifEnabled) {
@@ -1399,7 +1391,6 @@
                         );
                     }
                 }
-                console.log('[LifeFlow] Discarded session saved as aborted');
             } catch (err) {
                 console.error('[LifeFlow] Failed to save aborted session:', err);
             }
@@ -2182,7 +2173,6 @@
             }
 
             if (!tablesInitialized) {
-                console.log('[LifeFlow] Waiting for tables initialization...');
                 return;
             }
 
@@ -2191,21 +2181,15 @@
 
             try {
                 // 1. Get Tags
-                console.log('[LifeFlow] Querying tags...');
                 const tagsResult = await db.query("SELECT id, name, color, is_default, category_type FROM pomodoro_tags");
-                console.log('[LifeFlow] Tags result:', tagsResult);
                 if (tagsResult && tagsResult.length > 0) {
                     const formattedTags = tagsResult[0].values.map(v => ({ values: v }));
-                    console.log('[LifeFlow] Formatted tags:', formattedTags);
                     renderTags(formattedTags);
                 } else {
-                    console.log('[LifeFlow] No tags found in database');
                 }
 
                 // 2. Get Sessions
-                console.log('[LifeFlow] Querying all sessions...');
                 const sessionsResult = await db.query("SELECT id, start_time, end_time, duration_minutes, tag_id, status, title, description FROM pomodoro_sessions ORDER BY start_time DESC");
-                console.log('[LifeFlow] Sessions result:', sessionsResult);
 
                 if (sessionsResult && sessionsResult.length > 0) {
                     const raw = sessionsResult[0].values;
@@ -2229,7 +2213,6 @@
 
         // Listen for updates (reload data + save to IDB)
         db.on('db_updated', () => {
-            console.log('[LifeFlow] DB Updated, reloading...');
             requestData();
             // Note: saveSnapshotToIDB is registered separately below
         });
@@ -3434,68 +3417,7 @@
         }
 
         async function initTables() {
-            console.log('[Pomodoro] initTables() called');
-            try {
-                console.log('[Pomodoro] Creating pomodoro_tags table...');
-                await db.execute(`
-                    CREATE TABLE IF NOT EXISTS pomodoro_tags (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        color TEXT NOT NULL,
-                        is_default INTEGER DEFAULT 0,
-                        category_type TEXT DEFAULT 'other'
-                    )
-                `);
-
-                try {
-                    await db.execute("SELECT category_type FROM pomodoro_tags LIMIT 1");
-                } catch (e) {
-                    try {
-                        await db.execute("ALTER TABLE pomodoro_tags ADD COLUMN category_type TEXT DEFAULT 'other'");
-                        console.log('[Pomodoro] Migration successful: Added category_type column');
-                    } catch (e2) {
-                        console.error('[Pomodoro] Migration failed:', e2);
-                    }
-                }
-
-                // Tags Check
-                console.log('[Pomodoro] Checking if tags exist...');
-                const countRes = await db.query("SELECT COUNT(*) FROM pomodoro_tags");
-                console.log('[Pomodoro] Tag count result:', countRes);
-                if (countRes && countRes[0].values[0][0] === 0) {
-                    console.log('[Pomodoro] No tags found, inserting defaults...');
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Work', '#3b82f6', 1, 'other')");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Study', '#a855f7', 0, 'other')");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Workout', '#e11d48', 0, 'other')");
-                    await db.execute("INSERT INTO pomodoro_tags (name, color, is_default, category_type) VALUES ('Relax', '#10b981', 0, 'other')");
-                    console.log('[Pomodoro] Default tags inserted');
-                } else {
-                    console.log('[Pomodoro] Tags already exist, count:', countRes[0].values[0][0]);
-                }
-
-                await db.execute(`
-                    CREATE TABLE IF NOT EXISTS pomodoro_sessions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        start_time TEXT NOT NULL,
-                        end_time TEXT NOT NULL,
-                        duration_minutes INTEGER NOT NULL,
-                        tag_id INTEGER,
-                        status TEXT,
-                        title TEXT,
-                        description TEXT,
-                        created_at TEXT NOT NULL
-                    )
-                `);
-
-                tablesInitialized = true;
-                console.log('[LifeFlow] Tables initialized');
-
-                // Ensure default tags exist
-                await createDefaultTags();
-
-            } catch (err) {
-                console.error('Init Tables Failed:', err);
-            }
+            tablesInitialized = true;
         }
 
         // === File Permission & Sync Functions ===
@@ -3538,11 +3460,9 @@
 
         // Handle database updates - ALL pages save to IDB immediately
         db.on('db_updated', async () => {
-            console.log('[Pomodoro] DB Updated, saving to IDB...');
             try {
                 const data = await db.export();
                 await db.saveSnapshotToIDB(data);
-                console.log('[Pomodoro] Saved to IDB');
             } catch (err) {
                 console.error('[Pomodoro] IDB Save Error:', err);
             }
@@ -3550,7 +3470,6 @@
 
         // Handle periodic file sync (only when this page is the writer)
         db.on('sync_to_file', async () => {
-            console.log('[Pomodoro] Syncing to file...');
             try {
                 const handle = await db.getFileHandleForSync();
                 if (handle) {
@@ -3559,13 +3478,9 @@
                         const writable = await handle.createWritable();
                         await writable.write(data);
                         await writable.close();
-                        console.log('[Pomodoro] ✅ Synced to file:', handle.name);
                         updateSyncStatus(true);
                     } else {
-                        // Permission requires user gesture - this is expected during auto-sync
-                        // Data is still saved to IndexedDB, just not synced to file
                         if (!window._filePermWarnShown) {
-                            console.log('[Pomodoro] File sync paused (requires user interaction to grant permission)');
                             window._filePermWarnShown = true;
                         }
                     }
@@ -3591,7 +3506,6 @@
         });
 
         // Startup: Load from IDB or wait for db_opened
-        console.log('[Pomodoro] Setting up startup, db.isOpen =', db.isOpen);
 
         let initCalled = false;
 
@@ -3695,7 +3609,6 @@
         window.submitQuickLog = submitQuickLog;
 
         // === Immediate UI Init ===
-        console.log('[Pomodoro] Executing immediate UI init...');
         setDuration(25);
         // History filter is now button-based, default is 'today' (set in setHistoryFilter)
 

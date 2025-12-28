@@ -1344,7 +1344,16 @@
             const html = result[0].values.map(row => {
                 const [id, date, rounds, workTime, restTime, totalWorkTime, calories, weight, totalTime] = row;
                 const d = new Date(date);
-                const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const startTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                let timeRangeStr = startTimeStr;
+                if (row[8]) { // total_time exists
+                    const endD = new Date(d.getTime() + row[8] * 1000);
+                    const endTimeStr = endD.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    timeRangeStr = `${startTimeStr} - ${endTimeStr}`;
+                }
+
+                const dateOnlyStr = d.toLocaleDateString();
 
                 const workMins = Math.floor(totalWorkTime / 60);
                 const workSecs = totalWorkTime % 60;
@@ -1359,7 +1368,8 @@
                             <div class="min-w-0 pr-4">
                                 <div class="flex items-center gap-2 mb-1">
                                     <i class="fas fa-bolt text-[10px] text-lime-500 dark:text-lime-400"></i>
-                                    <span class="font-bold text-slate-900 dark:text-slate-200">${dateStr}</span>
+                                    <span class="font-bold text-slate-900 dark:text-slate-200">${dateOnlyStr}</span>
+                                    <span class="text-[10px] text-slate-500 font-medium ml-1 opacity-70">${timeRangeStr}</span>
                                 </div>
                                 <div class="text-xs text-slate-600 dark:text-slate-400 flex flex-wrap gap-x-3 gap-y-1">
                                     <span><i class="fas fa-stopwatch mr-1 opacity-60 dark:opacity-50"></i>${workTime}s / ${restTime}s</span>
@@ -1453,7 +1463,7 @@
             try {
                 await db.execute('DELETE FROM workouts WHERE id = ?', [id]);
                 showUndoToast(session);
-                renderAllStats();
+                renderAllStatsUI();
             } catch (err) {
                 console.error('Delete Failed:', err);
             }
@@ -1505,7 +1515,7 @@
                 window._deletedWorkout = null;
                 const toast = document.getElementById('undoToast');
                 if (toast) toast.remove();
-                renderAllStats();
+                renderAllStatsUI();
             } catch (e) {
                 console.error('Undo failed:', e);
             }
@@ -1539,7 +1549,7 @@
 
             // Refresh stats UI if visible
             if (!els.statsOverlay.classList.contains('hidden')) {
-                renderAllStats();
+                renderAllStatsUI();
             }
 
             try {
@@ -1668,7 +1678,7 @@
                 // Load saved config
                 await loadConfig();
 
-                renderAllStats();
+                renderAllStatsUI();
 
             } catch (err) {
                 console.error('[HIIT] Database initialization/migration failed:', err);
