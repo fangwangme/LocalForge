@@ -195,6 +195,11 @@
                             class="w-full py-2.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-blue-500/20 transition">
                             💾 Save (S)
                         </button>
+                        <button id="btn-batch-all"
+                            class="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded border border-purple-500 transition flex items-center justify-center gap-2 hidden">
+                            <i class="fas fa-play-circle"></i>
+                            Batch Process All
+                        </button>
                         <button id="btn-save-original"
                             class="w-full py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs rounded border border-slate-200 dark:border-slate-600 transition">
                             Save Original (O)
@@ -266,7 +271,8 @@
             rngQuality: document.getElementById('rng-quality'),
             qualityVal: document.getElementById('quality-val'),
             qualityWrapper: document.getElementById('quality-wrapper'),
-            outputInfo: document.getElementById('output-info')
+            outputInfo: document.getElementById('output-info'),
+            batchAllBtn: document.getElementById('btn-batch-all')
         };
 
         // === 0. Output Settings ===
@@ -344,7 +350,7 @@
         els.outputBtn.onclick = async () => {
             // Output directory requires API (Not supported in fallback mode)
             try {
-                const handle = await window.showDirectoryPicker();
+                const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
                 state.outputHandle = handle;
                 els.outputInfo.textContent = `Output folder: ${handle.name}`;
                 els.outputInfo.style.color = '#4a90e2';
@@ -405,6 +411,7 @@
 
             els.downloadBtn.style.display = 'none';
             els.saveBtn.textContent = 'Save & Next (S)';
+            els.batchAllBtn.classList.remove('hidden');
         }
 
         // Load single file (Supports Handle or File)
@@ -1222,6 +1229,128 @@
             }
         }
 
+        async function verifyPermission(fileHandle, readWrite) {
+            const options = {};
+            if (readWrite) {
+                options.mode = 'readwrite';
+            }
+            // Check if permission was already granted. If so, return true.
+            if ((await fileHandle.queryPermission(options)) === 'granted') {
+                return true;
+            }
+            // Request permission. If the user grants permission, return true.
+            if ((await fileHandle.requestPermission(options)) === 'granted') {
+                return true;
+            }
+            // The user didn't grant permission, so return false.
+            return false;
+        }
+
+        // === Batch Process All ===
+        els.batchAllBtn.onclick = batchProcessAll;
+
+        async function batchProcessAll() {
+            if (state.files.length === 0) {
+                alert("No images to process");
+                return;
+            }
+            if (!state.outputHandle) {
+                alert("Please select output folder first");
+                return;
+            }
+
+            const confirmProcess = await showConfirm({
+                title: "Confirm Batch Processing",
+                message: `Start batch processing ${state.files.length} images?\n\n- Remove Gemini Watermark\n- Save as PNG (100% Quality)\n- Output to: ${state.outputHandle.name}`,
+                confirmText: "Start Processing",
+                cancelText: "Cancel"
+            });
+            if (!confirmProcess) return;
+
+            // Verify permission before starting
+            const hasPermission = await verifyPermission(state.outputHandle, true);
+            if (!hasPermission) {
+                alert("Write permission is required to save processed images.");
+                return;
+            }
+
+            // Disable button
+            els.batchAllBtn.disabled = true;
+            els.batchAllBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Force PNG 100%
+            state.outputFormat = 'image/png';
+            els.selFormat.value = 'image/png';
+            els.qualityWrapper.style.opacity = '0.5';
+            els.qualityWrapper.style.pointerEvents = 'none';
+
+            // Initialize watermark removal if needed
+            showToast("Initializing assets...");
+            await initGeminiWatermark();
+
+            for (let i = 0; i < state.files.length; i++) {
+                try {
+                    // Update UI to show current progress
+                    state.currentIndex = i;
+                    updateFilenameDisplay();
+                    els.geminiWatermarkStatus.classList.remove('hidden');
+                    els.geminiWatermarkStatus.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> [${i + 1}/${state.files.length}] Processing...`;
+
+                    // 1. Load file
+                    await loadFileContent(state.files[i].handle);
+                    // Update canvas dimensions
+                    const img = state.currentImage;
+                    els.mainCanvas.width = img.width;
+                    els.mainCanvas.height = img.height;
+                    els.ctxMain.drawImage(img, 0, 0);
+
+                    // Re-initialize crop rect for current image size
+                    initCropRect();
+
+                    // 2. Remove Gemini Watermark
+                    const config = detectWatermarkConfig(img.width, img.height);
+                    const position = calculateWatermarkPosition(img.width, img.height, config);
+                    const alphaMap = getAlphaMap(config.logoSize);
+                    const imageData = els.ctxMain.getImageData(0, 0, img.width, img.height);
+                    removeGeminiWatermarkFromImageData(imageData, alphaMap, position);
+                    els.ctxMain.putImageData(imageData, 0, 0);
+
+                    // (Optional) Apply inpainting if manual diamond is set (Persist check)
+                    if (state.watermarkRect && els.persistChk.checked) {
+                        applyInpainting();
+                    }
+
+                    // 3. Generate Processed Image (Apply Pad/Crop)
+                    const offCanvas = generateProcessedImage();
+                    const blob = await new Promise(r => offCanvas.toBlob(r, 'image/png', 1.0));
+
+                    // 4. Save
+                    let filename = state.files[i].name;
+                    if (!filename.toLowerCase().endsWith('.png')) {
+                        filename = filename.replace(/\.[^.]+$/, '.png');
+                    }
+
+                    const newFileHandle = await state.outputHandle.getFileHandle(filename, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+
+                } catch (err) {
+                    console.error(`Error processing ${state.files[i].name}:`, err);
+                }
+            }
+
+            // Re-enable button
+            els.batchAllBtn.disabled = false;
+            els.batchAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            els.geminiWatermarkStatus.innerHTML = `<span class="text-emerald-400">✓ Batch processing complete!</span>`;
+            showToast(`Successfully processed ${state.files.length} images`);
+
+            // Reload the first image to refresh UI
+            loadFile(0);
+        }
+
         // === Helpers ===
 
         function showToast(msg) {
@@ -1346,6 +1475,79 @@
             }
         }
 
+    </script>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="custom-confirm" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" id="confirm-overlay"></div>
+        <div class="relative bg-white dark:bg-slate-850 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm overflow-hidden transform transition-all scale-95 opacity-0"
+            id="confirm-box">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div
+                        class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                        <i class="fas fa-question-circle text-blue-600 dark:text-blue-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white" id="confirm-title">Confirm Action</h3>
+                </div>
+                <div class="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed whitespace-pre-wrap"
+                    id="confirm-message">
+                    Are you sure you want to proceed?
+                </div>
+                <div class="flex gap-3">
+                    <button id="confirm-cancel"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirm-ok"
+                        class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-colors">
+                        Process
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Custom Confirmation Logic
+        async function showConfirm({ title, message, confirmText = 'Confirm', cancelText = 'Cancel' }) {
+            const modal = document.getElementById('custom-confirm');
+            const box = document.getElementById('confirm-box');
+            const titleEl = document.getElementById('confirm-title');
+            const msgEl = document.getElementById('confirm-message');
+            const okBtn = document.getElementById('confirm-ok');
+            const cancelBtn = document.getElementById('confirm-cancel');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            okBtn.textContent = confirmText;
+            cancelBtn.textContent = cancelText;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                box.classList.remove('scale-95', 'opacity-0');
+                box.classList.add('scale-100', 'opacity-100');
+            });
+
+            return new Promise((resolve) => {
+                const close = (result) => {
+                    box.classList.remove('scale-100', 'opacity-100');
+                    box.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                        resolve(result);
+                    }, 200);
+                };
+
+                okBtn.onclick = () => close(true);
+                cancelBtn.onclick = () => close(false);
+                document.getElementById('confirm-overlay').onclick = () => close(false);
+            });
+        }
     </script>
 </body>
 
