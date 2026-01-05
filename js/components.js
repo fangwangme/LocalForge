@@ -718,18 +718,6 @@ class LocalSidebar extends HTMLElement {
                     </li>
 
                     <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
-                        Fitness
-                    </div>
-                     ${this.isCollapsed ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>' : ''}
-
-                    <li>
-                        <a href="hiit_jump_rope.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
-                            <i class="fas fa-stopwatch w-6 text-center shrink-0 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">HIIT Timer</span>
-                        </a>
-                    </li>
-
-                    <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
                         Productivity
                     </div>
                      ${this.isCollapsed ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>' : ''}
