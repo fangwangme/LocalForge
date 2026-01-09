@@ -16,13 +16,11 @@ This project is now a static site and can be easily deployed to GitHub Pages.
 
 1.  **Purchase Domain**: Ensure you have purchased your custom domain (e.g., `example.com`) from a registrar.
 2.  **DNS Configuration**:
-    - **A Records**: Point your domain's root (`@`) to GitHub's IP addresses:
-      - `185.199.108.153`
-      - `185.199.109.153`
-      - `185.199.110.153`
-      - `185.199.111.153`
-    - **CNAME Record**: Identify your `www` subdomain (or other subdomain) and point it to your GitHub username.github.io url:
-      - `YOUR-USERNAME.github.io`
+    - **CNAME Record** (Recommended for subdomains like `tools`):
+      - **Type**: `CNAME`
+      - **Name** (Host): `tools`
+      - **Value** (Target): `fangwangme.github.io`
+      - **TTL**: Automatic or 3600
 3.  **GitHub Settings**:
     - Go back to **Settings > Pages**.
     - Under **Custom domain**, enter your domain name (e.g., `example.com`).
