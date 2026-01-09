@@ -6,14 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LocalForge Dashboard</title>
     <script>
-        // Suppress Tailwind production warning
-        const originalWarn = console.warn;
-        console.warn = function (...args) {
-            if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com should not be used in production')) {
-                return;
-            }
-            originalWarn.apply(console, args);
-        };
     </script>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -32,7 +24,6 @@
         }
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .sidebar-transition {
@@ -101,27 +92,6 @@
                             </div>
                         </section>
 
-                        <section>
-                            <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-4 ml-1">Productivity
-                            </h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                <!-- LifeFlow -->
-                                <a href="lifeflow.html"
-                                    class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
-                                    <div
-                                        class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
-                                    </div>
-                                    <div
-                                        class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">LifeFlow</h3>
-                                    <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Personal life
-                                        log, record every moment.
-                                    </p>
-                                </a>
-                            </div>
-                        </section>
 
                     </div>
                 </div>
@@ -129,159 +99,6 @@
             </div>
         </main>
 
-        <!-- Hidden File Input for Legacy Browsers -->
-        <input type="file" id="db-file-input" hidden accept=".sqlite,.db,application/x-sqlite3">
-
-
-
-        <script type="module">
-            import { db } from './js/db-client.js';
-
-            // === State ===
-            let dbHandle = null; // FileSystemFileHandle
-            let isAutoSave = true; // Always auto-save to disk
-
-            // === Helper Functions (Exposed to Window) ===
-            window.showDashboard = () => {
-                // Just focus, maybe nothing else needed as we are single page now
-                // Or maybe reset scroll?
-            };
-
-            window.showDashboard = () => {
-                // Just focus, maybe nothing else needed as we are single page now
-                // Or maybe reset scroll?
-            };
-
-            function updateDbStatus(text, color) {
-                if (window.SettingsManager && window.SettingsManager.updateDbStatus) {
-                    window.SettingsManager.updateDbStatus(text, color);
-                } else if (document.getElementById('modal-db-status-text')) {
-                    // Fallback if class not exposed
-                    const statusText = document.getElementById('modal-db-status-text');
-                    const statusDot = document.querySelector('#modal-db-status div');
-                    const statusContainer = document.getElementById('modal-db-status');
-                    if (statusText) {
-                        statusText.innerText = text;
-                        statusContainer.className = `flex items-center gap-2 font-medium ${color === 'emerald' ? 'text-emerald-400' : 'text-amber-400'}`;
-                        statusDot.className = `w-2 h-2 rounded-full ${color === 'emerald' ? 'bg-emerald-500' : 'bg-amber-500'} ${color === 'amber' ? 'animate-pulse' : ''}`;
-                    }
-                }
-            }
-
-            // === Database Logic Using db-client ===
-
-            // Listen for DB events
-            db.on('ready', async () => {
-                console.log('[Host] db.on(ready) fired');
-                updateDbStatus('Engine Ready', 'amber');
-
-                try {
-                    // 1. Try to load from Authorized Workspace Workspace
-                    const fileHandle = await db.getDatabaseFileHandle();
-                    if (fileHandle && (await db.ensureFilePermission(fileHandle))) {
-                        const file = await fileHandle.getFile();
-                        const buf = await file.arrayBuffer();
-                        await db.init(buf);
-                        dbHandle = fileHandle;
-                        console.log('[Host] Database loaded from Workspace Workspace:', file.name);
-                        updateDbStatus(`Workspace: ${file.name}`, 'emerald');
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('[Host] Workspace load failed, falling back to IDB snapshot', e);
-                }
-
-                // 2. Fallback: Try load from IDB Snapshot
-                const snapshot = await db.loadSnapshotFromIDB();
-                if (snapshot && snapshot.data) {
-                    if (snapshot.handle) dbHandle = snapshot.handle;
-                    await db.init(snapshot.data);
-                    console.log('[Host] Database restored from IDB snapshot');
-                    const displayName = dbHandle?.name || (snapshot.filename !== 'auto_backup' ? snapshot.filename : 'Cached Data');
-                    updateDbStatus(`Restored: ${displayName}`, 'emerald');
-                } else {
-                    // 3. New empty database
-                    await db.init();
-                    console.log('[Host] No data found, created fresh DB');
-                    updateDbStatus('New DB (In Memory)', 'amber');
-                }
-            });
-
-            db.on('db_opened', async () => {
-                console.log('[Host] Database opened/connected');
-
-                // Create system-level tables
-                try {
-                    await db.execute(`
-                                        CREATE TABLE IF NOT EXISTS app_config (
-                                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                            tool_name TEXT NOT NULL,
-                                            config_key TEXT NOT NULL,
-                                            config_value TEXT NOT NULL,
-                                            updated_at TEXT NOT NULL,
-                                            UNIQUE(tool_name, config_key)
-                                        )
-                                    `);
-                    console.log('[Host] System tables initialized');
-                } catch (err) {
-                    console.error('[Host] Failed to create system tables:', err);
-                }
-
-                // index.html should be the primary writer
-                db.claimWriter();
-            });
-
-            // Handle database updates - ALL pages save to IDB immediately
-            db.on('db_updated', async () => {
-                console.log('[Host] DB Updated, saving to IDB...');
-                try {
-                    const data = await db.export();
-                    await db.saveSnapshotToIDB(data, dbHandle, dbHandle?.name || 'auto_backup');
-                    console.log('[Host] Saved to IDB');
-                } catch (err) {
-                    console.error('[Host] IDB Save Error:', err);
-                }
-            });
-
-            // Handle periodic file sync (only when this page is the writer)
-            db.on('sync_to_file', async () => {
-                console.log('[Host] Syncing to file...');
-
-                try {
-                    const handle = await db.getFileHandleForSync();
-                    if (!handle) return;
-
-                    const data = await db.export();
-                    const hasPerm = await db.ensureFilePermission(handle, 'readwrite');
-
-                    if (!hasPerm) {
-                        console.warn('[Host] File permission denied');
-                        return;
-                    }
-
-                    const writable = await handle.createWritable();
-                    await writable.write(data);
-                    await writable.close();
-                    console.log('[Host] ✅ Synced to file:', handle.name);
-                    updateDbStatus(`Synced: ${handle.name}`, 'emerald');
-
-                } catch (err) {
-                    console.error('[Host] Sync fail:', err);
-                }
-            });
-
-            // Listen for writer status changes
-            db.on('writer_changed', (data) => {
-                console.log('[Host] Writer status changed:', data?.isWriter ? 'I am now the writer' : 'No longer writer');
-                if (data?.isWriter) {
-                    // Start periodic file sync (every 10 seconds)
-                    db.startPeriodicSync(10000);
-                }
-            });
-
-
-            // Database interactions are now handled by SettingsManager in components.js
-        </script>
-</body>
+        </script></body>
 
 </html>
