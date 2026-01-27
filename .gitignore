@@ -15,3 +15,5 @@ data/
 .server.debug.pid
 .shared/
 .worktrees/
+.shared
+.worktrees
