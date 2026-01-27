@@ -13,3 +13,5 @@ tmp/
 data/
 .server.pid
 .server.debug.pid
+.shared/
+.worktrees/
