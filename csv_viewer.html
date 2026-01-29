@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<title>CSV Viewer - LocalForge</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
+        }
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <script type="module" src="js/components.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.2s;
+    }
+
+    .drop-zone.dragover {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .csv-table {
+      font-size: 13px;
+      border-collapse: collapse;
+    }
+
+    .csv-table th,
+    .csv-table td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .dark .csv-table th,
+    .dark .csv-table td {
+      border-color: #334155;
+    }
+
+    .csv-table th {
+      background: #f1f5f9;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .dark .csv-table th {
+      background: #1e293b;
+    }
+
+    .csv-table tr:hover {
+      background: #f8fafc;
+    }
+
+    .dark .csv-table tr:hover {
+      background: #334155;
+    }
+
+    .tab-active {
+        border-bottom: 2px solid #10b981;
+        color: #10b981;
+    }
+</style>
+<style>
+local-sidebar:not(:defined), local-header:not(:defined) {
+  opacity: 0;
+}
+local-sidebar:defined, local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+</head>
+
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300"
+  >
+<script>
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.body.classList.remove('preload');
+  }, 100);
+});
+</script>
+
+  <local-sidebar></local-sidebar>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <local-header title="CSV Viewer">
+      <i slot="icon" class="fas fa-table text-emerald-500"></i>
+      <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">View, edit, and convert CSV files</div>
+    </local-header>
+
+    <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+      <div class="flex">
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-emerald-500 transition tab-active" data-tab="view">
+          <i class="fas fa-table mr-2"></i>Table View
+        </button>
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-emerald-500 transition" data-tab="edit">
+          <i class="fas fa-edit mr-2"></i>Edit
+        </button>
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-emerald-500 transition" data-tab="json">
+          <i class="fas fa-code mr-2"></i>JSON
+        </button>
+      </div>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden">
+      <div id="view-tab" class="tab-content flex-1 flex flex-col">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+          <div class="flex gap-2">
+            <button id="loadCsvBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition">
+              <i class="fas fa-file-csv mr-2"></i>Load CSV
+            </button>
+            <input type="file" id="csvInput" class="hidden" accept=".csv">
+            <button id="pasteSampleCsv" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm transition">
+              <i class="fas fa-paste mr-2"></i>Sample
+            </button>
+          </div>
+          <div class="flex gap-2">
+            <span id="csvStats" class="text-sm text-slate-500"></span>
+            <button id="exportCsv" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm transition" disabled>
+              <i class="fas fa-download mr-2"></i>Export
+            </button>
+          </div>
+        </div>
+
+        <div id="dropZone" class="flex-1 m-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl flex items-center justify-center">
+          <div class="text-center text-slate-400">
+            <i class="fas fa-file-csv text-5xl mb-4"></i>
+            <p>Drop a CSV file here or click "Load CSV"</p>
+          </div>
+        </div>
+
+        <div id="tableContainer" class="hidden flex-1 overflow-auto p-4">
+          <table id="csvTable" class="csv-table w-full"></table>
+        </div>
+      </div>
+
+      <div id="edit-tab" class="tab-content flex-1 flex hidden">
+        <div class="flex-1 flex flex-col p-4">
+          <div class="flex gap-2 mb-4">
+            <button id="addRow" class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm">
+              <i class="fas fa-plus mr-1"></i>Row
+            </button>
+            <button id="addCol" class="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm">
+              <i class="fas fa-plus mr-1"></i>Column
+            </button>
+            <button id="delRow" class="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 rounded-lg text-sm">
+              <i class="fas fa-trash mr-1"></i>Row
+            </button>
+            <button id="delCol" class="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 hover:bg-red-200 rounded-lg text-sm">
+              <i class="fas fa-trash mr-1"></i>Column
+            </button>
+          </div>
+
+          <div id="editTableContainer" class="flex-1 overflow-auto border border-slate-300 dark:border-slate-600 rounded-lg">
+            <p class="text-center text-slate-400 py-12">Load CSV first to edit</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="json-tab" class="tab-content flex-1 flex hidden">
+        <div class="flex-1 flex gap-4 p-4">
+          <div class="flex-1 flex flex-col">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium text-slate-500">JSON Output</span>
+              <button id="copyJsonCsv" class="text-sm text-emerald-600 hover:text-emerald-700">
+                <i class="fas fa-copy mr-1"></i>Copy
+              </button>
+            </div>
+            <textarea id="jsonOutput" class="flex-1 w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 font-mono text-sm resize-none" readonly></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let csvData = [];
+    let headers = [];
+    let selectedCell = null;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        btn.classList.add('tab-active');
+        document.getElementById(btn.dataset.tab + '-tab').classList.remove('hidden');
+      });
+    });
+
+    const loadCsvBtn = document.getElementById('loadCsvBtn');
+    const csvInput = document.getElementById('csvInput');
+    const dropZone = document.getElementById('dropZone');
+    const tableContainer = document.getElementById('tableContainer');
+    const csvTable = document.getElementById('csvTable');
+    const csvStats = document.getElementById('csvStats');
+    const exportCsv = document.getElementById('exportCsv');
+
+    loadCsvBtn.addEventListener('click', () => csvInput.click());
+
+    csvInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        parseCSV(e.target.files[0]);
+      }
+    });
+
+    dropZone.addEventListener('click', () => csvInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].name.endsWith('.csv')) {
+        parseCSV(files[0]);
+      }
+    });
+
+    document.getElementById('pasteSampleCsv').addEventListener('click', () => {
+      const sample = `Name,Age,Email,Country
+John Doe,30,john@example.com,USA
+Jane Smith,25,jane@example.com,UK
+Bob Johnson,35,bob@example.com,Canada
+Alice Brown,28,alice@example.com,Australia`;
+
+      Papa.parse(sample, {
+        complete: (results) => {
+          csvData = results.data;
+          headers = csvData[0];
+          csvData = csvData.slice(1);
+          displayTable();
+        }
+      });
+    });
+
+    function parseCSV(file) {
+      Papa.parse(file, {
+        complete: (results) => {
+          csvData = results.data;
+          headers = csvData[0];
+          csvData = csvData.slice(1);
+          displayTable();
+        },
+        header: false
+      });
+    }
+
+    function displayTable() {
+      if (csvData.length === 0) return;
+
+      dropZone.classList.add('hidden');
+      tableContainer.classList.remove('hidden');
+      exportCsv.disabled = false;
+
+      let html = '<thead><tr>';
+      headers.forEach((h, i) => {
+        html += `<th contenteditable="true" data-col="${i}">${escapeHtml(h)}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      csvData.forEach((row, rowIndex) => {
+        html += '<tr>';
+        row.forEach((cell, colIndex) => {
+          html += `<td contenteditable="true" data-row="${rowIndex}" data-col="${colIndex}">${escapeHtml(cell || '')}</td>`;
+        });
+        if (row.length < headers.length) {
+          for (let i = row.length; i < headers.length; i++) {
+            html += `<td contenteditable="true" data-row="${rowIndex}" data-col="${i}"></td>`;
+          }
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      csvTable.innerHTML = html;
+
+      csvStats.textContent = `${csvData.length} rows × ${headers.length} columns`;
+
+      updateJsonOutput();
+      updateEditTable();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function updateJsonOutput() {
+      const json = csvData.map(row => {
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = row[i] || '';
+        });
+        return obj;
+      });
+      document.getElementById('jsonOutput').value = JSON.stringify(json, null, 2);
+    }
+
+    function updateEditTable() {
+      const container = document.getElementById('editTableContainer');
+      if (csvData.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-400 py-12">Load CSV first to edit</p>';
+        return;
+      }
+
+      let html = '<table class="csv-table w-full">';
+      html += '<thead><tr>';
+      headers.forEach(h => html += `<th>${escapeHtml(h)}</th>`);
+      html += '</tr></thead><tbody>';
+
+      csvData.forEach((row, i) => {
+        html += '<tr>';
+        row.forEach(cell => html += `<td>${escapeHtml(cell || '')}</td>`);
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    exportCsv.addEventListener('click', () => {
+      const csv = Papa.unparse({
+        fields: headers,
+        data: csvData
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('copyJsonCsv').addEventListener('click', () => {
+      const jsonOutput = document.getElementById('jsonOutput');
+      if (jsonOutput.value) {
+        navigator.clipboard.writeText(jsonOutput.value);
+      }
+    });
+
+    // Edit operations
+    document.getElementById('addRow').addEventListener('click', () => {
+      if (csvData.length === 0) return;
+      csvData.push(new Array(headers.length).fill(''));
+      displayTable();
+    });
+
+    document.getElementById('addCol').addEventListener('click', () => {
+      if (csvData.length === 0) return;
+      headers.push('New Column');
+      csvData.forEach(row => row.push(''));
+      displayTable();
+    });
+
+    document.getElementById('delRow').addEventListener('click', () => {
+      if (csvData.length > 0) {
+        csvData.pop();
+        displayTable();
+      }
+    });
+
+    document.getElementById('delCol').addEventListener('click', () => {
+      if (headers.length > 0) {
+        headers.pop();
+        csvData.forEach(row => row.pop());
+        displayTable();
+      }
+    });
+
+    // Save edits
+    csvTable.addEventListener('input', (e) => {
+      if (e.target.tagName === 'TD') {
+        const row = parseInt(e.target.dataset.row);
+        const col = parseInt(e.target.dataset.col);
+        csvData[row][col] = e.target.textContent;
+        updateJsonOutput();
+      } else if (e.target.tagName === 'TH') {
+        const col = parseInt(e.target.dataset.col);
+        headers[col] = e.target.textContent;
+        updateJsonOutput();
+      }
+    });
+  </script>
+</body>
+
+</html>
