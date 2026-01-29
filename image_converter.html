@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<title>Image Converter - LocalForge</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
+        }
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <script type="module" src="js/components.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.2s;
+    }
+
+    .drop-zone.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .preview-container {
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+');
+    }
+
+    .dark .preview-container {
+        background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+');
+    }
+</style>
+<style>
+local-sidebar:not(:defined), local-header:not(:defined) {
+  opacity: 0;
+}
+local-sidebar:defined, local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+</head>
+
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300"
+  >
+<script>
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.body.classList.remove('preload');
+  }, 100);
+});
+</script>
+
+  <local-sidebar></local-sidebar>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <local-header title="Image Converter">
+      <i slot="icon" class="fas fa-exchange-alt text-green-500"></i>
+      <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">Convert between PNG, JPG, WebP, AVIF</div>
+    </local-header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Left Panel: Upload & Settings -->
+      <aside class="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shrink-0">
+        <!-- Upload Area -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+          <div id="dropZone" class="drop-zone rounded-xl p-6 text-center cursor-pointer hover:border-blue-400">
+            <i class="fas fa-cloud-upload-alt text-3xl text-blue-500 mb-2"></i>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Drop images here or click to select</p>
+            <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
+          </div>
+        </div>
+
+        <!-- Conversion Settings -->
+        <div class="p-4 flex-1 overflow-y-auto">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Output Format</h3>
+
+          <div class="space-y-2 mb-6">
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+              <input type="radio" name="format" value="png" class="w-4 h-4 text-blue-600" checked>
+              <span class="flex-1 text-sm">PNG</span>
+              <span class="text-xs text-slate-400">Lossless</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+              <input type="radio" name="format" value="jpeg" class="w-4 h-4 text-blue-600">
+              <span class="flex-1 text-sm">JPEG</span>
+              <span class="text-xs text-slate-400">Compressed</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+              <input type="radio" name="format" value="webp" class="w-4 h-4 text-blue-600">
+              <span class="flex-1 text-sm">WebP</span>
+              <span class="text-xs text-slate-400">Modern</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+              <input type="radio" name="format" value="avif" class="w-4 h-4 text-blue-600">
+              <span class="flex-1 text-sm">AVIF</span>
+              <span class="text-xs text-slate-400">Best compression</span>
+            </label>
+          </div>
+
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Quality (JPEG/WebP/AVIF)</h3>
+          <div class="mb-6">
+            <div class="flex justify-between text-xs text-slate-500 mb-2">
+              <span>Low</span>
+              <span id="qualityValue">85%</span>
+              <span>High</span>
+            </div>
+            <input type="range" id="quality" min="1" max="100" value="85" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-slate-700">
+          </div>
+
+          <button id="convertAll" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fas fa-cogs"></i>
+            Convert All
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Preview & Results -->
+      <main class="flex-1 bg-slate-50 dark:bg-slate-900 flex flex-col">
+        <!-- File List -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div id="fileList" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div class="col-span-full text-center py-12 text-slate-400">
+              <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+              <p>No images selected</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress/Status Bar -->
+        <div class="h-14 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between px-6">
+          <div class="text-sm text-slate-600 dark:text-slate-400">
+            <span id="statusText">Ready</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <button id="clearAll" class="text-sm text-slate-500 hover:text-red-500 transition hidden">
+              <i class="fas fa-trash-alt mr-1"></i> Clear All
+            </button>
+            <button id="downloadAll" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition hidden">
+              <i class="fas fa-download mr-2"></i>Download All
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const convertAllBtn = document.getElementById('convertAll');
+    const downloadAllBtn = document.getElementById('downloadAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const qualitySlider = document.getElementById('quality');
+    const qualityValue = document.getElementById('qualityValue');
+    const statusText = document.getElementById('statusText');
+
+    let files = [];
+    let convertedBlobs = [];
+
+    // Quality slider
+    qualitySlider.addEventListener('input', () => {
+      qualityValue.textContent = qualitySlider.value + '%';
+    });
+
+    // Drag & Drop
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    function handleFiles(fileList) {
+      const imageFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+      files = [...files, ...imageFiles];
+      updateUI();
+    }
+
+    function updateUI() {
+      if (files.length === 0) {
+        fileList.innerHTML = `
+          <div class="col-span-full text-center py-12 text-slate-400">
+            <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+            <p>No images selected</p>
+          </div>
+        `;
+        convertAllBtn.disabled = true;
+        downloadAllBtn.classList.add('hidden');
+        clearAllBtn.classList.add('hidden');
+        statusText.textContent = 'Ready';
+        return;
+      }
+
+      fileList.innerHTML = files.map((file, index) => `
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden" data-index="${index}">
+          <div class="preview-container aspect-square flex items-center justify-center bg-slate-100 dark:bg-slate-900 relative">
+            <img src="${URL.createObjectURL(file)}" class="max-w-full max-h-full object-contain" alt="${file.name}">
+            <button class="remove-btn absolute top-2 right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition" data-index="${index}">
+              <i class="fas fa-times text-xs"></i>
+            </button>
+          </div>
+          <div class="p-3">
+            <p class="text-xs font-medium truncate mb-1">${file.name}</p>
+            <p class="text-xs text-slate-500">${formatBytes(file.size)}</p>
+            <div class="status mt-2 text-xs text-slate-400">Waiting...</div>
+          </div>
+        </div>
+      `).join('');
+
+      convertAllBtn.disabled = false;
+      clearAllBtn.classList.remove('hidden');
+      statusText.textContent = `${files.length} file(s) selected`;
+
+      // Add remove listeners
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = parseInt(e.currentTarget.dataset.index);
+          files.splice(index, 1);
+          updateUI();
+        });
+      });
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    convertAllBtn.addEventListener('click', async () => {
+      const format = document.querySelector('input[name="format"]:checked').value;
+      const quality = parseInt(qualitySlider.value) / 100;
+
+      convertAllBtn.disabled = true;
+      convertAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Converting...';
+      convertedBlobs = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const card = fileList.children[i];
+        const status = card.querySelector('.status');
+        status.textContent = 'Converting...';
+        status.className = 'status mt-2 text-xs text-blue-500';
+
+        try {
+          const blob = await convertImage(file, format, quality);
+          convertedBlobs.push({
+            blob,
+            name: file.name.replace(/\.[^/.]+$/, '') + '.' + format,
+            originalName: file.name
+          });
+          status.textContent = `Done! ${formatBytes(blob.size)}`;
+          status.className = 'status mt-2 text-xs text-green-500';
+        } catch (err) {
+          status.textContent = 'Failed';
+          status.className = 'status mt-2 text-xs text-red-500';
+        }
+      }
+
+      convertAllBtn.disabled = false;
+      convertAllBtn.innerHTML = '<i class="fas fa-cogs"></i> Convert All';
+
+      if (convertedBlobs.length > 0) {
+        downloadAllBtn.classList.remove('hidden');
+        statusText.textContent = `Converted ${convertedBlobs.length} file(s)`;
+      }
+    });
+
+    async function convertImage(file, format, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          let mimeType = 'image/png';
+          if (format === 'jpeg') mimeType = 'image/jpeg';
+          else if (format === 'webp') mimeType = 'image/webp';
+          else if (format === 'avif') mimeType = 'image/avif';
+
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('Conversion failed'));
+          }, mimeType, quality);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    downloadAllBtn.addEventListener('click', () => {
+      convertedBlobs.forEach(({ blob, name }) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+
+    clearAllBtn.addEventListener('click', () => {
+      files = [];
+      convertedBlobs = [];
+      updateUI();
+    });
+  </script>
+</body>
+
+</html>

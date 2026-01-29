@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<title>Regex Tester - LocalForge</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
+        }
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <script type="module" src="js/components.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .match-highlight {
+      background: rgba(16, 185, 129, 0.3);
+      border-radius: 2px;
+    }
+
+    .group-highlight {
+      background: rgba(59, 130, 246, 0.3);
+      border-radius: 2px;
+    }
+
+    .regex-input {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+
+    .preset-btn {
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+        transform: translateX(4px);
+    }
+</style>
+<style>
+local-sidebar:not(:defined), local-header:not(:defined) {
+  opacity: 0;
+}
+local-sidebar:defined, local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+</head>
+
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300"
+  >
+<script>
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.body.classList.remove('preload');
+  }, 100);
+});
+</script>
+
+  <local-sidebar></local-sidebar>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <local-header title="Regex Tester">
+      <i slot="icon" class="fas fa-search text-rose-500"></i>
+      <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">Test and debug regular expressions</div>
+    </local-header>
+
+    <div class="flex-1 flex overflow-hidden">
+      <aside class="w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
+        <div class="p-4">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Common Patterns</h3>
+          <div class="space-y-1">
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="^\\d+$" data-flags="" data-desc="Digits only">
+              <i class="fas fa-hashtag w-5 text-rose-500"></i>Digits Only
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" data-flags="" data-desc="Email address">
+              <i class="fas fa-envelope w-5 text-rose-500"></i>Email
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="^https?://[\\w\\.-]+\\.[a-zA-Z]{2,}(/.*)?$" data-flags="i" data-desc="URL">
+              <i class="fas fa-link w-5 text-rose-500"></i>URL
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b" data-flags="g" data-desc="IP Address">
+              <i class="fas fa-network-wired w-5 text-rose-500"></i>IP Address
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="^\\d{4}-\\d{2}-\\d{2}$" data-flags="" data-desc="Date (YYYY-MM-DD)">
+              <i class="fas fa-calendar w-5 text-rose-500"></i>Date YYYY-MM-DD
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="\\b\\d{3}-\\d{2}-\\d{4}\\b" data-flags="g" data-desc="SSN">
+              <i class="fas fa-id-card w-5 text-rose-500"></i>SSN
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="\\b[A-Fa-f0-9]{6}\\b" data-flags="g" data-desc="Hex Color">
+              <i class="fas fa-palette w-5 text-rose-500"></i>Hex Color
+            </button>
+            <button class="preset-btn w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" data-pattern="\\b\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b" data-flags="g" data-desc="Credit Card">
+              <i class="fas fa-credit-card w-5 text-rose-500"></i>Credit Card
+            </button>
+          </div>
+
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-6">Reference</h3>
+          <div class="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+            <div class="flex justify-between py-1"><code>.</code> <span>Any character</span></div>
+            <div class="flex justify-between py-1"><code>\\d</code> <span>Digit</span></div>
+            <div class="flex justify-between py-1"><code>\\w</code> <span>Word char</span></div>
+            <div class="flex justify-between py-1"><code>\\s</code> <span>Whitespace</span></div>
+            <div class="flex justify-between py-1"><code>^</code> <span>Start</span></div>
+            <div class="flex justify-between py-1"><code>$</code> <span>End</span></div>
+            <div class="flex justify-between py-1"><code>*</code> <span>0+ times</span></div>
+            <div class="flex justify-between py-1"><code>+</code> <span>1+ times</span></div>
+            <div class="flex justify-between py-1"><code>?</code> <span>0 or 1</span></div>
+            <div class="flex justify-between py-1"><code>{n}</code> <span>Exactly n</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900">
+        <div class="p-6 space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-lg font-mono text-rose-500">/</span>
+              <input type="text" id="regexPattern" class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 font-mono text-sm" placeholder="Enter regex pattern...">
+              <span class="text-lg font-mono text-rose-500">/</span>
+              <input type="text" id="regexFlags" class="w-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 font-mono text-sm" placeholder="flags" value="g">
+            </div>
+            <div class="flex gap-2">
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" id="flagG" checked class="w-4 h-4 text-rose-600">
+                <span>g - Global</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" id="flagI" class="w-4 h-4 text-rose-600">
+                <span>i - Ignore case</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" id="flagM" class="w-4 h-4 text-rose-600">
+                <span>m - Multiline</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" id="flagS" class="w-4 h-4 text-rose-600">
+                <span>s - DotAll</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-slate-500">Test String</span>
+                <button id="clearText" class="text-xs text-slate-400 hover:text-slate-600">
+                  <i class="fas fa-trash-alt"></i> Clear
+                </button>
+              </div>
+              <textarea id="testString" class="regex-input w-full h-40 px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 resize-none focus:ring-2 focus:ring-rose-500 focus:border-transparent" placeholder="Enter text to test against the regex..."></textarea>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-medium text-slate-500">Matches</h3>
+              <span id="matchCount" class="text-sm font-bold text-rose-500">0 matches</span>
+            </div>
+            <div id="matchesList" class="space-y-2 max-h-48 overflow-y-auto">
+              <p class="text-slate-400 text-center py-4">No matches yet</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 overflow-auto">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-slate-500">Highlighted Result</span>
+            <button id="copyResult" class="text-xs text-rose-600 hover:text-rose-700">
+              <i class="fas fa-copy mr-1"></i>Copy
+            </button>
+          </div>
+          <pre id="highlightedResult" class="regex-input whitespace-pre-wrap break-all text-sm text-slate-700 dark:text-slate-300 min-h-[100px]"></pre>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const regexPattern = document.getElementById('regexPattern');
+    const regexFlags = document.getElementById('regexFlags');
+    const testString = document.getElementById('testString');
+    const matchesList = document.getElementById('matchesList');
+    const matchCount = document.getElementById('matchCount');
+    const highlightedResult = document.getElementById('highlightedResult');
+
+    const flagCheckboxes = {
+      g: document.getElementById('flagG'),
+      i: document.getElementById('flagI'),
+      m: document.getElementById('flagM'),
+      s: document.getElementById('flagS')
+    };
+
+    function getFlags() {
+      return Object.entries(flagCheckboxes)
+        .filter(([_, cb]) => cb.checked)
+        .map(([flag, _]) => flag)
+        .join('');
+    }
+
+    function updateFlagsInput() {
+      regexFlags.value = getFlags();
+    }
+
+    Object.values(flagCheckboxes).forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateFlagsInput();
+        testRegex();
+      });
+    });
+
+    regexFlags.addEventListener('input', () => {
+      const flags = regexFlags.value;
+      Object.entries(flagCheckboxes).forEach(([flag, cb]) => {
+        cb.checked = flags.includes(flag);
+      });
+      testRegex();
+    });
+
+    function testRegex() {
+      const pattern = regexPattern.value;
+      const text = testString.value;
+      const flags = getFlags();
+
+      if (!pattern || !text) {
+        matchesList.innerHTML = '<p class="text-slate-400 text-center py-4">No matches yet</p>';
+        matchCount.textContent = '0 matches';
+        highlightedResult.textContent = text;
+        return;
+      }
+
+      try {
+        const regex = new RegExp(pattern, flags);
+        const matches = [];
+        let match;
+
+        if (flags.includes('g')) {
+          while ((match = regex.exec(text)) !== null) {
+            matches.push({
+              text: match[0],
+              index: match.index,
+              groups: match.slice(1)
+            });
+            if (match.index === regex.lastIndex) regex.lastIndex++;
+          }
+        } else {
+          match = regex.exec(text);
+          if (match) {
+            matches.push({
+              text: match[0],
+              index: match.index,
+              groups: match.slice(1)
+            });
+          }
+        }
+
+        displayMatches(matches);
+        highlightMatches(text, matches);
+        matchCount.textContent = `${matches.length} match${matches.length !== 1 ? 'es' : ''}`;
+      } catch (e) {
+        matchesList.innerHTML = `<p class="text-red-500 text-center py-4">Invalid regex: ${e.message}</p>`;
+        matchCount.textContent = 'Error';
+      }
+    }
+
+    function displayMatches(matches) {
+      if (matches.length === 0) {
+        matchesList.innerHTML = '<p class="text-slate-400 text-center py-4">No matches found</p>';
+        return;
+      }
+
+      matchesList.innerHTML = matches.map((m, i) => `
+        <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-sm bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 px-2 py-1 rounded">${escapeHtml(m.text)}</span>
+            <span class="text-xs text-slate-400">index ${m.index}</span>
+          </div>
+          ${m.groups.length > 0 ? `
+            <div class="mt-2 text-xs text-slate-500">
+              Groups: ${m.groups.map((g, j) => `<span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded">${j + 1}: ${escapeHtml(g || 'empty')}</span>`).join(' ')}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function highlightMatches(text, matches) {
+      if (matches.length === 0) {
+        highlightedResult.textContent = text;
+        return;
+      }
+
+      let result = '';
+      let lastIndex = 0;
+
+      matches.forEach((m, i) => {
+        result += escapeHtml(text.slice(lastIndex, m.index));
+        result += `<span class="match-highlight" title="Match ${i + 1} at index ${m.index}">${escapeHtml(m.text)}</span>`;
+        lastIndex = m.index + m.text.length;
+      });
+
+      result += escapeHtml(text.slice(lastIndex));
+      highlightedResult.innerHTML = result;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    regexPattern.addEventListener('input', testRegex);
+    testString.addEventListener('input', testRegex);
+
+    document.getElementById('clearText').addEventListener('click', () => {
+      testString.value = '';
+      testRegex();
+    });
+
+    document.getElementById('copyResult').addEventListener('click', () => {
+      navigator.clipboard.writeText(testString.value);
+    });
+
+    // Preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        regexPattern.value = btn.dataset.pattern;
+        regexFlags.value = btn.dataset.flags;
+        Object.entries(flagCheckboxes).forEach(([flag, cb]) => {
+          cb.checked = btn.dataset.flags.includes(flag);
+        });
+        testRegex();
+      });
+    });
+  </script>
+</body>
+
+</html>

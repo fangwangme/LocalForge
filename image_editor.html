@@ -2,11 +2,17 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Editor - LocalForge</title>
-    <link rel="icon" type="image/png" href="favicon.png">
-    <script src="https://cdn.tailwindcss.com" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Editor - LocalForge</title>
+
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdn.tailwindcss.com" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Global Styles -->
     <link rel="stylesheet" href="css/style.css">
@@ -15,26 +21,95 @@
             overflow: hidden;
         }
     </style>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            850: '#1e293b',
-                        }
-                    }
-                }
-            }
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
         }
-    </script>
-    <!-- Custom Components -->
-    <script type="module" src="js/components.js"></script>
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <!-- Custom Components -->
+  <script type="module" src="js/components.js"></script>
+  <style>
+local-sidebar:not(:defined),
+local-header:not(:defined) {
+  opacity: 0;
+}
+
+local-sidebar:defined,
+local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}
+</style>
+
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
 </head>
 
-<body
-    class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300">
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300">
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      document.body.classList.remove('preload');
+    }, 100);
+  });
+</script>
 
     <local-sidebar></local-sidebar>
 

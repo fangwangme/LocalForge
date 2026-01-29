@@ -4,8 +4,14 @@ class ThemeManager {
   static init() {
     // Expose global functions
     window.setGlobalTheme = (mode) => {
-      localStorage.setItem("lifeflow_theme_mode", mode);
-      ThemeManager.apply(mode);
+      console.log('[ThemeManager] setGlobalTheme called with mode:', mode);
+      try {
+        localStorage.setItem("lifeflow_theme_mode", mode);
+        ThemeManager.apply(mode);
+        console.log('[ThemeManager] Theme applied successfully');
+      } catch (e) {
+        console.error('[ThemeManager] Error applying theme:', e);
+      }
     };
 
     // Initial application
@@ -40,6 +46,7 @@ class ThemeManager {
   }
 
   static apply(mode) {
+    console.log('[ThemeManager] Applying mode:', mode);
     let isDark = false;
 
     if (mode === "auto") {
@@ -48,16 +55,19 @@ class ThemeManager {
       isDark = mode === "dark";
     }
 
+    console.log('[ThemeManager] isDark:', isDark);
+
     const html = document.documentElement;
     if (isDark) {
       html.classList.add("dark");
-      document.body?.classList.add("dark");
+      if (document.body) document.body.classList.add("dark");
     } else {
       html.classList.remove("dark");
-      document.body?.classList.remove("dark");
+      if (document.body) document.body.classList.remove("dark");
     }
 
     console.log(`[ThemeManager] Applied ${mode} (isDark: ${isDark})`);
+    console.log('[ThemeManager] html classes:', html.className);
 
     // Update components
     document.querySelectorAll("local-header").forEach((header) => {
@@ -554,28 +564,121 @@ class LocalSidebar extends HTMLElement {
                         </a>
                     </li>
 
-                    <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
-                        Media Tools
-                    </div>
-                    <!-- Separator for collapsed mode -->
-                    ${
-                      this.isCollapsed
-                        ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>'
-                        : ""
-                    }
+        <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
+          Media Tools
+        </div>
+        <!-- Separator for collapsed mode -->
+        ${
+          this.isCollapsed
+          ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>'
+          : ""
+        }
 
-                    <li>
-                        <a href="image_editor.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
-                            <i class="fas fa-image w-6 text-center shrink-0 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">Image Editor</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="image_resize.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
-                            <i class="fas fa-compress-alt w-6 text-center shrink-0 group-hover:text-pink-500 dark:group-hover:text-pink-400 transition ${iconMargin}"></i>
-                            <span class="${hideTextClass}">Image Resize</span>
-                        </a>
-                    </li>
+        <li>
+          <a href="image_editor.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-image w-6 text-center shrink-0 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Image Editor</span>
+          </a>
+        </li>
+        <li>
+          <a href="image_resize.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-compress-alt w-6 text-center shrink-0 group-hover:text-pink-500 dark:group-hover:text-pink-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Image Resize</span>
+          </a>
+        </li>
+        <li>
+          <a href="image_converter.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-exchange-alt w-6 text-center shrink-0 group-hover:text-green-500 dark:group-hover:text-green-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Image Converter</span>
+          </a>
+        </li>
+        <li>
+          <a href="gif_maker.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-film w-6 text-center shrink-0 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">GIF Maker</span>
+          </a>
+        </li>
+
+        <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
+          Document Tools
+        </div>
+        <!-- Separator for collapsed mode -->
+        ${
+          this.isCollapsed
+          ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>'
+          : ""
+        }
+
+        <li>
+          <a href="pdf_tools.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-file-pdf w-6 text-center shrink-0 group-hover:text-red-500 dark:group-hover:text-red-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">PDF Tools</span>
+          </a>
+        </li>
+        <li>
+          <a href="json_tools.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-code w-6 text-center shrink-0 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">JSON Tools</span>
+          </a>
+        </li>
+        <li>
+          <a href="csv_viewer.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-table w-6 text-center shrink-0 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">CSV Viewer</span>
+          </a>
+        </li>
+
+        <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
+          Developer Tools
+        </div>
+        <!-- Separator for collapsed mode -->
+        ${
+          this.isCollapsed
+          ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>'
+          : ""
+        }
+
+        <li>
+          <a href="qr_generator.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-qrcode w-6 text-center shrink-0 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">QR Generator</span>
+          </a>
+        </li>
+        <li>
+          <a href="base64_tools.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-code w-6 text-center shrink-0 group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Base64 Tools</span>
+          </a>
+        </li>
+        <li>
+          <a href="regex_tester.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-search w-6 text-center shrink-0 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Regex Tester</span>
+          </a>
+        </li>
+
+        <div class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-4 whitespace-nowrap ${hideTextClass}">
+          Utilities
+        </div>
+        <!-- Separator for collapsed mode -->
+        ${
+          this.isCollapsed
+          ? '<div class="h-px bg-slate-200 dark:bg-slate-800 my-2 mx-4"></div>'
+          : ""
+        }
+
+        <li>
+          <a href="password_generator.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-key w-6 text-center shrink-0 group-hover:text-violet-500 dark:group-hover:text-violet-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Password Gen</span>
+          </a>
+        </li>
+        <li>
+          <a href="timestamp_converter.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-clock w-6 text-center shrink-0 group-hover:text-teal-500 dark:group-hover:text-teal-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Timestamp</span>
+          </a>
+        </li>
                 </ul>
             </nav>
 

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<title>PDF Tools - LocalForge</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
+        }
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <script type="module" src="js/components.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.2s;
+    }
+
+    .drop-zone.dragover {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .tab-active {
+        border-bottom: 2px solid #ef4444;
+        color: #ef4444;
+    }
+</style>
+<style>
+local-sidebar:not(:defined), local-header:not(:defined) {
+  opacity: 0;
+}
+local-sidebar:defined, local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+</head>
+
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300"
+  >
+<script>
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.body.classList.remove('preload');
+  }, 100);
+});
+</script>
+
+  <local-sidebar></local-sidebar>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <local-header title="PDF Tools">
+      <i slot="icon" class="fas fa-file-pdf text-red-500"></i>
+      <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">Merge, split, and compress PDFs</div>
+    </local-header>
+
+    <!-- Tabs -->
+    <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+      <div class="flex">
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-500 transition tab-active" data-tab="merge">
+          <i class="fas fa-object-group mr-2"></i>Merge
+        </button>
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-500 transition" data-tab="split">
+          <i class="fas fa-cut mr-2"></i>Split
+        </button>
+        <button class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-500 transition" data-tab="compress">
+          <i class="fas fa-compress-arrows-alt mr-2"></i>Compress
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <!-- Merge Tab -->
+      <div id="merge-tab" class="tab-content max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div id="mergeDropZone" class="drop-zone rounded-xl p-8 text-center cursor-pointer mb-6">
+            <i class="fas fa-cloud-upload-alt text-4xl text-red-500 mb-3"></i>
+            <p class="text-slate-600 dark:text-slate-400">Drop PDF files here or click to select</p>
+            <p class="text-xs text-slate-400 mt-2">Select multiple PDFs to merge them in order</p>
+            <input type="file" id="mergeInput" class="hidden" accept=".pdf" multiple>
+          </div>
+
+          <div id="mergeList" class="space-y-2 mb-6">
+            <p class="text-center text-slate-400 py-8">No PDFs selected</p>
+          </div>
+
+          <button id="mergeBtn" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fas fa-merge mr-2"></i>Merge PDFs
+          </button>
+        </div>
+      </div>
+
+      <!-- Split Tab -->
+      <div id="split-tab" class="tab-content max-w-4xl mx-auto hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div id="splitDropZone" class="drop-zone rounded-xl p-8 text-center cursor-pointer mb-6">
+            <i class="fas fa-cloud-upload-alt text-4xl text-red-500 mb-3"></i>
+            <p class="text-slate-600 dark:text-slate-400">Drop a PDF file here or click to select</p>
+            <input type="file" id="splitInput" class="hidden" accept=".pdf">
+          </div>
+
+          <div id="splitInfo" class="hidden mb-6">
+            <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-4">
+              <div class="flex items-center gap-3">
+                <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                <div>
+                  <p id="splitFileName" class="font-medium"></p>
+                  <p id="splitPageCount" class="text-sm text-slate-500"></p>
+                </div>
+              </div>
+              <button id="removeSplitFile" class="text-slate-400 hover:text-red-500">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Split Mode</label>
+                <select id="splitMode" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+                  <option value="range">Page Range</option>
+                  <option value="every">Every N Pages</option>
+                </select>
+              </div>
+              <div id="splitRangeContainer">
+                <label class="block text-sm font-medium mb-2">Page Range (e.g., 1-3, 5, 7-9)</label>
+                <input type="text" id="splitRange" placeholder="1-3, 5, 7-9" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+              </div>
+              <div id="splitEveryContainer" class="hidden">
+                <label class="block text-sm font-medium mb-2">Pages per file</label>
+                <input type="number" id="splitEvery" value="1" min="1" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+              </div>
+            </div>
+          </div>
+
+          <button id="splitBtn" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fas fa-cut mr-2"></i>Split PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Compress Tab -->
+      <div id="compress-tab" class="tab-content max-w-4xl mx-auto hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div id="compressDropZone" class="drop-zone rounded-xl p-8 text-center cursor-pointer mb-6">
+            <i class="fas fa-cloud-upload-alt text-4xl text-red-500 mb-3"></i>
+            <p class="text-slate-600 dark:text-slate-400">Drop a PDF file here or click to select</p>
+            <input type="file" id="compressInput" class="hidden" accept=".pdf">
+          </div>
+
+          <div id="compressInfo" class="hidden">
+            <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg mb-6">
+              <div class="flex items-center gap-3">
+                <i class="fas fa-file-pdf text-red-500 text-2xl"></i>
+                <div>
+                  <p id="compressFileName" class="font-medium"></p>
+                  <p id="compressFileSize" class="text-sm text-slate-500"></p>
+                </div>
+              </div>
+              <button id="removeCompressFile" class="text-slate-400 hover:text-red-500">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div class="mb-6">
+              <label class="block text-sm font-medium mb-3">Compression Quality</label>
+              <div class="space-y-2">
+                <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <input type="radio" name="compressQuality" value="low" class="w-4 h-4 text-red-600">
+                  <span class="flex-1">Low Quality (Smaller file)</span>
+                </label>
+                <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <input type="radio" name="compressQuality" value="medium" class="w-4 h-4 text-red-600" checked>
+                  <span class="flex-1">Medium Quality (Balanced)</span>
+                </label>
+                <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <input type="radio" name="compressQuality" value="high" class="w-4 h-4 text-red-600">
+                  <span class="flex-1">High Quality (Larger file)</span>
+                </label>
+              </div>
+            </div>
+
+            <button id="compressBtn" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
+              <i class="fas fa-compress-arrows-alt mr-2"></i>Compress PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { PDFDocument } = PDFLib;
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        btn.classList.add('tab-active');
+        document.getElementById(btn.dataset.tab + '-tab').classList.remove('hidden');
+      });
+    });
+
+    // Format bytes
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Setup drop zones
+    function setupDropZone(zoneId, inputId) {
+      const zone = document.getElementById(zoneId);
+      const input = document.getElementById(inputId);
+
+      zone.addEventListener('click', () => input.click());
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          input.files = files;
+          input.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
+    // ==================== MERGE ====================
+    setupDropZone('mergeDropZone', 'mergeInput');
+    let mergeFiles = [];
+
+    document.getElementById('mergeInput').addEventListener('change', (e) => {
+      mergeFiles = Array.from(e.target.files);
+      updateMergeList();
+    });
+
+    function updateMergeList() {
+      const list = document.getElementById('mergeList');
+      if (mergeFiles.length === 0) {
+        list.innerHTML = '<p class="text-center text-slate-400 py-8">No PDFs selected</p>';
+        document.getElementById('mergeBtn').disabled = true;
+        return;
+      }
+
+      list.innerHTML = mergeFiles.map((file, index) => `
+        <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="w-6 h-6 flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 rounded text-xs font-bold">${index + 1}</span>
+            <i class="fas fa-file-pdf text-red-500"></i>
+            <span class="text-sm">${file.name}</span>
+            <span class="text-xs text-slate-400">${formatBytes(file.size)}</span>
+          </div>
+          <div class="flex gap-2">
+            <button class="move-up p-1 text-slate-400 hover:text-slate-600 ${index === 0 ? 'invisible' : ''}" data-index="${index}">
+              <i class="fas fa-chevron-up"></i>
+            </button>
+            <button class="move-down p-1 text-slate-400 hover:text-slate-600 ${index === mergeFiles.length - 1 ? 'invisible' : ''}" data-index="${index}">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <button class="remove-merge p-1 text-slate-400 hover:text-red-500" data-index="${index}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('mergeBtn').disabled = mergeFiles.length < 2;
+
+      // Reorder/remove handlers
+      document.querySelectorAll('.move-up').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.index);
+          [mergeFiles[i], mergeFiles[i - 1]] = [mergeFiles[i - 1], mergeFiles[i]];
+          updateMergeList();
+        });
+      });
+      document.querySelectorAll('.move-down').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.index);
+          [mergeFiles[i], mergeFiles[i + 1]] = [mergeFiles[i + 1], mergeFiles[i]];
+          updateMergeList();
+        });
+      });
+      document.querySelectorAll('.remove-merge').forEach(btn => {
+        btn.addEventListener('click', () => {
+          mergeFiles.splice(parseInt(btn.dataset.index), 1);
+          updateMergeList();
+        });
+      });
+    }
+
+    document.getElementById('mergeBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('mergeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Merging...';
+
+      try {
+        const mergedPdf = await PDFDocument.create();
+
+        for (const file of mergeFiles) {
+          const bytes = await file.arrayBuffer();
+          const pdf = await PDFDocument.load(bytes);
+          const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          pages.forEach(page => mergedPdf.addPage(page));
+        }
+
+        const mergedBytes = await mergedPdf.save();
+        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'merged.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error merging PDFs: ' + err.message);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-merge mr-2"></i>Merge PDFs';
+    });
+
+    // ==================== SPLIT ====================
+    setupDropZone('splitDropZone', 'splitInput');
+    let splitFile = null;
+    let splitDoc = null;
+
+    document.getElementById('splitInput').addEventListener('change', async (e) => {
+      if (e.target.files.length > 0) {
+        splitFile = e.target.files[0];
+        const bytes = await splitFile.arrayBuffer();
+        splitDoc = await PDFDocument.load(bytes);
+
+        document.getElementById('splitInfo').classList.remove('hidden');
+        document.getElementById('splitDropZone').classList.add('hidden');
+        document.getElementById('splitFileName').textContent = splitFile.name;
+        document.getElementById('splitPageCount').textContent = `${splitDoc.getPageCount()} pages`;
+        document.getElementById('splitBtn').disabled = false;
+      }
+    });
+
+    document.getElementById('removeSplitFile').addEventListener('click', () => {
+      splitFile = null;
+      splitDoc = null;
+      document.getElementById('splitInput').value = '';
+      document.getElementById('splitInfo').classList.add('hidden');
+      document.getElementById('splitDropZone').classList.remove('hidden');
+      document.getElementById('splitBtn').disabled = true;
+    });
+
+    document.getElementById('splitMode').addEventListener('change', (e) => {
+      if (e.target.value === 'range') {
+        document.getElementById('splitRangeContainer').classList.remove('hidden');
+        document.getElementById('splitEveryContainer').classList.add('hidden');
+      } else {
+        document.getElementById('splitRangeContainer').classList.add('hidden');
+        document.getElementById('splitEveryContainer').classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('splitBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('splitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Splitting...';
+
+      try {
+        const mode = document.getElementById('splitMode').value;
+        const pageCount = splitDoc.getPageCount();
+        let pagesToExtract = [];
+
+        if (mode === 'range') {
+          const rangeStr = document.getElementById('splitRange').value;
+          pagesToExtract = parsePageRange(rangeStr, pageCount);
+        } else {
+          const every = parseInt(document.getElementById('splitEvery').value);
+          for (let i = 0; i < pageCount; i += every) {
+            pagesToExtract.push([i, Math.min(i + every - 1, pageCount - 1)]);
+          }
+        }
+
+        for (let i = 0; i < pagesToExtract.length; i++) {
+          const [start, end] = pagesToExtract[i];
+          const newPdf = await PDFDocument.create();
+          const pages = await newPdf.copyPages(splitDoc, Array.from({ length: end - start + 1 }, (_, j) => start + j));
+          pages.forEach(page => newPdf.addPage(page));
+
+          const bytes = await newPdf.save();
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `split_${start + 1}-${end + 1}.pdf`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        alert('Error splitting PDF: ' + err.message);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-cut mr-2"></i>Split PDF';
+    });
+
+    function parsePageRange(str, maxPage) {
+      const ranges = [];
+      const parts = str.split(',').map(s => s.trim());
+
+      for (const part of parts) {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(n => parseInt(n) - 1);
+          ranges.push([Math.max(0, start), Math.min(maxPage - 1, end)]);
+        } else {
+          const page = parseInt(part) - 1;
+          if (!isNaN(page) && page >= 0 && page < maxPage) {
+            ranges.push([page, page]);
+          }
+        }
+      }
+
+      return ranges.length > 0 ? ranges : [[0, maxPage - 1]];
+    }
+
+    // ==================== COMPRESS ====================
+    setupDropZone('compressDropZone', 'compressInput');
+    let compressFile = null;
+
+    document.getElementById('compressInput').addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        compressFile = e.target.files[0];
+        document.getElementById('compressInfo').classList.remove('hidden');
+        document.getElementById('compressDropZone').classList.add('hidden');
+        document.getElementById('compressFileName').textContent = compressFile.name;
+        document.getElementById('compressFileSize').textContent = formatBytes(compressFile.size);
+      }
+    });
+
+    document.getElementById('removeCompressFile').addEventListener('click', () => {
+      compressFile = null;
+      document.getElementById('compressInput').value = '';
+      document.getElementById('compressInfo').classList.add('hidden');
+      document.getElementById('compressDropZone').classList.remove('hidden');
+    });
+
+    document.getElementById('compressBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('compressBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Compressing...';
+
+      try {
+        const bytes = await compressFile.arrayBuffer();
+        const pdf = await PDFDocument.load(bytes);
+
+        // Note: Real PDF compression requires more advanced techniques
+        // This is a basic implementation that re-saves the PDF
+        const compressedBytes = await pdf.save({
+          useObjectStreams: true,
+          addDefaultPage: false
+        });
+
+        const blob = new Blob([compressedBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'compressed_' + compressFile.name;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error compressing PDF: ' + err.message);
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-compress-arrows-alt mr-2"></i>Compress PDF';
+    });
+  </script>
+</body>
+
+</html>

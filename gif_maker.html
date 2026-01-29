@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+<title>GIF Maker - LocalForge</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://unpkg.com/gifshot@0.4.5/dist/gifshot.min.js"></script>
+<script>
+window.tailwindConfig = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        slate: {
+          850: '#1e293b',
+        }
+      }
+    }
+  }
+};
+Object.defineProperty(window, 'tailwind', {
+  configurable: true,
+  set: function(tw) {
+    Object.defineProperty(window, 'tailwind', {
+      value: tw,
+      writable: true,
+      configurable: true
+    });
+    tw.config = window.tailwindConfig;
+  }
+});
+</script>
+  <script type="module" src="js/components.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .drop-zone {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.2s;
+    }
+
+    .drop-zone.dragover {
+      border-color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.1);
+    }
+
+    .frame-item {
+      transition: all 0.2s;
+    }
+
+    .frame-item:hover {
+      transform: translateY(-2px);
+    }
+
+    .frame-item.selected {
+      ring: 2px solid #8b5cf6;
+    }
+
+    .preview-container {
+        background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGgxMHYxMEgwem0xMCAxMGgxMHYxMEgxMHoiIGZpbGw9IiMzMzMiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+');
+    }
+</style>
+<style>
+local-sidebar:not(:defined), local-header:not(:defined) {
+  opacity: 0;
+}
+local-sidebar:defined, local-header:defined {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+/* Prevent flash of wrong theme */
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* Disable transitions during page load */
+.preload * {
+  transition: none !important;
+}@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+<script>
+(function() {
+  const savedMode = localStorage.getItem('lifeflow_theme_mode') || 'auto';
+  let isDark = false;
+  if (savedMode === 'auto') {
+    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    isDark = savedMode === 'dark';
+  }
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+})();
+</script>
+</head>
+
+<body class="preload bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-200 font-sans h-screen flex overflow-hidden transition-colors duration-300"
+  >
+<script>
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.body.classList.remove('preload');
+  }, 100);
+});
+</script>
+
+  <local-sidebar></local-sidebar>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <local-header title="GIF Maker">
+      <i slot="icon" class="fas fa-film text-purple-500"></i>
+      <div slot="actions" class="text-xs text-slate-500 dark:text-slate-400">Create animated GIFs from images</div>
+    </local-header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Left Panel: Settings -->
+      <aside class="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shrink-0 overflow-y-auto">
+        <div class="p-4 space-y-6">
+          <!-- Upload -->
+          <div>
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Add Frames</h3>
+            <div id="dropZone" class="drop-zone rounded-xl p-4 text-center cursor-pointer">
+              <i class="fas fa-images text-2xl text-purple-500 mb-2"></i>
+              <p class="text-xs text-slate-600 dark:text-slate-400">Drop images or click to add</p>
+              <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
+            </div>
+          </div>
+
+          <!-- GIF Settings -->
+          <div>
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">GIF Settings</h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Interval (ms)</label>
+                <input type="range" id="interval" min="100" max="2000" value="500" step="100" class="w-full">
+                <div class="flex justify-between text-xs text-slate-500 mt-1">
+                  <span>Fast (100ms)</span>
+                  <span id="intervalValue">500ms</span>
+                  <span>Slow (2000ms)</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Quality</label>
+                <select id="gifQuality" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+                  <option value="1">Best (slow)</option>
+                  <option value="5" selected>Good</option>
+                  <option value="10">Draft (fast)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Width (px)</label>
+                <input type="number" id="gifWidth" value="480" min="100" max="1920" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700">
+              </div>
+
+              <label class="flex items-center gap-2">
+                <input type="checkbox" id="repeat" checked class="w-4 h-4 text-purple-600">
+                <span class="text-sm">Loop forever</span>
+              </label>
+            </div>
+          </div>
+
+          <button id="createGif" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fas fa-magic mr-2"></i>Create GIF
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Frames & Preview -->
+      <main class="flex-1 bg-slate-50 dark:bg-slate-900 flex flex-col">
+        <!-- Frames Grid -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Frames</h3>
+            <button id="clearFrames" class="text-xs text-red-500 hover:text-red-600 hidden">
+              <i class="fas fa-trash-alt mr-1"></i>Clear All
+            </button>
+          </div>
+
+          <div id="framesList" class="grid grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            <div class="col-span-full text-center py-12 text-slate-400">
+              <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+              <p class="text-sm">No frames added yet</p>
+              <p class="text-xs mt-2">Add images to create a GIF</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div id="previewArea" class="hidden h-64 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Preview</h3>
+            <button id="downloadGif" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition">
+              <i class="fas fa-download mr-2"></i>Download GIF
+            </button>
+          </div>
+          <div class="flex items-center justify-center h-40 preview-container rounded-lg">
+            <img id="gifPreview" class="max-w-full max-h-full" alt="GIF Preview">
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const framesList = document.getElementById('framesList');
+    const createGifBtn = document.getElementById('createGif');
+    const clearFramesBtn = document.getElementById('clearFrames');
+    const intervalSlider = document.getElementById('interval');
+    const intervalValue = document.getElementById('intervalValue');
+    const previewArea = document.getElementById('previewArea');
+    const gifPreview = document.getElementById('gifPreview');
+    const downloadGifBtn = document.getElementById('downloadGif');
+
+    let frames = [];
+    let currentGif = null;
+
+    // Interval slider
+    intervalSlider.addEventListener('input', () => {
+      intervalValue.textContent = intervalSlider.value + 'ms';
+    });
+
+    // Drag & Drop
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    function handleFiles(fileList) {
+      const imageFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+
+      imageFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          frames.push({
+            src: e.target.result,
+            name: file.name
+          });
+          updateFramesUI();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateFramesUI() {
+      if (frames.length === 0) {
+        framesList.innerHTML = `
+          <div class="col-span-full text-center py-12 text-slate-400">
+            <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+            <p class="text-sm">No frames added yet</p>
+            <p class="text-xs mt-2">Add images to create a GIF</p>
+          </div>
+        `;
+        createGifBtn.disabled = true;
+        clearFramesBtn.classList.add('hidden');
+        previewArea.classList.add('hidden');
+        return;
+      }
+
+      framesList.innerHTML = frames.map((frame, index) => `
+        <div class="frame-item relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900" data-index="${index}">
+          <img src="${frame.src}" class="w-full h-full object-cover" alt="Frame ${index + 1}">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition flex items-end justify-between p-2">
+            <span class="text-white text-xs font-bold">${index + 1}</span>
+            <button class="remove-frame text-white hover:text-red-400" data-index="${index}">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="absolute top-1 left-1 w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+            ${index + 1}
+          </div>
+        </div>
+      `).join('');
+
+      createGifBtn.disabled = frames.length < 2;
+      createGifBtn.innerHTML = `<i class="fas fa-magic mr-2"></i>Create GIF (${frames.length} frames)`;
+      clearFramesBtn.classList.remove('hidden');
+
+      // Add remove listeners
+      document.querySelectorAll('.remove-frame').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const index = parseInt(btn.dataset.index);
+          frames.splice(index, 1);
+          updateFramesUI();
+        });
+      });
+    }
+
+    clearFramesBtn.addEventListener('click', () => {
+      frames = [];
+      currentGif = null;
+      updateFramesUI();
+    });
+
+    createGifBtn.addEventListener('click', () => {
+      if (frames.length < 2) return;
+
+      createGifBtn.disabled = true;
+      createGifBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+
+      const interval = parseInt(intervalSlider.value);
+      const quality = parseInt(document.getElementById('gifQuality').value);
+      const gifWidth = parseInt(document.getElementById('gifWidth').value);
+      const repeat = document.getElementById('repeat').checked ? 0 : 1;
+
+      gifshot.createGIF({
+        images: frames.map(f => f.src),
+        interval: interval / 1000,
+        gifWidth: gifWidth,
+        numFrames: frames.length,
+        frameDuration: interval / 1000,
+        fontWeight: 'normal',
+        fontSize: '16px',
+        fontFamily: 'sans-serif',
+        fontColor: '#ffffff',
+        textAlign: 'center',
+        textBaseline: 'bottom',
+        sampleInterval: quality,
+        numWorkers: 2,
+        progressCallback: (captureProgress) => {
+          const percent = Math.round(captureProgress * 100);
+          createGifBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Creating... ${percent}%`;
+        }
+      }, (obj) => {
+        createGifBtn.disabled = false;
+        createGifBtn.innerHTML = '<i class="fas fa-magic mr-2"></i>Create GIF';
+
+        if (!obj.error) {
+          currentGif = obj.image;
+          gifPreview.src = currentGif;
+          previewArea.classList.remove('hidden');
+
+          // Scroll to preview
+          previewArea.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          alert('Error creating GIF: ' + obj.errorMsg);
+        }
+      });
+    });
+
+    downloadGifBtn.addEventListener('click', () => {
+      if (!currentGif) return;
+
+      const link = document.createElement('a');
+      link.download = 'animated.gif';
+      link.href = currentGif;
+      link.click();
+    });
+  </script>
+</body>
+
+</html>
