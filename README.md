@@ -1,6 +1,5 @@
 # LocalForge (HTML Tools)
-
-![LocalForge Hero Banner](docs/images/hero.png)
+[tools.fangwang.me](https://tools.fangwang.me)
 
 LocalForge is a **Local-First** Web toolset powered by **Vanilla HTML5/ES6+**. It provides a collection of independent HTML-based tools that run entirely in your browser with no backend required.
 
@@ -17,8 +16,6 @@ LocalForge is a **Local-First** Web toolset powered by **Vanilla HTML5/ES6+**. I
 
 #### Image Editor
 Precision cropping (16:9), intelligent watermark removal, and format conversion.
-
-![Image Editor](docs/images/image%20editor.png)
 
 #### Image Resize
 A pure client-side image compressor with custom target size and format options.
