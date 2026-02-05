@@ -679,6 +679,12 @@ class LocalSidebar extends HTMLElement {
             <span class="${hideTextClass}">Timestamp</span>
           </a>
         </li>
+        <li>
+          <a href="clash_dashboard.html" class="flex items-center px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition whitespace-nowrap group ${justifyClass}">
+            <i class="fas fa-network-wired w-6 text-center shrink-0 group-hover:text-orange-500 dark:group-hover:text-orange-400 transition ${iconMargin}"></i>
+            <span class="${hideTextClass}">Clash Monitor</span>
+          </a>
+        </li>
                 </ul>
             </nav>
 
