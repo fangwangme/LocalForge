@@ -50,11 +50,11 @@ npx http-server -p 8080
 php -S localhost:8080
 ```
 
-## CDN Dependencies
+## External Dependencies
 
-This project relies on several CDN resources:
+This project uses a local Tailwind build plus several CDN resources:
 
-- **Tailwind CSS**: `https://cdn.tailwindcss.com`
+- **Tailwind CSS (local file)**: `css/tailwind.generated.css` (built from `css/tailwind.css`)
 - **FontAwesome**: `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css`
 - **Third-party libraries** (tool-specific):
   - PDF-LIB: `https://unpkg.com/pdf-lib@1.17.1`
@@ -62,7 +62,14 @@ This project relies on several CDN resources:
   - GIFShot: `https://unpkg.com/gifshot@0.4.5`
   - QRCode.js: `https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0`
 
-**Note**: Ensure these CDNs are accessible from your deployment region.
+**Note**: Ensure CDN resources are accessible from your deployment region.
+
+Before deployment, rebuild Tailwind CSS:
+
+```bash
+npm install
+npm run build:css
+```
 
 ## Pre-Deployment Checklist
 
@@ -84,6 +91,7 @@ Before deploying:
 - Verify `lifeflow_theme_mode` key exists in localStorage
 
 ### Tools not loading
+- Confirm `css/tailwind.generated.css` exists and is committed
 - Check CDN resources are loading (Network tab in DevTools)
 - Verify no JavaScript errors in console
 
@@ -100,8 +108,9 @@ Before deploying:
 
 ## Performance
 
-- DNS prefetch is enabled for CDNs
-- Scripts use `defer` for non-blocking loading
+- Tailwind CSS is precompiled to avoid runtime style generation delay
+- DNS prefetch is enabled for external CDNs
+- Scripts use `defer` for non-blocking loading where applicable
 - Theme is applied before page render to prevent flash
 - Images should be optimized for web
 

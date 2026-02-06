@@ -1,0 +1,20 @@
+{
+  "name": "localforge-dev",
+  "version": "1.0.0",
+  "description": "[tools.fangwang.me](https://tools.fangwang.me)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i css/tailwind.css -o css/tailwind.generated.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i css/tailwind.css -o css/tailwind.generated.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

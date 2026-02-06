@@ -5,43 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LocalForge Dashboard</title>
-  
-  <link rel="preconnect" href="https://cdn.tailwindcss.com">
-  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
   
   <link rel="icon" type="image/png" href="favicon.png">
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <script>
-    // Wait for Tailwind to load before setting config
-    window.tailwindConfig = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            slate: {
-              850: '#1e293b',
-            }
-          }
-        }
-      }
-    };
-    
-    // Apply config when Tailwind is ready
-    Object.defineProperty(window, 'tailwind', {
-      configurable: true,
-      set: function(tw) {
-        Object.defineProperty(window, 'tailwind', {
-          value: tw,
-          writable: true,
-          configurable: true
-        });
-        tw.config = window.tailwindConfig;
-      }
-    });
-  </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/tailwind.generated.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         .sidebar-transition {
@@ -339,7 +308,6 @@
               </a>
             </div>
           </section>
-
 
         </div>
       </main>

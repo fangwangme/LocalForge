@@ -5,48 +5,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Image Editor - LocalForge</title>
-
-<link rel="preconnect" href="https://cdn.tailwindcss.com">
-<link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 
 <link rel="icon" type="image/png" href="favicon.png">
-<script src="https://cdn.tailwindcss.com" defer></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Global Styles -->
+    <link rel="stylesheet" href="css/tailwind.generated.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         body {
             overflow: hidden;
         }
     </style>
-<script>
-window.tailwindConfig = {
-  darkMode: 'class',
-  theme: {
-    extend: {
-      colors: {
-        slate: {
-          850: '#1e293b',
-        }
-      }
-    }
-  }
-};
-Object.defineProperty(window, 'tailwind', {
-  configurable: true,
-  set: function(tw) {
-    Object.defineProperty(window, 'tailwind', {
-      value: tw,
-      writable: true,
-      configurable: true
-    });
-    tw.config = window.tailwindConfig;
-  }
-});
-</script>
-  <!-- Custom Components -->
+<!-- Custom Components -->
   <script type="module" src="js/components.js"></script>
   <style>
 local-sidebar:not(:defined),
@@ -538,7 +510,6 @@ html.dark {
             state.currentImage = bmp;
         }
 
-
         function resetWatermark() {
             state.watermarkRect = null;
         }
@@ -1005,7 +976,6 @@ html.dark {
             // (Handled by mousemove)
         }
 
-
         // === 3. Interaction Logic ===
 
         // Update watermark status indicator
@@ -1156,7 +1126,6 @@ html.dark {
             ctx.fillText('Watermark Area', rect.x + rect.w / 2, rect.y + rect.h / 2 - 5);
             ctx.textAlign = 'left'; // Reset
         }
-
 
         // === 4. Save Logic ===
 

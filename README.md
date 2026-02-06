@@ -100,17 +100,33 @@ Then visit http://localhost:8080
 
 For detailed guidelines on adding new tools, please refer to [CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
+### CSS Build
+
+Tailwind is compiled locally (not loaded from CDN at runtime):
+
+```bash
+npm install
+npm run build:css
+```
+
+Use watch mode during development:
+
+```bash
+npm run watch:css
+```
+
 ### Quick Start for New Tools
 
 1. **Template**: Copy the structure of an existing HTML tool (e.g., `image_resize.html`).
-2. **Dependencies**: Use CDN libraries - no build step required.
-3. **Navigation**: Register your tool in `js/components.js` to add it to the sidebar.
-4. **Theme**: Ensure dark mode support with `dark:` Tailwind classes.
+2. **Dependencies**: For third-party JS libraries, use CDN links as needed.
+3. **Styling**: Add Tailwind classes in HTML/JS, then run `npm run build:css`.
+4. **Navigation**: Register your tool in `js/components.js` to add it to the sidebar.
+5. **Theme**: Ensure dark mode support with `dark:` Tailwind classes.
 
 ## 🛠 Tech Stack
 
 - **Frontend**: Vanilla HTML5 / JavaScript (ES6+ Modules)
-- **Styling**: Tailwind CSS (CDN) + FontAwesome
+- **Styling**: Tailwind CSS (local build output) + FontAwesome
 - **Libraries**: Various CDN libraries per tool (pdf-lib, gifshot, qrcode.js, PapaParse, etc.)
 - **Storage**: LocalStorage (Settings persistence)
 
@@ -135,7 +151,11 @@ LocalForge/
 │   ├── components.js          # Shared UI components (sidebar, header, theme)
 │   └── db-client.js           # Database client (if using SharedWorker)
 ├── css/
+│   ├── tailwind.css           # Tailwind input file
+│   ├── tailwind.generated.css # Tailwind compiled output (commit this)
 │   └── style.css              # Global styles
+├── tailwind.config.js         # Tailwind config
+├── package.json               # Build scripts for CSS
 └── docs/
     ├── CONTRIBUTING.md        # Development guidelines
     └── images/                # Screenshots and assets
