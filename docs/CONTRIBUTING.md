@@ -33,46 +33,18 @@ Use this complete template for all new tools to ensure consistency:
   <title>Tool Name - LocalForge</title>
   
   <!-- DNS Prefetch for Performance -->
-  <link rel="preconnect" href="https://cdn.tailwindcss.com">
-  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <script>
-    window.tailwindConfig = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            slate: {
-              850: '#1e293b',
-            }
-          }
-        }
-      }
-    };
-    
-    Object.defineProperty(window, 'tailwind', {
-      configurable: true,
-      set: function(tw) {
-        Object.defineProperty(window, 'tailwind', {
-          value: tw,
-          writable: true,
-          configurable: true
-        });
-        tw.config = window.tailwindConfig;
-      }
-    });
-  </script>
-  
   <!-- FontAwesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   
+  <!-- Compiled Tailwind CSS -->
+  <link rel="stylesheet" href="css/tailwind.generated.css">
+
   <!-- Global Styles -->
   <link rel="stylesheet" href="css/style.css">
   
@@ -386,7 +358,7 @@ Before submitting a new tool, verify:
 
 ## 8. Performance Tips
 
-1. **CDN Resources**: Use `defer` for scripts that don't block rendering
+1. **CSS Build**: Run `npm run build:css` after adding/changing Tailwind classes
 2. **Images**: Optimize screenshots for docs/ folder
 3. **Debouncing**: Use debounce for input-heavy tools
 4. **Lazy Loading**: Load heavy libraries only when needed
@@ -401,26 +373,10 @@ Before submitting a new tool, verify:
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Tool - LocalForge</title>
   
-  <link rel="preconnect" href="https://cdn.tailwindcss.com">
-  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
   <link rel="icon" type="image/png" href="favicon.png">
-  
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <script>
-    window.tailwindConfig = {
-      darkMode: 'class',
-      theme: { extend: { colors: { slate: { 850: '#1e293b' } } } }
-    };
-    Object.defineProperty(window, 'tailwind', {
-      configurable: true,
-      set: function(tw) {
-        Object.defineProperty(window, 'tailwind', { value: tw, writable: true, configurable: true });
-        tw.config = window.tailwindConfig;
-      }
-    });
-  </script>
-  
+
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/tailwind.generated.css">
   <link rel="stylesheet" href="css/style.css">
   
   <script type="module" src="js/components.js"></script>

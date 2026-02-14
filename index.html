@@ -5,43 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LocalForge Dashboard</title>
-  
-  <link rel="preconnect" href="https://cdn.tailwindcss.com">
-  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
   
   <link rel="icon" type="image/png" href="favicon.png">
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <script>
-    // Wait for Tailwind to load before setting config
-    window.tailwindConfig = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            slate: {
-              850: '#1e293b',
-            }
-          }
-        }
-      }
-    };
-    
-    // Apply config when Tailwind is ready
-    Object.defineProperty(window, 'tailwind', {
-      configurable: true,
-      set: function(tw) {
-        Object.defineProperty(window, 'tailwind', {
-          value: tw,
-          writable: true,
-          configurable: true
-        });
-        tw.config = window.tailwindConfig;
-      }
-    });
-  </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/tailwind.generated.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         .sidebar-transition {
@@ -324,22 +293,8 @@
                 <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Unix timestamp converter.</p>
               </a>
 
-              <!-- Clash Monitor -->
-              <a href="clash_dashboard.html"
-                class="group p-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-orange-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition cursor-pointer relative overflow-hidden block shadow-sm dark:shadow-none">
-                <div
-                  class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition">
-                </div>
-                <div
-                  class="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
-                  <i class="fas fa-network-wired"></i>
-                </div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">Clash Monitor</h3>
-                <p class="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">Real-time traffic monitor.</p>
-              </a>
             </div>
           </section>
-
 
         </div>
       </main>
