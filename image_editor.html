@@ -260,6 +260,7 @@ html.dark {
                     <div class="text-[10px] text-slate-500 dark:text-slate-600 text-center space-y-1 pb-4">
                         <p>← / → : Switch Image</p>
                         <p>S : Save | O : Save Original | C : Clear</p>
+                        <p>Cmd+O : Open File</p>
                     </div>
 
                 </div>
@@ -1437,12 +1438,21 @@ html.dark {
         }
 
         document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            const hasPrimaryModifier = e.metaKey || e.ctrlKey;
+
+            if (hasPrimaryModifier && key === 'o') {
+                e.preventDefault();
+                els.singleBtn.click();
+                return;
+            }
+
             if (e.key === 'ArrowRight') loadFile(state.currentIndex + 1);
             if (e.key === 'ArrowLeft') loadFile(state.currentIndex - 1);
-            if (e.key.toLowerCase() === 's') processAndSave();
-            if (e.key.toLowerCase() === 'o') saveOriginal();
-            if (e.key.toLowerCase() === 'g') applyGeminiWatermarkRemoval();
-            if (e.key.toLowerCase() === 'c') {
+            if (!hasPrimaryModifier && key === 's') processAndSave();
+            if (!hasPrimaryModifier && key === 'o') saveOriginal();
+            if (!hasPrimaryModifier && key === 'g') applyGeminiWatermarkRemoval();
+            if (!hasPrimaryModifier && key === 'c') {
                 // Shortcut to clear selection
                 state.watermarkRect = null;
                 updateWatermarkStatus();
